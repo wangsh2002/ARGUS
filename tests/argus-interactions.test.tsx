@@ -1,7 +1,15 @@
-import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import snapshot from "../lib/argus-data.json";
 import { ArgusApp } from "../app/ArgusApp";
+import { NetworkGraph } from "../app/NetworkGraph";
 import type { Snapshot } from "../app/types";
 
 const data = snapshot as Snapshot;
@@ -73,5 +81,67 @@ describe("ARGUS interactive workflows", () => {
     expect(screen.getByText("APT28 全景图谱")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: /返回组织档案/ }));
     expect(screen.getByRole("heading", { name: "攻击组织总揽" })).toBeInTheDocument();
+  });
+
+  it("allows graph nodes to be dragged and fixed at a new position", async () => {
+    render(
+      <NetworkGraph
+        rootId="actor"
+        nodes={[
+          { id: "actor", label: "APT28", type: "攻击组织", status: "hot" },
+          { id: "event", label: "H1", type: "历史事件", status: "positive" },
+        ]}
+        edges={[
+          {
+            id: "edge",
+            source: "actor",
+            target: "event",
+            label: "主导活动",
+            status: "hot",
+          },
+        ]}
+      />,
+    );
+
+    const svg = screen.getByRole("img", { name: "威胁情报关系图谱" });
+    vi.spyOn(svg, "getBoundingClientRect").mockReturnValue({
+      x: 0,
+      y: 0,
+      top: 0,
+      left: 0,
+      right: 1000,
+      bottom: 560,
+      width: 1000,
+      height: 560,
+      toJSON: () => ({}),
+    });
+    const actorNode = await screen.findByRole("button", {
+      name: "攻击组织：APT28",
+    });
+    Object.defineProperties(actorNode, {
+      setPointerCapture: { value: vi.fn() },
+      hasPointerCapture: { value: vi.fn(() => true) },
+      releasePointerCapture: { value: vi.fn() },
+    });
+
+    fireEvent.pointerDown(actorNode, {
+      pointerId: 1,
+      clientX: 500,
+      clientY: 280,
+    });
+    fireEvent.pointerMove(actorNode, {
+      pointerId: 1,
+      clientX: 720,
+      clientY: 360,
+    });
+    fireEvent.pointerUp(actorNode, {
+      pointerId: 1,
+      clientX: 720,
+      clientY: 360,
+    });
+
+    await waitFor(() => {
+      expect(actorNode.getAttribute("transform")).toContain("720");
+    });
   });
 });
