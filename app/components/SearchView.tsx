@@ -65,6 +65,9 @@ export function SearchView({
     <main className="search-page">
       <section className="search-hero">
         <div className="hero-copy">
+          <span className="hero-emblem" aria-hidden="true">
+            <GitBranch size={28} />
+          </span>
           <span className="eyebrow">
             <span className="pulse-mark" />
             TRACEABLE THREAT INTELLIGENCE

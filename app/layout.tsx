@@ -27,7 +27,7 @@ export async function generateMetadata(): Promise<Metadata> {
       title: "ARGUS 可追溯攻击链研判平台",
       description,
       type: "website",
-      images: [{ url: socialImage, width: 1730, height: 909 }],
+      images: [{ url: socialImage, width: 1731, height: 909 }],
     },
     twitter: {
       card: "summary_large_image",
