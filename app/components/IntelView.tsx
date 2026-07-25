@@ -100,30 +100,41 @@ export function IntelView({
         </div>
       </div>
 
-      <section className="intel-identity">
-        <span className="identity-icon">
-          <ShieldAlert size={25} />
-        </span>
-        <div className="identity-main">
-          <span className="eyebrow">{result.queryType} · THREAT INTELLIGENCE</span>
-          <h1>{entity.label}</h1>
-          <p>{entity.description || "当前实体暂无补充描述。"}</p>
-          <div className="identity-tags">
-            <StatusBadge status={propString(entity, "status") || "positive"} />
-            <span>{entity.entity_type}</span>
-            {propString(entity, "actor") && <span>{propString(entity, "actor")}</span>}
-            {propString(entity, "event") && <span>{propString(entity, "event")}</span>}
-          </div>
-        </div>
-        <div className="identity-score">
-          <small>情报置信度</small>
-          <strong>{Math.round(propNumber(entity, "confidence") * 100)}</strong>
-          <span>/ 100</span>
-        </div>
-      </section>
-
       <div className="intel-layout">
-        <section className="intel-main-panel">
+        <div className="intel-detail-column">
+          <section className="intel-identity">
+            <span className="identity-icon">
+              <ShieldAlert size={25} />
+            </span>
+            <div className="identity-main">
+              <span className="eyebrow">
+                {result.queryType} · THREAT INTELLIGENCE
+              </span>
+              <h1>{entity.label}</h1>
+              <p>{entity.description || "当前实体暂无补充描述。"}</p>
+              <div className="identity-tags">
+                <StatusBadge
+                  status={propString(entity, "status") || "positive"}
+                />
+                <span>{entity.entity_type}</span>
+                {propString(entity, "actor") && (
+                  <span>{propString(entity, "actor")}</span>
+                )}
+                {propString(entity, "event") && (
+                  <span>{propString(entity, "event")}</span>
+                )}
+              </div>
+            </div>
+            <div className="identity-score">
+              <small>情报置信度</small>
+              <strong>
+                {Math.round(propNumber(entity, "confidence") * 100)}
+              </strong>
+              <span>/ 100</span>
+            </div>
+          </section>
+
+          <section className="intel-main-panel">
           <div className="section-tabs" role="tablist" aria-label="情报详情">
             {[
               ["overview", "情报概览", relatedEdges.length],
@@ -283,7 +294,8 @@ export function IntelView({
               )}
             </div>
           )}
-        </section>
+          </section>
+        </div>
 
         <aside className="intel-graph-panel">
           <header>
