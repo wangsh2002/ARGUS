@@ -84,7 +84,7 @@ describe("ARGUS query-centered workflows", () => {
     expect(screen.getByRole("img", { name: "威胁情报关系图谱" })).toBeInTheDocument();
   });
 
-  it("turns ordered analyst input into an editable traceable chain", async () => {
+  it("turns ordered analyst input into a readable traceable chain", async () => {
     render(<ArgusApp data={data} />);
     fireEvent.click(screen.getByRole("tab", { name: /攻击链/ }));
     fireEvent.change(screen.getByLabelText("综合查询输入"), {
@@ -93,48 +93,49 @@ describe("ARGUS query-centered workflows", () => {
     fireEvent.click(screen.getByRole("button", { name: "执行查询" }));
 
     expect(
-      await screen.findByRole("heading", { level: 2, name: "主攻击路径" }),
+      await screen.findByRole("heading", { level: 2, name: "完整攻击路径" }),
     ).toBeInTheDocument();
     expect(screen.getAllByText("Outlook 提醒").length).toBeGreaterThan(0);
     expect(screen.getAllByText("远程 SMB").length).toBeGreaterThan(0);
     expect(screen.getAllByText("NTLM 泄露").length).toBeGreaterThan(0);
     expect(screen.getByRole("img", { name: "威胁情报关系图谱" })).toBeInTheDocument();
-    expect(screen.getByText("真实时序为主 · ATT&CK 为补充")).toBeInTheDocument();
+    expect(screen.getByText(/ATT&CK 仅补充阶段定义/)).toBeInTheDocument();
   });
 
-  it("lets an analyst add a node and then revise its investigation details", async () => {
+  it("presents a read-only matched chain with every decision section expanded", async () => {
     render(<ArgusApp data={data} />);
     fireEvent.click(screen.getByRole("tab", { name: /攻击链/ }));
     fireEvent.change(screen.getByLabelText("综合查询输入"), {
-      target: { value: "可疑邮件 → PowerShell 执行" },
+      target: { value: "Outlook 提醒 → 远程 SMB → NTLM 泄露" },
     });
     fireEvent.click(screen.getByRole("button", { name: "执行查询" }));
 
-    fireEvent.click(
-      await screen.findByRole("button", { name: /添加节点/ }),
-    );
-    const editor = await screen.findByRole("dialog", {
-      name: "编辑攻击链节点",
-    });
-    fireEvent.change(within(editor).getByLabelText("节点名称"), {
-      target: { value: "恶意脚本回连 C2" },
-    });
-    fireEvent.change(within(editor).getByLabelText("与前序节点的关系"), {
-      target: { value: "执行后回连" },
-    });
-    fireEvent.change(within(editor).getByLabelText("攻击阶段"), {
-      target: { value: "命令与控制" },
-    });
-    fireEvent.click(within(editor).getByRole("button", { name: "保存节点" }));
+    expect(
+      await screen.findByRole("heading", { level: 2, name: "完整攻击路径" }),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "添加节点" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "编辑节点" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "确认" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "排除" })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("tablist", { name: "研判结果" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("img", { name: "威胁情报关系图谱" }),
+    ).toBeVisible();
 
-    expect(screen.getAllByText("恶意脚本回连 C2").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("执行后回连").length).toBeGreaterThan(0);
-
-    fireEvent.click(
-      screen.getByRole("listitem", { name: /恶意脚本回连 C2/ }),
-    );
-    fireEvent.click(screen.getByRole("button", { name: "编辑节点" }));
-    expect(screen.getByLabelText("节点名称")).toHaveValue("恶意脚本回连 C2");
+    expect(
+      screen.getByRole("heading", { level: 2, name: "历史总结" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { level: 2, name: "处置建议" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { level: 2, name: "归因辅助" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { level: 2, name: "全部来源" }),
+    ).toBeInTheDocument();
   });
 
   it("opens a verifiable public report and builds a source-backed workspace", async () => {
@@ -154,14 +155,21 @@ describe("ARGUS query-centered workflows", () => {
     );
 
     expect(
-      await screen.findByRole("heading", { level: 2, name: "主攻击路径" }),
+      await screen.findByRole("heading", { level: 2, name: "完整攻击路径" }),
     ).toBeInTheDocument();
-    expect(screen.getByRole("tab", { name: "历史总结" })).toBeInTheDocument();
-    expect(screen.getByRole("tab", { name: "处置建议" })).toBeInTheDocument();
-    expect(screen.getByRole("tab", { name: "归因辅助" })).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("tab", { name: /全部来源/ }));
+    expect(
+      screen.getByRole("heading", { level: 2, name: "历史总结" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { level: 2, name: "处置建议" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { level: 2, name: "归因辅助" }),
+    ).toBeInTheDocument();
+    const sourceSection = document.getElementById("all-sources");
+    expect(sourceSection).not.toBeNull();
     fireEvent.click(
-      screen.getByRole("button", {
+      within(sourceSection as HTMLElement).getByRole("button", {
         name: /Midnight Blizzard: Guidance for responders/,
       }),
     );

@@ -48,7 +48,7 @@ export function CasesView({
         <div>
           <span className="eyebrow">LOCAL INVESTIGATIONS</span>
           <h1>调查案件</h1>
-          <p>保存攻击链研判状态、人工确认、证据与报告草稿。</p>
+          <p>保存攻击链匹配结果、来源证据与报告摘要。</p>
         </div>
         <button type="button" className="primary-button" onClick={onCreate}>
           新建调查 <ArrowRight size={16} />
@@ -66,7 +66,7 @@ export function CasesView({
                 <span className="case-icon">
                   <GitBranch size={19} />
                 </span>
-                <StatusBadge status="partial">研判中</StatusBadge>
+                <StatusBadge status="matched">匹配结果</StatusBadge>
                 <button
                   type="button"
                   className="delete-case"
@@ -85,8 +85,8 @@ export function CasesView({
                   <dd>{item.steps.length}</dd>
                 </div>
                 <div>
-                  <dt>人工确认</dt>
-                  <dd>{item.steps.filter((step) => step.reviewStatus === "confirmed").length}</dd>
+                  <dt>证据覆盖</dt>
+                  <dd>{item.steps.filter((step) => step.evidenceCount > 0).length}/{item.steps.length}</dd>
                 </div>
                 <div>
                   <dt>候选组织</dt>
@@ -96,7 +96,7 @@ export function CasesView({
               <footer>
                 <span>更新于 {formatDate(item.updatedAt)}</span>
                 <button type="button" onClick={() => onOpen(item)}>
-                  继续研判 <ArrowRight size={14} />
+                  查看匹配 <ArrowRight size={14} />
                 </button>
               </footer>
             </article>

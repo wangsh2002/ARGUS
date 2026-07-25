@@ -3,26 +3,20 @@
 import {
   ArrowDownToLine,
   ArrowLeft,
-  ArrowRight,
   Bot,
   Check,
-  ChevronLeft,
-  ChevronRight,
-  CirclePlus,
   Clock3,
+  Database,
   ExternalLink,
   FileJson,
   FileText,
-  ListChecks,
-  Pencil,
+  GitBranch,
   Printer,
   Save,
   ShieldCheck,
-  Trash2,
   TriangleAlert,
-  X,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   actorForCase,
   adviceForCase,
@@ -30,6 +24,7 @@ import {
   citationsForCase,
   historicalFindings,
 } from "../argus-domain";
+import { NetworkGraph } from "../NetworkGraph";
 import {
   buildInvestigationExport,
   downloadJson,
@@ -42,7 +37,6 @@ import type {
   Snapshot,
   SourceCitation,
 } from "../types";
-import { NetworkGraph } from "../NetworkGraph";
 import {
   Confidence,
   EmptyState,
@@ -51,28 +45,28 @@ import {
   StatusBadge,
 } from "./Primitives";
 
-type AnalysisTab = "history" | "advice" | "attribution" | "sources";
-
-const tabLabels: Array<[AnalysisTab, string]> = [
-  ["history", "历史总结"],
-  ["advice", "处置建议"],
-  ["attribution", "归因辅助"],
-  ["sources", "全部来源"],
-];
-
 function stepOriginLabel(step: ChainStep) {
   return {
     database: "情报库匹配",
-    log: "日志提取",
-    manual: "人工创建",
-    gpt: "GPT 建议",
+    log: "日志内容匹配",
+    manual: "输入顺序匹配",
+    gpt: "GPT 候选建议",
   }[step.origin];
+}
+
+function sourceKindLabel(investigation: InvestigationCase) {
+  return {
+    report: "报告匹配",
+    query: "查询匹配",
+    log: "日志匹配",
+    manual: "人工线索",
+    gpt: "GPT 辅助",
+  }[investigation.sourceKind];
 }
 
 export function ChainWorkspace({
   data,
   investigation,
-  onChange,
   onSave,
   onBack,
   onOpenGraph,
@@ -80,21 +74,18 @@ export function ChainWorkspace({
 }: {
   data: Snapshot;
   investigation: InvestigationCase;
-  onChange: (investigation: InvestigationCase) => void;
   onSave: () => void;
   onBack: () => void;
   onOpenGraph: () => void;
   onOpenGpt: () => void;
 }) {
   const [selectedId, setSelectedId] = useState(investigation.steps[0]?.id);
-  const [tab, setTab] = useState<AnalysisTab>("history");
   const [source, setSource] = useState<SourceCitation>();
   const [savedNotice, setSavedNotice] = useState(false);
-  const [editor, setEditor] = useState<{
-    mode: "create" | "edit";
-    draft: ChainStep;
-  }>();
-  const graph = useMemo(() => caseGraph(data, investigation), [data, investigation]);
+  const graph = useMemo(
+    () => caseGraph(data, investigation),
+    [data, investigation],
+  );
   const citations = useMemo(
     () => citationsForCase(data, investigation),
     [data, investigation],
@@ -108,10 +99,18 @@ export function ChainWorkspace({
     [data, investigation],
   );
   const actor = actorForCase(data, investigation);
-  const selected = investigation.steps.find((step) => step.id === selectedId);
+  const selected =
+    investigation.steps.find((step) => step.id === selectedId) ??
+    investigation.steps[0];
+  const selectedIndex = selected
+    ? investigation.steps.findIndex((step) => step.id === selected.id)
+    : -1;
   const selectedCitationIds = new Set(
     investigation.links
-      .filter((link) => link.source === selectedId || link.target === selectedId)
+      .filter(
+        (link) =>
+          link.source === selected?.id || link.target === selected?.id,
+      )
       .map((link) => link.relationshipId)
       .filter(Boolean),
   );
@@ -130,130 +129,19 @@ export function ChainWorkspace({
     advice,
     citations,
   );
-
-  const updateStep = (stepId: string, patch: Partial<ChainStep>) => {
-    onChange({
-      ...investigation,
-      steps: investigation.steps.map((step) =>
-        step.id === stepId ? { ...step, ...patch } : step,
-      ),
-    });
-  };
-
-  const rebuildSequentialLinks = (
-    steps: ChainStep[],
-    links = investigation.links,
-  ) =>
-    steps.slice(1).map((step, index) => {
-      const previous = steps[index];
-      const existing =
-        links.find(
-          (link) => link.source === previous.id && link.target === step.id,
-        ) ?? links.find((link) => link.target === step.id);
-      return {
-        id:
-          existing?.id ??
-          `manual-link-${Date.now().toString(36)}-${index.toString(36)}`,
-        source: previous.id,
-        target: step.id,
-        label: step.relation || existing?.label || "待确认关系",
-        confidence:
-          existing?.confidence ??
-          Math.min(previous.confidence, step.confidence),
-        status: existing?.status ?? step.status,
-        relationshipId: existing?.relationshipId,
-      };
-    });
-
-  const moveStep = (stepId: string, direction: -1 | 1) => {
-    const index = investigation.steps.findIndex((step) => step.id === stepId);
-    const nextIndex = index + direction;
-    if (index < 0 || nextIndex < 0 || nextIndex >= investigation.steps.length) return;
-    const steps = [...investigation.steps];
-    [steps[index], steps[nextIndex]] = [steps[nextIndex], steps[index]];
-    onChange({
-      ...investigation,
-      steps,
-      links: rebuildSequentialLinks(steps),
-    });
-  };
-
-  const openStepCreator = () => {
-    const id = `manual-${Date.now().toString(36)}`;
-    setEditor({
-      mode: "create",
-      draft: {
-        id,
-        label: "新建候选节点",
-        type: "输入步骤",
-        relation: investigation.steps.length ? "待确认关系" : "链路起点",
-        phase: "待研判",
-        confidence: 0.4,
-        evidenceCount: 0,
-        status: "partial",
-        origin: "manual",
-        reviewStatus: "candidate",
-        description: "人工创建的候选节点，需要补充真实名称与证据。",
-      },
-    });
-  };
-
-  const openStepEditor = (step: ChainStep) => {
-    setEditor({ mode: "edit", draft: { ...step } });
-  };
-
-  const saveStepEditor = () => {
-    if (!editor?.draft.label.trim()) return;
-    const draft = {
-      ...editor.draft,
-      label: editor.draft.label.trim(),
-      relation: editor.draft.relation.trim() || "待确认关系",
-      phase: editor.draft.phase.trim() || "待研判",
-      type: editor.draft.type.trim() || "输入步骤",
-    };
-    const steps =
-      editor.mode === "create"
-        ? [...investigation.steps, draft]
-        : investigation.steps.map((step) =>
-            step.id === draft.id ? draft : step,
-          );
-    onChange({
-      ...investigation,
-      steps,
-      links: rebuildSequentialLinks(steps),
-    });
-    setSelectedId(draft.id);
-    setEditor(undefined);
-  };
-
-  const deleteStep = (stepId: string) => {
-    const currentIndex = investigation.steps.findIndex(
-      (step) => step.id === stepId,
-    );
-    const steps = investigation.steps.filter((step) => step.id !== stepId);
-    onChange({
-      ...investigation,
-      steps,
-      links: rebuildSequentialLinks(
-        steps,
-        investigation.links.filter(
-          (link) => link.source !== stepId && link.target !== stepId,
-        ),
-      ),
-    });
-    setSelectedId(steps[Math.min(currentIndex, steps.length - 1)]?.id);
-    setEditor(undefined);
-  };
-
-  const pendingReviewCount = investigation.steps.filter(
-    (step) => step.reviewStatus === "candidate",
+  const coveredSteps = investigation.steps.filter(
+    (step) => step.evidenceCount > 0,
   ).length;
-  const evidenceGapCount = investigation.steps.filter(
-    (step) => step.evidenceCount === 0,
-  ).length;
-  const selectedIndex = investigation.steps.findIndex(
-    (step) => step.id === selectedId,
-  );
+  const phases = new Set(investigation.steps.map((step) => step.phase)).size;
+  const averageConfidence = investigation.steps.length
+    ? investigation.steps.reduce((sum, step) => sum + step.confidence, 0) /
+      investigation.steps.length
+    : 0;
+
+  useEffect(() => {
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+  }, [investigation.id]);
 
   const save = () => {
     onSave();
@@ -262,43 +150,64 @@ export function ChainWorkspace({
   };
 
   return (
-    <main className="chain-workspace">
+    <main className="chain-workspace chain-workspace-readonly">
       <div className="workspace-toolbar">
-        <div className="workspace-title">
-          <button type="button" className="icon-button" aria-label="返回" onClick={onBack}>
+        <div className="workspace-case-heading">
+          <button
+            type="button"
+            className="icon-button"
+            aria-label="返回"
+            onClick={onBack}
+          >
             <ArrowLeft size={17} />
           </button>
           <div>
             <span>
-              {investigation.id} · 本机 Demo 草稿
+              {sourceKindLabel(investigation)} · {investigation.id}
             </span>
-            <input
-              aria-label="案件标题"
-              value={investigation.title}
-              onChange={(event) =>
-                onChange({ ...investigation, title: event.target.value })
-              }
-            />
+            <h1>{investigation.title}</h1>
+            <p title={investigation.sourceLabel}>{investigation.sourceLabel}</p>
           </div>
-          <StatusBadge status="partial">研判中</StatusBadge>
+          <StatusBadge status="matched">匹配结果</StatusBadge>
         </div>
         <div className="workspace-actions">
-          {savedNotice && <span className="save-notice"><Check size={14} />已保存在本机</span>}
-          <button type="button" className="secondary-button" onClick={onOpenGpt}>
+          {savedNotice && (
+            <span className="save-notice">
+              <Check size={14} />
+              已保存在本机
+            </span>
+          )}
+          <button
+            type="button"
+            className="secondary-button"
+            onClick={onOpenGpt}
+          >
             <Bot size={15} /> GPT 辅助
           </button>
           <button type="button" className="secondary-button" onClick={save}>
-            <Save size={15} /> 保存
+            <Save size={15} /> 保存匹配
           </button>
           <div className="export-actions">
-            <button type="button" aria-label="打印或导出 PDF" onClick={printInvestigation}>
+            <button
+              type="button"
+              aria-label="打印或导出 PDF"
+              onClick={printInvestigation}
+            >
               <Printer size={15} />
             </button>
-            <button type="button" aria-label="导出 Markdown" onClick={() => downloadMarkdown(exportBundle)}>
+            <button
+              type="button"
+              aria-label="导出 Markdown"
+              onClick={() => downloadMarkdown(exportBundle)}
+            >
               <ArrowDownToLine size={15} />
               MD
             </button>
-            <button type="button" aria-label="导出 JSON" onClick={() => downloadJson(exportBundle)}>
+            <button
+              type="button"
+              aria-label="导出 JSON"
+              onClick={() => downloadJson(exportBundle)}
+            >
               <FileJson size={15} />
               JSON
             </button>
@@ -306,328 +215,340 @@ export function ChainWorkspace({
         </div>
       </div>
 
-      <section className="investigation-flow" aria-label="研判流程">
-        <div className="flow-objective">
-          <span className="eyebrow">CURRENT OBJECTIVE</span>
-          <strong>先确认主攻击路径，再形成结论</strong>
-          <p>{investigation.summary}</p>
+      <section className="match-summary" aria-label="攻击链匹配概览">
+        <div className="match-summary-copy">
+          <div className="match-summary-icon">
+            <GitBranch size={22} />
+          </div>
+          <div>
+            <span className="eyebrow">CHAIN MATCH</span>
+            <h2>已匹配到一条可追溯攻击路径</h2>
+            <p>{investigation.summary}</p>
+          </div>
         </div>
-        <ol className="review-stages">
-          <li className="active">
-            <span>1</span>
-            <div>
-              <strong>整理主线</strong>
-              <small>{investigation.steps.length} 个真实节点</small>
-            </div>
-          </li>
-          <li className={pendingReviewCount ? "attention" : "complete"}>
-            <span>2</span>
-            <div>
-              <strong>逐节点核验</strong>
-              <small>
-                {pendingReviewCount
-                  ? `${pendingReviewCount} 个候选待处理`
-                  : "候选节点已处理"}
-              </small>
-            </div>
-          </li>
-          <li className={evidenceGapCount ? "" : "complete"}>
-            <span>3</span>
-            <div>
-              <strong>总结与建议</strong>
-              <small>{evidenceGapCount} 个证据缺口需说明</small>
-            </div>
-          </li>
-        </ol>
+        <dl className="match-metrics">
+          <div>
+            <dt>真实节点</dt>
+            <dd>{investigation.steps.length}</dd>
+          </div>
+          <div>
+            <dt>证据覆盖</dt>
+            <dd>
+              {coveredSteps}/{investigation.steps.length}
+            </dd>
+          </div>
+          <div>
+            <dt>阶段跨度</dt>
+            <dd>{phases}</dd>
+          </div>
+          <div>
+            <dt>平均置信度</dt>
+            <dd>{Math.round(averageConfidence * 100)}%</dd>
+          </div>
+        </dl>
+        <p className="match-boundary">
+          当前版本用于匹配查询和证据阅读，不在此页面修改情报事实或攻击链顺序。
+        </p>
       </section>
 
-      <div className="workspace-primary">
-        <section className="timeline-panel">
-          <header className="panel-header">
-            <div>
-              <span className="eyebrow">PRIMARY ATTACK PATH</span>
-              <h2>主攻击路径</h2>
-            </div>
-            <div className="panel-header-actions">
-              <span>真实时序为主 · ATT&amp;CK 为补充</span>
-              <button type="button" className="primary-button" onClick={openStepCreator}>
-                <CirclePlus size={15} /> 添加节点
-              </button>
-            </div>
-          </header>
-          <div className="chain-stage-strip">
-            {[...new Set(investigation.steps.map((step) => step.phase))].map((phase) => (
-              <span key={phase}>{phase}</span>
-            ))}
+      <section className="path-panel">
+        <header className="section-heading">
+          <div>
+            <span className="eyebrow">MATCHED ATTACK PATH</span>
+            <h2>完整攻击路径</h2>
+            <p>真实节点名称与输入时序为主，ATT&amp;CK 仅补充阶段定义。</p>
           </div>
-          <div className="chain-timeline" role="list" aria-label="攻击链步骤">
+          <div className="path-legend" aria-label="节点状态说明">
+            <span>
+              <i className="legend-matched" />
+              情报匹配
+            </span>
+            <span>
+              <i className="legend-candidate" />
+              待补证据
+            </span>
+          </div>
+        </header>
+        {investigation.steps.length ? (
+          <ol
+            className="path-overview"
+            aria-label="攻击链步骤"
+            style={{
+              gridTemplateColumns: `repeat(${investigation.steps.length}, minmax(108px, 1fr))`,
+            }}
+          >
             {investigation.steps.map((step, index) => (
-              <div
+              <li
                 key={step.id}
-                className={`chain-step-wrap ${step.reviewStatus === "excluded" ? "is-excluded" : ""}`}
+                className={`path-step ${
+                  step.reviewStatus === "excluded" ? "is-excluded" : ""
+                }`}
               >
                 {index > 0 && (
-                  <div className={`chain-connector connector-${step.status}`}>
-                    <span>{step.relation}</span>
-                    <ArrowRight size={17} />
-                  </div>
+                  <span className="path-relation" title={step.relation}>
+                    {step.relation}
+                  </span>
                 )}
                 <button
                   type="button"
-                  role="listitem"
                   aria-label={`攻击链节点：${step.label}`}
-                  className={`chain-step-card ${selectedId === step.id ? "is-selected" : ""}`}
+                  className={selected?.id === step.id ? "is-selected" : ""}
                   onClick={() => setSelectedId(step.id)}
                 >
-                  <span className="step-number">{String(index + 1).padStart(2, "0")}</span>
-                  <div className="step-card-head">
-                    <span>{step.phase}</span>
-                    <StatusBadge status={step.reviewStatus} />
-                  </div>
+                  <span className="path-node-number">
+                    {String(index + 1).padStart(2, "0")}
+                  </span>
                   <strong>{step.label}</strong>
-                  <p>{step.description || step.type}</p>
-                  <div className="step-tags">
-                    <span>{step.type}</span>
-                    {step.attackId && <span>{step.attackId}</span>}
-                  </div>
-                  <footer>
-                    <span>
-                      <ShieldCheck size={13} />
-                      {step.evidenceCount} 份证据
-                    </span>
-                    <span>{Math.round(step.confidence * 100)}%</span>
-                  </footer>
+                  <span className="path-node-phase">{step.phase}</span>
+                  <small>
+                    {step.evidenceCount
+                      ? `${step.evidenceCount} 份证据`
+                      : "暂无直接证据"}
+                  </small>
                 </button>
-              </div>
+              </li>
             ))}
-          </div>
-          <div className="chain-legend">
-            <span><i className="legend-confirmed" />人工确认</span>
-            <span><i className="legend-matched" />情报匹配</span>
-            <span><i className="legend-candidate" />候选节点</span>
-            <span><i className="legend-negative" />反证/排除</span>
-          </div>
+          </ol>
+        ) : (
+          <EmptyState
+            title="未匹配到攻击链节点"
+            description="请返回查询页补充可识别的时序线索。"
+          />
+        )}
+      </section>
+
+      <div className="evidence-graph-grid">
+        <section className="node-evidence-panel" aria-label="当前节点匹配依据">
+          <header className="section-heading compact">
+            <div>
+              <span className="eyebrow">
+                NODE {Math.max(selectedIndex + 1, 0)} /{" "}
+                {investigation.steps.length}
+              </span>
+              <h2>当前节点匹配依据</h2>
+            </div>
+            {selected && <StatusBadge status={selected.reviewStatus} />}
+          </header>
+          {selected ? (
+            <div className="node-evidence-body">
+              <div className="node-evidence-title">
+                <span className="match-source-icon">
+                  <Database size={17} />
+                </span>
+                <div>
+                  <span>{stepOriginLabel(selected)}</span>
+                  <h3>{selected.label}</h3>
+                </div>
+              </div>
+              <p className="node-description">
+                {selected.description ||
+                  "该节点根据当前查询内容与已入库威胁情报进行匹配。"}
+              </p>
+              <div className="node-provenance">
+                <span>{selected.type}</span>
+                <span>{selected.phase}</span>
+                {selected.attackId && <span>{selected.attackId}</span>}
+              </div>
+              <div className="node-confidence-row">
+                <span>匹配置信度</span>
+                <Confidence value={selected.confidence} />
+              </div>
+              {selectedSources[0] ? (
+                <button
+                  type="button"
+                  className="selected-source"
+                  onClick={() => setSource(selectedSources[0])}
+                >
+                  <FileText size={16} />
+                  <span>
+                    <strong>{selectedSources[0].title}</strong>
+                    <small>
+                      {selectedSources[0].location || "查看来源证据"}
+                    </small>
+                  </span>
+                  <ExternalLink size={14} />
+                </button>
+              ) : (
+                <div className="evidence-gap">
+                  <TriangleAlert size={16} />
+                  <span>
+                    当前节点暂无可点击的直接关系摘录，仅作为输入时序中的匹配候选展示。
+                  </span>
+                </div>
+              )}
+            </div>
+          ) : (
+            <EmptyState
+              title="请选择路径节点"
+              description="点击上方真实节点名称即可查看匹配依据。"
+            />
+          )}
         </section>
 
-        <aside className="workspace-context" aria-label="当前节点研判">
-          <div className="selected-step-panel">
-            {selected ? (
-              <>
-                <header>
-                  <div>
-                    <span className="eyebrow">
-                      NODE {selectedIndex + 1} / {investigation.steps.length}
-                    </span>
-                    <h3>{selected.label}</h3>
-                  </div>
-                  <StatusBadge status={selected.reviewStatus} />
-                </header>
-                <div className="node-next-action">
-                  <ListChecks size={16} />
-                  <div>
-                    <strong>
-                      {selected.reviewStatus === "candidate"
-                        ? "下一步：核对并处理此节点"
-                        : selected.reviewStatus === "excluded"
-                          ? "此节点已从主线排除"
-                          : "此节点已完成核验"}
-                    </strong>
-                    <span>
-                      {selected.reviewStatus === "candidate"
-                        ? "检查名称、前序关系与来源证据，然后确认或排除。"
-                        : "继续选择主线中的下一个节点。"}
-                    </span>
-                  </div>
-                </div>
-                <div className="node-provenance">
-                  <span>{stepOriginLabel(selected)}</span>
-                  <span>{selected.phase}</span>
-                  {selected.attackId && <span>{selected.attackId}</span>}
-                </div>
-                <Confidence value={selected.confidence} />
-                <div className="node-review-actions">
-                  <button
-                    type="button"
-                    className="edit"
-                    onClick={() => openStepEditor(selected)}
-                  >
-                    <Pencil size={14} /> 编辑节点
-                  </button>
-                  <button
-                    type="button"
-                    className={selected.reviewStatus === "confirmed" ? "active" : ""}
-                    onClick={() => updateStep(selected.id, { reviewStatus: "confirmed" })}
-                  >
-                    <Check size={14} /> 确认
-                  </button>
-                  <button
-                    type="button"
-                    className={selected.reviewStatus === "excluded" ? "negative active" : "negative"}
-                    onClick={() => updateStep(selected.id, { reviewStatus: "excluded" })}
-                  >
-                    <X size={14} /> 排除
-                  </button>
-                  <button type="button" aria-label="向前移动" onClick={() => moveStep(selected.id, -1)}>
-                    <ChevronLeft size={14} />
-                  </button>
-                  <button type="button" aria-label="向后移动" onClick={() => moveStep(selected.id, 1)}>
-                    <ChevronRight size={14} />
-                  </button>
-                </div>
-                {selectedSources[0] ? (
-                  <button
-                    type="button"
-                    className="selected-source"
-                    onClick={() => setSource(selectedSources[0])}
-                  >
-                    <FileText size={15} />
-                    <span>
-                      <strong>{selectedSources[0].title}</strong>
-                      <small>{selectedSources[0].location || "来源摘录"}</small>
-                    </span>
-                    <ArrowRight size={14} />
-                  </button>
-                ) : (
-                  <p className="muted">
-                    当前节点暂无直接关系摘录，应保留为待补充证据。
-                  </p>
-                )}
-              </>
-            ) : (
-              <EmptyState title="选择主线节点" description="从左侧主攻击路径选择一个节点开始研判。" />
-            )}
-          </div>
-          <div className="context-graph">
-            <header className="panel-header compact">
-              <div>
-                <span className="eyebrow">SUPPORTING VIEW</span>
-                <h2>辅助关系图谱</h2>
-              </div>
-              <button type="button" className="icon-link" aria-label="全屏图谱" onClick={onOpenGraph}>
-                <ExternalLink size={15} />
-              </button>
-            </header>
-            <NetworkGraph
-              compact
-              nodes={graph.nodes}
-              edges={graph.edges}
-              rootId={investigation.steps[0]?.id}
-              selectedId={selectedId}
-              onSelect={(node) => setSelectedId(node.id)}
-            />
-          </div>
-        </aside>
-      </div>
-
-      <section className="workspace-analysis">
-        <div className="analysis-tabs" role="tablist" aria-label="研判结果">
-          {tabLabels.map(([id, label]) => (
+        <section className="supporting-graph" aria-label="攻击链关系图谱">
+          <header className="section-heading compact">
+            <div>
+              <span className="eyebrow">ALWAYS VISIBLE</span>
+              <h2>攻击链关系图谱</h2>
+              <p>图谱用于补充查看节点关系，不替代上方完整路径。</p>
+            </div>
             <button
               type="button"
-              role="tab"
-              aria-selected={tab === id}
-              className={tab === id ? "active" : ""}
-              key={id}
-              onClick={() => setTab(id)}
+              className="secondary-button"
+              onClick={onOpenGraph}
             >
-              {label}
-              {id === "sources" && <span>{citations.length}</span>}
+              <ExternalLink size={14} /> 全屏查看
             </button>
-          ))}
-        </div>
+          </header>
+          <NetworkGraph
+            chainMode
+            nodes={graph.nodes}
+            edges={graph.edges}
+            rootId={investigation.steps[0]?.id}
+            selectedId={selected?.id}
+            onSelect={(node) => setSelectedId(node.id)}
+          />
+        </section>
+      </div>
 
-        {tab === "history" && (
+      <nav className="analysis-index" aria-label="结果目录">
+        <span>结果目录</span>
+        <a href="#history-summary">历史总结</a>
+        <a href="#response-advice">处置建议</a>
+        <a href="#attribution-assist">归因辅助</a>
+        <a href="#all-sources">全部来源</a>
+      </nav>
+
+      <div className="analysis-stack">
+        <section
+          id="history-summary"
+          className="analysis-section"
+          aria-labelledby="history-title"
+        >
+          <header className="section-heading">
+            <div>
+              <span className="eyebrow">HISTORICAL SYNTHESIS</span>
+              <h2 id="history-title">历史总结</h2>
+              <p>按攻击阶段合并已入库报告中的一致事实与差异。</p>
+            </div>
+            <span className="section-count">{findings.length} 条观察</span>
+          </header>
           <div className="analysis-pane history-pane">
             <div className="history-findings">
-              {findings.map((finding) => (
-                <article key={finding.id} className={`finding-${finding.tone}`}>
-                  <div className="finding-marker">
-                    {finding.tone === "difference" ? (
-                      <TriangleAlert size={15} />
-                    ) : (
-                      <Clock3 size={15} />
-                    )}
-                  </div>
-                  <div>
-                    <span>{finding.phase}</span>
-                    <h3>{finding.title}</h3>
-                    <p>{finding.summary}</p>
-                    <div className="inline-citations">
-                      {finding.citationIds.map((citationId, index) => {
-                        const citation = citations.find((item) => item.id === citationId);
-                        if (!citation) return null;
-                        return (
-                          <button type="button" key={citationId} onClick={() => setSource(citation)}>
-                            [{index + 1}] {citation.publisher}
-                          </button>
-                        );
-                      })}
+              {findings.length ? (
+                findings.map((finding) => (
+                  <article
+                    key={finding.id}
+                    className={`finding-${finding.tone}`}
+                  >
+                    <div className="finding-marker">
+                      {finding.tone === "difference" ? (
+                        <TriangleAlert size={16} />
+                      ) : (
+                        <Clock3 size={16} />
+                      )}
                     </div>
-                  </div>
-                </article>
-              ))}
+                    <div>
+                      <span>{finding.phase}</span>
+                      <h3>{finding.title}</h3>
+                      <p>{finding.summary}</p>
+                      <div className="inline-citations">
+                        {finding.citationIds.map((citationId, index) => {
+                          const citation = citations.find(
+                            (item) => item.id === citationId,
+                          );
+                          if (!citation) return null;
+                          return (
+                            <button
+                              type="button"
+                              key={citationId}
+                              onClick={() => setSource(citation)}
+                            >
+                              [{index + 1}] {citation.publisher}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </article>
+                ))
+              ) : (
+                <EmptyState
+                  title="暂无可综合的历史发现"
+                  description="当前查询尚未关联到可追溯的历史报告结论。"
+                />
+              )}
             </div>
             <aside className="history-overview">
-              <span className="eyebrow">HISTORICAL ALIGNMENT</span>
+              <span className="eyebrow">SOURCE COVERAGE</span>
               <strong>{citations.length}</strong>
               <p>条可点击来源证据支持当前攻击链</p>
               <div>
                 <span>主链覆盖</span>
                 <strong>
-                  {investigation.steps.filter((step) => step.evidenceCount > 0).length}/
-                  {investigation.steps.length}
+                  {coveredSteps}/{investigation.steps.length}
                 </strong>
               </div>
-              <small>摘要按攻击阶段组织，不代表来源之间完全一致。</small>
+              <small>
+                摘要按攻击阶段组织，不代表不同来源之间完全一致。
+              </small>
             </aside>
           </div>
-        )}
+        </section>
 
-        {tab === "advice" && (
+        <section
+          id="response-advice"
+          className="analysis-section"
+          aria-labelledby="advice-title"
+        >
+          <header className="section-heading">
+            <div>
+              <span className="eyebrow">RESPONSE GUIDANCE</span>
+              <h2 id="advice-title">处置建议</h2>
+              <p>建议按条件提供，仅供安全负责人结合本地环境复核。</p>
+            </div>
+            <span className="section-count">{advice.length} 条建议</span>
+          </header>
           <div className="analysis-pane advice-grid">
-            {advice.map((item) => {
-              const completed = investigation.completedAdviceIds.includes(item.id);
-              return (
-                <article key={item.id} className={completed ? "is-completed" : ""}>
-                  <header>
-                    <span className={`priority priority-${item.priority.toLowerCase()}`}>
-                      {item.priority}
-                    </span>
-                    <span>{item.group}</span>
-                    <button
-                      type="button"
-                      aria-label={completed ? "标记为未完成" : "标记为完成"}
-                      onClick={() =>
-                        onChange({
-                          ...investigation,
-                          completedAdviceIds: completed
-                            ? investigation.completedAdviceIds.filter((id) => id !== item.id)
-                            : [...investigation.completedAdviceIds, item.id],
-                        })
-                      }
-                    >
-                      <Check size={14} />
-                    </button>
-                  </header>
-                  <h3>{item.title}</h3>
-                  <p>{item.recommendation}</p>
-                  <small>{item.condition}</small>
-                  {item.sourceUrl && (
-                    <a href={item.sourceUrl} target="_blank" rel="noreferrer">
-                      参考来源 <ExternalLink size={13} />
-                    </a>
-                  )}
-                </article>
-              );
-            })}
+            {advice.map((item) => (
+              <article key={item.id}>
+                <header>
+                  <span
+                    className={`priority priority-${item.priority.toLowerCase()}`}
+                  >
+                    {item.priority}
+                  </span>
+                  <span>{item.group}</span>
+                </header>
+                <h3>{item.title}</h3>
+                <p>{item.recommendation}</p>
+                <small>{item.condition}</small>
+                {item.sourceUrl && (
+                  <a href={item.sourceUrl} target="_blank" rel="noreferrer">
+                    参考来源 <ExternalLink size={13} />
+                  </a>
+                )}
+              </article>
+            ))}
             <div className="advice-disclaimer">
               <ShieldCheck size={16} />
               ARGUS 仅提供参考建议，不直接执行封禁、隔离或配置变更。
             </div>
           </div>
-        )}
+        </section>
 
-        {tab === "attribution" && (
+        <section
+          id="attribution-assist"
+          className="analysis-section"
+          aria-labelledby="attribution-title"
+        >
+          <header className="section-heading">
+            <div>
+              <span className="eyebrow">ATTRIBUTION SUPPORT</span>
+              <h2 id="attribution-title">归因辅助</h2>
+              <p>归因仅作为辅助假设，不把单一 IOC 或行为相似视为结论。</p>
+            </div>
+          </header>
           <div className="analysis-pane attribution-pane">
             {actor ? (
               <>
@@ -648,7 +569,16 @@ export function ChainWorkspace({
                     <ShieldCheck size={17} />
                     <div>
                       <strong>支持路径</strong>
-                      <p>{investigation.steps.filter((step) => step.reviewStatus === "matched" || step.reviewStatus === "confirmed").length} 个节点与历史事件路径一致。</p>
+                      <p>
+                        {
+                          investigation.steps.filter(
+                            (step) =>
+                              step.reviewStatus === "matched" ||
+                              step.reviewStatus === "confirmed",
+                          ).length
+                        }{" "}
+                        个节点与历史事件路径存在一致性。
+                      </p>
                     </div>
                   </article>
                   <article>
@@ -667,23 +597,39 @@ export function ChainWorkspace({
               />
             )}
           </div>
-        )}
+        </section>
 
-        {tab === "sources" && (
+        <section
+          id="all-sources"
+          className="analysis-section"
+          aria-labelledby="sources-title"
+        >
+          <header className="section-heading">
+            <div>
+              <span className="eyebrow">VERIFIABLE SOURCES</span>
+              <h2 id="sources-title">全部来源</h2>
+              <p>所有可用来源均可打开查看摘录，并继续访问公开原文。</p>
+            </div>
+            <span className="section-count">{citations.length} 条来源</span>
+          </header>
           <div className="analysis-pane source-grid">
             {citations.length ? (
               citations.map((citation) => (
-                <SourceCard key={citation.id} citation={citation} onOpen={setSource} />
+                <SourceCard
+                  key={citation.id}
+                  citation={citation}
+                  onOpen={setSource}
+                />
               ))
             ) : (
               <EmptyState
-                title="当前草稿暂无可点击来源"
-                description="人工输入节点仍可继续编辑，但导出报告会明确标注证据缺口。"
+                title="当前匹配暂无可点击来源"
+                description="该路径来自查询时序匹配，结果会明确保留证据缺口。"
               />
             )}
           </div>
-        )}
-      </section>
+        </section>
+      </div>
 
       <section className="print-report" aria-hidden="true">
         <h1>{investigation.title}</h1>
@@ -708,7 +654,9 @@ export function ChainWorkspace({
         <h2>参考处置建议</h2>
         {advice.map((item) => (
           <article key={item.id}>
-            <h3>{item.priority} · {item.title}</h3>
+            <h3>
+              {item.priority} · {item.title}
+            </h3>
             <p>{item.recommendation}</p>
             <small>{item.condition}</small>
           </article>
@@ -717,192 +665,11 @@ export function ChainWorkspace({
           本报告仅供安全分析参考，不构成自动处置或确定性归因结论。
         </p>
       </section>
-      {source && <SourceViewer citation={source} onClose={() => setSource(undefined)} />}
-      {editor && (
-        <div className="node-editor-backdrop">
-          <form
-            className="node-editor"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="node-editor-title"
-            onSubmit={(event) => {
-              event.preventDefault();
-              saveStepEditor();
-            }}
-          >
-            <header>
-              <div>
-                <span className="eyebrow">
-                  {editor.mode === "create" ? "ADD TO MAIN PATH" : "EDIT MAIN PATH"}
-                </span>
-                <h2 id="node-editor-title">编辑攻击链节点</h2>
-              </div>
-              <button
-                type="button"
-                className="icon-button"
-                aria-label="关闭节点编辑器"
-                onClick={() => setEditor(undefined)}
-              >
-                <X size={17} />
-              </button>
-            </header>
-
-            <div className="node-editor-grid">
-              <label className="field-wide">
-                <span>节点名称</span>
-                <input
-                  autoFocus
-                  aria-label="节点名称"
-                  value={editor.draft.label}
-                  onChange={(event) =>
-                    setEditor({
-                      ...editor,
-                      draft: { ...editor.draft, label: event.target.value },
-                    })
-                  }
-                />
-                <small>使用真实对象或动作名称，不要只写行为分类。</small>
-              </label>
-              <label>
-                <span>与前序节点的关系</span>
-                <input
-                  aria-label="与前序节点的关系"
-                  value={editor.draft.relation}
-                  onChange={(event) =>
-                    setEditor({
-                      ...editor,
-                      draft: { ...editor.draft, relation: event.target.value },
-                    })
-                  }
-                />
-              </label>
-              <label>
-                <span>攻击阶段</span>
-                <input
-                  aria-label="攻击阶段"
-                  list="attack-phases"
-                  value={editor.draft.phase}
-                  onChange={(event) =>
-                    setEditor({
-                      ...editor,
-                      draft: { ...editor.draft, phase: event.target.value },
-                    })
-                  }
-                />
-                <datalist id="attack-phases">
-                  <option value="初始访问" />
-                  <option value="执行" />
-                  <option value="持久化" />
-                  <option value="凭据访问" />
-                  <option value="横向移动" />
-                  <option value="命令与控制" />
-                  <option value="数据外传" />
-                  <option value="待研判" />
-                </datalist>
-              </label>
-              <label>
-                <span>节点类型</span>
-                <input
-                  aria-label="节点类型"
-                  value={editor.draft.type}
-                  onChange={(event) =>
-                    setEditor({
-                      ...editor,
-                      draft: { ...editor.draft, type: event.target.value },
-                    })
-                  }
-                />
-              </label>
-              <label>
-                <span>ATT&amp;CK（可选）</span>
-                <input
-                  aria-label="ATT&CK"
-                  value={editor.draft.attackId ?? ""}
-                  placeholder="例如 T1059.001"
-                  onChange={(event) =>
-                    setEditor({
-                      ...editor,
-                      draft: {
-                        ...editor.draft,
-                        attackId: event.target.value || undefined,
-                      },
-                    })
-                  }
-                />
-              </label>
-              <label className="field-wide">
-                <span>节点说明</span>
-                <textarea
-                  aria-label="节点说明"
-                  rows={3}
-                  value={editor.draft.description ?? ""}
-                  onChange={(event) =>
-                    setEditor({
-                      ...editor,
-                      draft: {
-                        ...editor.draft,
-                        description: event.target.value,
-                      },
-                    })
-                  }
-                />
-              </label>
-              <label className="field-wide confidence-field">
-                <span>
-                  当前置信度
-                  <strong>{Math.round(editor.draft.confidence * 100)}%</strong>
-                </span>
-                <input
-                  aria-label="当前置信度"
-                  type="range"
-                  min="0"
-                  max="1"
-                  step="0.05"
-                  value={editor.draft.confidence}
-                  onChange={(event) =>
-                    setEditor({
-                      ...editor,
-                      draft: {
-                        ...editor.draft,
-                        confidence: Number(event.target.value),
-                      },
-                    })
-                  }
-                />
-              </label>
-            </div>
-
-            <footer>
-              <div>
-                {editor.mode === "edit" && (
-                  <button
-                    type="button"
-                    className="danger-button"
-                    onClick={() => deleteStep(editor.draft.id)}
-                  >
-                    <Trash2 size={15} /> 删除节点
-                  </button>
-                )}
-              </div>
-              <div>
-                <button
-                  type="button"
-                  className="secondary-button"
-                  onClick={() => setEditor(undefined)}
-                >
-                  取消
-                </button>
-                <button
-                  type="submit"
-                  className="primary-button"
-                  disabled={!editor.draft.label.trim()}
-                >
-                  保存节点
-                </button>
-              </div>
-            </footer>
-          </form>
-        </div>
+      {source && (
+        <SourceViewer
+          citation={source}
+          onClose={() => setSource(undefined)}
+        />
       )}
     </main>
   );

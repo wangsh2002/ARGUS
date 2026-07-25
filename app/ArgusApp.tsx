@@ -266,7 +266,6 @@ export function ArgusApp({ data }: { data: Snapshot }) {
           <ChainWorkspace
             data={data}
             investigation={currentCase}
-            onChange={setCurrentCase}
             onSave={saveCurrentCase}
             onBack={() => setPage("chain-intake")}
             onOpenGraph={openCaseGraph}

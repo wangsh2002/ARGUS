@@ -368,7 +368,8 @@ export function createCaseFromQuery(data: Snapshot, query: string): Investigatio
   return {
     id: `CASE-QUERY-${Date.now().toString(36).toUpperCase()}`,
     title: `攻击链研判：${parts[0]}`,
-    summary: "根据用户输入顺序形成的研判草稿，候选节点需要人工确认。",
+    summary:
+      "根据输入顺序与已入库情报生成的匹配结果；未命中直接证据的节点会明确保留为候选，不视为已验证事实。",
     sourceKind: "query",
     sourceLabel: query,
     createdAt: now,

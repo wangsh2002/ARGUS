@@ -31,8 +31,8 @@ const methods = [
   },
   {
     id: "visual",
-    title: "可视化编排",
-    description: "手工创建节点、关系与顺序",
+    title: "可视化组织",
+    description: "用节点顺序组织已知线索",
     icon: Network,
   },
   {
@@ -50,7 +50,7 @@ const methods = [
   {
     id: "gpt",
     title: "通过 GPT 创建",
-    description: "生成需要人工确认的链路草稿",
+    description: "生成可供匹配的链路线索",
     icon: Bot,
   },
 ] as const;
@@ -103,8 +103,8 @@ export function ChainIntakeView({
       <section className="page-heading">
         <div>
           <span className="eyebrow">CHAIN EVIDENCE INTAKE</span>
-          <h1>创建攻击链研判</h1>
-          <p>从任何已有证据开始。所有候选节点都会先经过确认，再进入研判工作台。</p>
+          <h1>匹配攻击链</h1>
+          <p>输入已有证据或已知步骤，系统会与情报库匹配并生成只读结果。</p>
         </div>
         <span className="honesty-pill">
           <GitBranch size={15} />
@@ -169,7 +169,7 @@ export function ChainIntakeView({
                   <strong>{part}</strong>
                   <small>用户输入 · 待与情报库匹配</small>
                 </span>
-                <span className="candidate-state">待确认</span>
+                <span className="candidate-state">待匹配</span>
               </div>
             ),
           )}
@@ -182,7 +182,7 @@ export function ChainIntakeView({
         <footer>
           <div>
             <Upload size={15} />
-            本阶段提供轻量解析；用户可在工作台继续编辑真实节点与关系。
+            本阶段提供轻量解析；工作台用于查看匹配路径、图谱和来源证据。
           </div>
           <button
             type="button"
@@ -190,7 +190,7 @@ export function ChainIntakeView({
             disabled={!value.trim()}
             onClick={() => onCreateFromQuery(value)}
           >
-            生成研判草稿 <ArrowRight size={16} />
+            匹配攻击链 <ArrowRight size={16} />
           </button>
         </footer>
       </section>
