@@ -4,9 +4,9 @@ import { ArgusApp } from "./ArgusApp";
 import type { Snapshot } from "./types";
 
 export const metadata: Metadata = {
-  title: "ARGUS 威胁归因与情报分析平台",
+  title: "ARGUS 可追溯攻击链研判平台",
   description:
-    "连接 IOC、攻击链、历史证据与可解释归因路径的威胁情报工作台。",
+    "从查询与证据出发，还原可追溯攻击链，综合历史报告并生成边界清晰的参考处置建议。",
 };
 
 export default function Home() {

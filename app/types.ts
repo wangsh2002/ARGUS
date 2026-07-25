@@ -153,3 +153,132 @@ export type GraphEdge = {
   confidence?: number;
   relationship?: Relationship;
 };
+
+export type SearchMode = "intel" | "chain" | "graph" | "gpt";
+
+export type AppPage =
+  | "search"
+  | "intel"
+  | "chain-intake"
+  | "chain"
+  | "cases"
+  | "reports"
+  | "gpt"
+  | "actors"
+  | "graph";
+
+export type NodeOrigin = "database" | "log" | "manual" | "gpt";
+export type NodeReviewStatus = "matched" | "confirmed" | "candidate" | "excluded";
+
+export type ChainStep = {
+  id: string;
+  entityId?: string;
+  label: string;
+  type: string;
+  relation: string;
+  phase: string;
+  attackId?: string;
+  occurredAt?: string | null;
+  confidence: number;
+  evidenceCount: number;
+  status: string;
+  origin: NodeOrigin;
+  reviewStatus: NodeReviewStatus;
+  branch?: boolean;
+  gap?: boolean;
+  description?: string;
+};
+
+export type ChainLink = {
+  id: string;
+  source: string;
+  target: string;
+  label: string;
+  confidence: number;
+  status: string;
+  relationshipId?: string;
+};
+
+export type InvestigationCase = {
+  id: string;
+  title: string;
+  summary: string;
+  sourceKind: "report" | "query" | "log" | "manual" | "gpt";
+  sourceLabel: string;
+  actor?: string;
+  event?: string;
+  createdAt: string;
+  updatedAt: string;
+  steps: ChainStep[];
+  links: ChainLink[];
+  notes: string;
+  completedAdviceIds: string[];
+  version: 1;
+};
+
+export type SearchHit = {
+  entity: Entity;
+  score: number;
+};
+
+export type SearchResult = {
+  queryType: string;
+  entities: SearchHit[];
+  reports: Array<{ report: Report; score: number }>;
+};
+
+export type SourceCitation = {
+  id: string;
+  reportId: string;
+  title: string;
+  publisher: string;
+  reportDate: string;
+  sourceRef: string;
+  excerpt: string;
+  location: string;
+  confidence: number;
+  externalUrl: string;
+};
+
+export type HistoricalFinding = {
+  id: string;
+  phase: string;
+  title: string;
+  summary: string;
+  tone: "consensus" | "difference" | "timeline";
+  citationIds: string[];
+};
+
+export type AdviceItem = {
+  id: string;
+  group: "立即遏制" | "排查狩猎" | "清除恢复" | "长期加固";
+  priority: string;
+  title: string;
+  recommendation: string;
+  condition: string;
+  rationale: string;
+  sourceUrl?: string;
+  stepIds: string[];
+};
+
+export type GptCitation = {
+  id: string;
+  label: string;
+  reportId?: string;
+  url?: string;
+};
+
+export type GptSuggestedNode = {
+  id: string;
+  label: string;
+  type: string;
+  relation: string;
+  confidence: number;
+};
+
+export type GptResponse = {
+  answer: string;
+  citations: GptCitation[];
+  suggested_nodes: GptSuggestedNode[];
+  model: string;
+};

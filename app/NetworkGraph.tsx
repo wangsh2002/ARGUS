@@ -103,7 +103,7 @@ export function NetworkGraph({
   const [draggingId, setDraggingId] = useState<string>();
   const simulationRef = useRef<Simulation<SimNode, SimLink> | null>(null);
   const simNodesRef = useRef<Map<string, SimNode>>(new Map());
-  const dragStartRef = useRef<{ x: number; y: number }>();
+  const dragStartRef = useRef<{ x: number; y: number } | undefined>(undefined);
   const dragMovedRef = useRef(false);
 
   useEffect(() => {
@@ -118,6 +118,8 @@ export function NetworkGraph({
       }));
 
     simNodesRef.current = new Map(simNodes.map((node) => [node.id, node]));
+    // Reset the visible layout when the graph payload changes.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setPositions(
       new Map(
         simNodes.map((node) => [

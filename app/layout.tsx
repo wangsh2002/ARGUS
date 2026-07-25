@@ -9,12 +9,13 @@ export async function generateMetadata(): Promise<Metadata> {
     requestHeaders.get("x-forwarded-proto") ??
     (host?.startsWith("localhost") ? "http" : "https");
   const origin = host ? `${protocol}://${host}` : "http://localhost:3000";
-  const description = "可解释威胁归因、IOC 检索与攻击链分析平台。";
+  const description =
+    "从查询与证据出发，还原可追溯攻击链，综合历史报告并生成参考处置建议。";
   const socialImage = `${origin}/og.png`;
 
   return {
     title: {
-      default: "ARGUS 情报中心",
+      default: "ARGUS 可追溯攻击链研判平台",
       template: "%s · ARGUS",
     },
     description,
@@ -23,14 +24,14 @@ export async function generateMetadata(): Promise<Metadata> {
       shortcut: "/favicon.svg",
     },
     openGraph: {
-      title: "ARGUS 情报中心",
+      title: "ARGUS 可追溯攻击链研判平台",
       description,
       type: "website",
-      images: [{ url: socialImage, width: 1731, height: 909 }],
+      images: [{ url: socialImage, width: 1730, height: 909 }],
     },
     twitter: {
       card: "summary_large_image",
-      title: "ARGUS 情报中心",
+      title: "ARGUS 可追溯攻击链研判平台",
       description,
       images: [socialImage],
     },

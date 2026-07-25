@@ -29,10 +29,11 @@ test("server-renders the ARGUS intelligence workspace", async () => {
   assert.match(response.headers.get("content-type") ?? "", /^text\/html\b/i);
 
   const html = await response.text();
-  assert.match(html, /ARGUS 威胁归因与情报分析平台/);
+  assert.match(html, /ARGUS 可追溯攻击链研判平台/);
   assert.match(html, /综合查询/);
-  assert.match(html, /情报综合分析/);
-  assert.match(html, /攻击组织总揽/);
+  assert.match(html, /从零散证据/);
+  assert.match(html, /攻击组织/);
+  assert.match(html, /ARGUS GPT/);
   assert.match(html, />160</);
   assert.match(html, />182</);
   assert.doesNotMatch(html, /Your site is taking shape|Codex is working|react-loading-skeleton/);
