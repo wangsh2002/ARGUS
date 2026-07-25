@@ -13,9 +13,12 @@ import {
   ExternalLink,
   FileJson,
   FileText,
+  ListChecks,
+  Pencil,
   Printer,
   Save,
   ShieldCheck,
+  Trash2,
   TriangleAlert,
   X,
 } from "lucide-react";
@@ -25,7 +28,6 @@ import {
   adviceForCase,
   caseGraph,
   citationsForCase,
-  formatDate,
   historicalFindings,
 } from "../argus-domain";
 import {
@@ -88,6 +90,10 @@ export function ChainWorkspace({
   const [tab, setTab] = useState<AnalysisTab>("history");
   const [source, setSource] = useState<SourceCitation>();
   const [savedNotice, setSavedNotice] = useState(false);
+  const [editor, setEditor] = useState<{
+    mode: "create" | "edit";
+    draft: ChainStep;
+  }>();
   const graph = useMemo(() => caseGraph(data, investigation), [data, investigation]);
   const citations = useMemo(
     () => citationsForCase(data, investigation),
@@ -134,61 +140,120 @@ export function ChainWorkspace({
     });
   };
 
+  const rebuildSequentialLinks = (
+    steps: ChainStep[],
+    links = investigation.links,
+  ) =>
+    steps.slice(1).map((step, index) => {
+      const previous = steps[index];
+      const existing =
+        links.find(
+          (link) => link.source === previous.id && link.target === step.id,
+        ) ?? links.find((link) => link.target === step.id);
+      return {
+        id:
+          existing?.id ??
+          `manual-link-${Date.now().toString(36)}-${index.toString(36)}`,
+        source: previous.id,
+        target: step.id,
+        label: step.relation || existing?.label || "待确认关系",
+        confidence:
+          existing?.confidence ??
+          Math.min(previous.confidence, step.confidence),
+        status: existing?.status ?? step.status,
+        relationshipId: existing?.relationshipId,
+      };
+    });
+
   const moveStep = (stepId: string, direction: -1 | 1) => {
     const index = investigation.steps.findIndex((step) => step.id === stepId);
     const nextIndex = index + direction;
     if (index < 0 || nextIndex < 0 || nextIndex >= investigation.steps.length) return;
     const steps = [...investigation.steps];
     [steps[index], steps[nextIndex]] = [steps[nextIndex], steps[index]];
-    const links = steps.slice(1).map((step, linkIndex) => ({
-      id: investigation.links[linkIndex]?.id ?? `manual-link-${Date.now()}-${linkIndex}`,
-      source: steps[linkIndex].id,
-      target: step.id,
-      label: investigation.links[linkIndex]?.label ?? "人工调整顺序",
-      confidence:
-        investigation.links[linkIndex]?.confidence ??
-        Math.min(steps[linkIndex].confidence, step.confidence),
-      status: investigation.links[linkIndex]?.status ?? "partial",
-      relationshipId: investigation.links[linkIndex]?.relationshipId,
-    }));
-    onChange({ ...investigation, steps, links });
-  };
-
-  const addStep = () => {
-    const id = `manual-${Date.now().toString(36)}`;
-    const step: ChainStep = {
-      id,
-      label: "新建候选节点",
-      type: "输入步骤",
-      relation: investigation.steps.length ? "待确认关系" : "链路起点",
-      phase: "待研判",
-      confidence: 0.4,
-      evidenceCount: 0,
-      status: "partial",
-      origin: "manual",
-      reviewStatus: "candidate",
-      description: "人工创建的候选节点，需要补充真实名称与证据。",
-    };
-    const previous = investigation.steps.at(-1);
     onChange({
       ...investigation,
-      steps: [...investigation.steps, step],
-      links: previous
-        ? [
-            ...investigation.links,
-            {
-              id: `manual-link-${Date.now().toString(36)}`,
-              source: previous.id,
-              target: id,
-              label: "待确认关系",
-              confidence: 0.4,
-              status: "partial",
-            },
-          ]
-        : investigation.links,
+      steps,
+      links: rebuildSequentialLinks(steps),
     });
-    setSelectedId(id);
   };
+
+  const openStepCreator = () => {
+    const id = `manual-${Date.now().toString(36)}`;
+    setEditor({
+      mode: "create",
+      draft: {
+        id,
+        label: "新建候选节点",
+        type: "输入步骤",
+        relation: investigation.steps.length ? "待确认关系" : "链路起点",
+        phase: "待研判",
+        confidence: 0.4,
+        evidenceCount: 0,
+        status: "partial",
+        origin: "manual",
+        reviewStatus: "candidate",
+        description: "人工创建的候选节点，需要补充真实名称与证据。",
+      },
+    });
+  };
+
+  const openStepEditor = (step: ChainStep) => {
+    setEditor({ mode: "edit", draft: { ...step } });
+  };
+
+  const saveStepEditor = () => {
+    if (!editor?.draft.label.trim()) return;
+    const draft = {
+      ...editor.draft,
+      label: editor.draft.label.trim(),
+      relation: editor.draft.relation.trim() || "待确认关系",
+      phase: editor.draft.phase.trim() || "待研判",
+      type: editor.draft.type.trim() || "输入步骤",
+    };
+    const steps =
+      editor.mode === "create"
+        ? [...investigation.steps, draft]
+        : investigation.steps.map((step) =>
+            step.id === draft.id ? draft : step,
+          );
+    onChange({
+      ...investigation,
+      steps,
+      links: rebuildSequentialLinks(steps),
+    });
+    setSelectedId(draft.id);
+    setEditor(undefined);
+  };
+
+  const deleteStep = (stepId: string) => {
+    const currentIndex = investigation.steps.findIndex(
+      (step) => step.id === stepId,
+    );
+    const steps = investigation.steps.filter((step) => step.id !== stepId);
+    onChange({
+      ...investigation,
+      steps,
+      links: rebuildSequentialLinks(
+        steps,
+        investigation.links.filter(
+          (link) => link.source !== stepId && link.target !== stepId,
+        ),
+      ),
+    });
+    setSelectedId(steps[Math.min(currentIndex, steps.length - 1)]?.id);
+    setEditor(undefined);
+  };
+
+  const pendingReviewCount = investigation.steps.filter(
+    (step) => step.reviewStatus === "candidate",
+  ).length;
+  const evidenceGapCount = investigation.steps.filter(
+    (step) => step.evidenceCount === 0,
+  ).length;
+  const selectedIndex = investigation.steps.findIndex(
+    (step) => step.id === selectedId,
+  );
 
   const save = () => {
     onSave();
@@ -241,29 +306,39 @@ export function ChainWorkspace({
         </div>
       </div>
 
-      <section className="workspace-summary">
-        <div>
-          <span className="eyebrow">INVESTIGATION SUMMARY</span>
+      <section className="investigation-flow" aria-label="研判流程">
+        <div className="flow-objective">
+          <span className="eyebrow">CURRENT OBJECTIVE</span>
+          <strong>先确认主攻击路径，再形成结论</strong>
           <p>{investigation.summary}</p>
         </div>
-        <dl>
-          <div>
-            <dt>候选组织</dt>
-            <dd>{investigation.actor ?? "未确认"}</dd>
-          </div>
-          <div>
-            <dt>链路节点</dt>
-            <dd>{investigation.steps.filter((step) => step.reviewStatus !== "excluded").length}</dd>
-          </div>
-          <div>
-            <dt>来源证据</dt>
-            <dd>{citations.length}</dd>
-          </div>
-          <div>
-            <dt>最近更新</dt>
-            <dd>{formatDate(investigation.updatedAt)}</dd>
-          </div>
-        </dl>
+        <ol className="review-stages">
+          <li className="active">
+            <span>1</span>
+            <div>
+              <strong>整理主线</strong>
+              <small>{investigation.steps.length} 个真实节点</small>
+            </div>
+          </li>
+          <li className={pendingReviewCount ? "attention" : "complete"}>
+            <span>2</span>
+            <div>
+              <strong>逐节点核验</strong>
+              <small>
+                {pendingReviewCount
+                  ? `${pendingReviewCount} 个候选待处理`
+                  : "候选节点已处理"}
+              </small>
+            </div>
+          </li>
+          <li className={evidenceGapCount ? "" : "complete"}>
+            <span>3</span>
+            <div>
+              <strong>总结与建议</strong>
+              <small>{evidenceGapCount} 个证据缺口需说明</small>
+            </div>
+          </li>
+        </ol>
       </section>
 
       <div className="workspace-primary">
@@ -271,11 +346,11 @@ export function ChainWorkspace({
           <header className="panel-header">
             <div>
               <span className="eyebrow">PRIMARY ATTACK PATH</span>
-              <h2>可追溯攻击链</h2>
+              <h2>主攻击路径</h2>
             </div>
             <div className="panel-header-actions">
-              <span>真实时序为主 · ATT&CK 为补充</span>
-              <button type="button" className="text-button" onClick={addStep}>
+              <span>真实时序为主 · ATT&amp;CK 为补充</span>
+              <button type="button" className="primary-button" onClick={openStepCreator}>
                 <CirclePlus size={15} /> 添加节点
               </button>
             </div>
@@ -300,6 +375,7 @@ export function ChainWorkspace({
                 <button
                   type="button"
                   role="listitem"
+                  aria-label={`攻击链节点：${step.label}`}
                   className={`chain-step-card ${selectedId === step.id ? "is-selected" : ""}`}
                   onClick={() => setSelectedId(step.id)}
                 >
@@ -333,36 +409,36 @@ export function ChainWorkspace({
           </div>
         </section>
 
-        <aside className="workspace-context">
-          <div className="context-graph">
-            <header className="panel-header compact">
-              <div>
-                <span className="eyebrow">LINKED GRAPH</span>
-                <h2>关系图谱</h2>
-              </div>
-              <button type="button" className="icon-link" aria-label="全屏图谱" onClick={onOpenGraph}>
-                <ExternalLink size={15} />
-              </button>
-            </header>
-            <NetworkGraph
-              compact
-              nodes={graph.nodes}
-              edges={graph.edges}
-              rootId={investigation.steps[0]?.id}
-              selectedId={selectedId}
-              onSelect={(node) => setSelectedId(node.id)}
-            />
-          </div>
+        <aside className="workspace-context" aria-label="当前节点研判">
           <div className="selected-step-panel">
             {selected ? (
               <>
                 <header>
                   <div>
-                    <span className="eyebrow">NODE EVIDENCE</span>
+                    <span className="eyebrow">
+                      NODE {selectedIndex + 1} / {investigation.steps.length}
+                    </span>
                     <h3>{selected.label}</h3>
                   </div>
                   <StatusBadge status={selected.reviewStatus} />
                 </header>
+                <div className="node-next-action">
+                  <ListChecks size={16} />
+                  <div>
+                    <strong>
+                      {selected.reviewStatus === "candidate"
+                        ? "下一步：核对并处理此节点"
+                        : selected.reviewStatus === "excluded"
+                          ? "此节点已从主线排除"
+                          : "此节点已完成核验"}
+                    </strong>
+                    <span>
+                      {selected.reviewStatus === "candidate"
+                        ? "检查名称、前序关系与来源证据，然后确认或排除。"
+                        : "继续选择主线中的下一个节点。"}
+                    </span>
+                  </div>
+                </div>
                 <div className="node-provenance">
                   <span>{stepOriginLabel(selected)}</span>
                   <span>{selected.phase}</span>
@@ -370,6 +446,13 @@ export function ChainWorkspace({
                 </div>
                 <Confidence value={selected.confidence} />
                 <div className="node-review-actions">
+                  <button
+                    type="button"
+                    className="edit"
+                    onClick={() => openStepEditor(selected)}
+                  >
+                    <Pencil size={14} /> 编辑节点
+                  </button>
                   <button
                     type="button"
                     className={selected.reviewStatus === "confirmed" ? "active" : ""}
@@ -411,8 +494,27 @@ export function ChainWorkspace({
                 )}
               </>
             ) : (
-              <EmptyState title="选择一个节点" description="图谱与证据会同步聚焦。" />
+              <EmptyState title="选择主线节点" description="从左侧主攻击路径选择一个节点开始研判。" />
             )}
+          </div>
+          <div className="context-graph">
+            <header className="panel-header compact">
+              <div>
+                <span className="eyebrow">SUPPORTING VIEW</span>
+                <h2>辅助关系图谱</h2>
+              </div>
+              <button type="button" className="icon-link" aria-label="全屏图谱" onClick={onOpenGraph}>
+                <ExternalLink size={15} />
+              </button>
+            </header>
+            <NetworkGraph
+              compact
+              nodes={graph.nodes}
+              edges={graph.edges}
+              rootId={investigation.steps[0]?.id}
+              selectedId={selectedId}
+              onSelect={(node) => setSelectedId(node.id)}
+            />
           </div>
         </aside>
       </div>
@@ -616,6 +718,192 @@ export function ChainWorkspace({
         </p>
       </section>
       {source && <SourceViewer citation={source} onClose={() => setSource(undefined)} />}
+      {editor && (
+        <div className="node-editor-backdrop">
+          <form
+            className="node-editor"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="node-editor-title"
+            onSubmit={(event) => {
+              event.preventDefault();
+              saveStepEditor();
+            }}
+          >
+            <header>
+              <div>
+                <span className="eyebrow">
+                  {editor.mode === "create" ? "ADD TO MAIN PATH" : "EDIT MAIN PATH"}
+                </span>
+                <h2 id="node-editor-title">编辑攻击链节点</h2>
+              </div>
+              <button
+                type="button"
+                className="icon-button"
+                aria-label="关闭节点编辑器"
+                onClick={() => setEditor(undefined)}
+              >
+                <X size={17} />
+              </button>
+            </header>
+
+            <div className="node-editor-grid">
+              <label className="field-wide">
+                <span>节点名称</span>
+                <input
+                  autoFocus
+                  aria-label="节点名称"
+                  value={editor.draft.label}
+                  onChange={(event) =>
+                    setEditor({
+                      ...editor,
+                      draft: { ...editor.draft, label: event.target.value },
+                    })
+                  }
+                />
+                <small>使用真实对象或动作名称，不要只写行为分类。</small>
+              </label>
+              <label>
+                <span>与前序节点的关系</span>
+                <input
+                  aria-label="与前序节点的关系"
+                  value={editor.draft.relation}
+                  onChange={(event) =>
+                    setEditor({
+                      ...editor,
+                      draft: { ...editor.draft, relation: event.target.value },
+                    })
+                  }
+                />
+              </label>
+              <label>
+                <span>攻击阶段</span>
+                <input
+                  aria-label="攻击阶段"
+                  list="attack-phases"
+                  value={editor.draft.phase}
+                  onChange={(event) =>
+                    setEditor({
+                      ...editor,
+                      draft: { ...editor.draft, phase: event.target.value },
+                    })
+                  }
+                />
+                <datalist id="attack-phases">
+                  <option value="初始访问" />
+                  <option value="执行" />
+                  <option value="持久化" />
+                  <option value="凭据访问" />
+                  <option value="横向移动" />
+                  <option value="命令与控制" />
+                  <option value="数据外传" />
+                  <option value="待研判" />
+                </datalist>
+              </label>
+              <label>
+                <span>节点类型</span>
+                <input
+                  aria-label="节点类型"
+                  value={editor.draft.type}
+                  onChange={(event) =>
+                    setEditor({
+                      ...editor,
+                      draft: { ...editor.draft, type: event.target.value },
+                    })
+                  }
+                />
+              </label>
+              <label>
+                <span>ATT&amp;CK（可选）</span>
+                <input
+                  aria-label="ATT&CK"
+                  value={editor.draft.attackId ?? ""}
+                  placeholder="例如 T1059.001"
+                  onChange={(event) =>
+                    setEditor({
+                      ...editor,
+                      draft: {
+                        ...editor.draft,
+                        attackId: event.target.value || undefined,
+                      },
+                    })
+                  }
+                />
+              </label>
+              <label className="field-wide">
+                <span>节点说明</span>
+                <textarea
+                  aria-label="节点说明"
+                  rows={3}
+                  value={editor.draft.description ?? ""}
+                  onChange={(event) =>
+                    setEditor({
+                      ...editor,
+                      draft: {
+                        ...editor.draft,
+                        description: event.target.value,
+                      },
+                    })
+                  }
+                />
+              </label>
+              <label className="field-wide confidence-field">
+                <span>
+                  当前置信度
+                  <strong>{Math.round(editor.draft.confidence * 100)}%</strong>
+                </span>
+                <input
+                  aria-label="当前置信度"
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.05"
+                  value={editor.draft.confidence}
+                  onChange={(event) =>
+                    setEditor({
+                      ...editor,
+                      draft: {
+                        ...editor.draft,
+                        confidence: Number(event.target.value),
+                      },
+                    })
+                  }
+                />
+              </label>
+            </div>
+
+            <footer>
+              <div>
+                {editor.mode === "edit" && (
+                  <button
+                    type="button"
+                    className="danger-button"
+                    onClick={() => deleteStep(editor.draft.id)}
+                  >
+                    <Trash2 size={15} /> 删除节点
+                  </button>
+                )}
+              </div>
+              <div>
+                <button
+                  type="button"
+                  className="secondary-button"
+                  onClick={() => setEditor(undefined)}
+                >
+                  取消
+                </button>
+                <button
+                  type="submit"
+                  className="primary-button"
+                  disabled={!editor.draft.label.trim()}
+                >
+                  保存节点
+                </button>
+              </div>
+            </footer>
+          </form>
+        </div>
+      )}
     </main>
   );
 }

@@ -93,13 +93,48 @@ describe("ARGUS query-centered workflows", () => {
     fireEvent.click(screen.getByRole("button", { name: "执行查询" }));
 
     expect(
-      await screen.findByRole("heading", { level: 2, name: "可追溯攻击链" }),
+      await screen.findByRole("heading", { level: 2, name: "主攻击路径" }),
     ).toBeInTheDocument();
     expect(screen.getAllByText("Outlook 提醒").length).toBeGreaterThan(0);
     expect(screen.getAllByText("远程 SMB").length).toBeGreaterThan(0);
     expect(screen.getAllByText("NTLM 泄露").length).toBeGreaterThan(0);
     expect(screen.getByRole("img", { name: "威胁情报关系图谱" })).toBeInTheDocument();
     expect(screen.getByText("真实时序为主 · ATT&CK 为补充")).toBeInTheDocument();
+  });
+
+  it("lets an analyst add a node and then revise its investigation details", async () => {
+    render(<ArgusApp data={data} />);
+    fireEvent.click(screen.getByRole("tab", { name: /攻击链/ }));
+    fireEvent.change(screen.getByLabelText("综合查询输入"), {
+      target: { value: "可疑邮件 → PowerShell 执行" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "执行查询" }));
+
+    fireEvent.click(
+      await screen.findByRole("button", { name: /添加节点/ }),
+    );
+    const editor = await screen.findByRole("dialog", {
+      name: "编辑攻击链节点",
+    });
+    fireEvent.change(within(editor).getByLabelText("节点名称"), {
+      target: { value: "恶意脚本回连 C2" },
+    });
+    fireEvent.change(within(editor).getByLabelText("与前序节点的关系"), {
+      target: { value: "执行后回连" },
+    });
+    fireEvent.change(within(editor).getByLabelText("攻击阶段"), {
+      target: { value: "命令与控制" },
+    });
+    fireEvent.click(within(editor).getByRole("button", { name: "保存节点" }));
+
+    expect(screen.getAllByText("恶意脚本回连 C2").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("执行后回连").length).toBeGreaterThan(0);
+
+    fireEvent.click(
+      screen.getByRole("listitem", { name: /恶意脚本回连 C2/ }),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "编辑节点" }));
+    expect(screen.getByLabelText("节点名称")).toHaveValue("恶意脚本回连 C2");
   });
 
   it("opens a verifiable public report and builds a source-backed workspace", async () => {
@@ -119,7 +154,7 @@ describe("ARGUS query-centered workflows", () => {
     );
 
     expect(
-      await screen.findByRole("heading", { level: 2, name: "可追溯攻击链" }),
+      await screen.findByRole("heading", { level: 2, name: "主攻击路径" }),
     ).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: "历史总结" })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: "处置建议" })).toBeInTheDocument();
