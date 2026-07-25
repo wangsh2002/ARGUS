@@ -72,13 +72,9 @@ export function SearchView({
             <span className="pulse-mark" />
             TRACEABLE THREAT INTELLIGENCE
           </span>
-          <h1>
-            从零散证据
-            <br />
-            还原完整攻击链
-          </h1>
+          <h1>威胁情报与攻击链研判平台</h1>
           <p>
-            查询威胁情报、连接历史证据，并把每一步结论追溯到真实来源。
+            从一次查询开始，连接历史证据、还原攻击过程，并让每一步结论都能回到真实来源。
           </p>
         </div>
 
@@ -121,7 +117,7 @@ export function SearchView({
                   ? "输入攻击步骤、事件名称或粘贴一段安全记录"
                   : mode === "gpt"
                     ? "向 ARGUS GPT 提出安全分析问题"
-                    : "输入 IP、域名、Hash、URL、CVE 或自然语言"
+                    : "搜索 IP、域名、Hash、URL、CVE、攻击组织或历史报告"
               }
             />
             <button type="submit" aria-label="执行查询" disabled={!query.trim()}>

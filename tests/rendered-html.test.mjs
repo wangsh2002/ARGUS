@@ -31,7 +31,7 @@ test("server-renders the ARGUS intelligence workspace", async () => {
   const html = await response.text();
   assert.match(html, /ARGUS 可追溯攻击链研判平台/);
   assert.match(html, /综合查询/);
-  assert.match(html, /从零散证据/);
+  assert.match(html, /威胁情报与攻击链研判平台/);
   assert.match(html, /攻击组织/);
   assert.match(html, /ARGUS GPT/);
   assert.match(html, />160</);

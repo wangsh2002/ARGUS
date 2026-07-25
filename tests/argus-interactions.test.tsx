@@ -42,6 +42,32 @@ afterEach(() => {
 });
 
 describe("ARGUS query-centered workflows", () => {
+  it("keeps search dominant on the home page and compacts it only after navigation", async () => {
+    render(<ArgusApp data={data} />);
+
+    const header = screen.getByRole("banner", { name: "全局页头" });
+    expect(
+      within(header).getByRole("navigation", { name: "主导航" }),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText("综合查询输入")).toBeInTheDocument();
+    expect(screen.queryByLabelText("全局搜索")).not.toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText("综合查询输入"), {
+      target: { value: "cdn-meeting-update.com" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "执行查询" }));
+
+    expect(
+      await screen.findByRole("heading", {
+        level: 1,
+        name: "cdn-meeting-update.com",
+      }),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText("全局搜索")).toHaveValue(
+      "cdn-meeting-update.com",
+    );
+  });
+
   it("searches a real IOC and keeps evidence and chain context at equal weight", async () => {
     render(<ArgusApp data={data} />);
     fireEvent.change(screen.getByLabelText("综合查询输入"), {

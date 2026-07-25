@@ -5,13 +5,10 @@ import {
   BriefcaseBusiness,
   FileStack,
   GitBranch,
-  Menu,
   Search,
   Shield,
   Users,
-  X,
 } from "lucide-react";
-import { useState } from "react";
 import type { AppPage } from "../types";
 
 const items: Array<{
@@ -42,67 +39,33 @@ export function ArgusShell({
   onNavigate: (page: AppPage) => void;
   children: React.ReactNode;
 }) {
-  const [mobileOpen, setMobileOpen] = useState(false);
-  const current = page === "intel" || page === "graph" ? "search" : page === "chain" ? "chain-intake" : page;
+  const isHome = page === "search";
+  const current =
+    page === "intel" || page === "graph"
+      ? "search"
+      : page === "chain"
+        ? "chain-intake"
+        : page;
+
   return (
-    <div className="argus-app">
-      <aside className={`app-sidebar ${mobileOpen ? "is-open" : ""}`}>
-        <div className="brand">
+    <div className={`argus-app ${isHome ? "is-home" : "is-subpage"}`}>
+      <header className="app-header" aria-label="全局页头">
+        <button
+          type="button"
+          className="brand"
+          aria-label="返回综合查询"
+          onClick={() => onNavigate("search")}
+        >
           <span className="brand-mark">
-            <Shield size={24} />
+            <Shield size={20} />
           </span>
-          <span>
+          <span className="brand-copy">
             <strong>ARGUS</strong>
             <small>情报研判中心</small>
           </span>
-          <button
-            type="button"
-            className="mobile-close"
-            aria-label="关闭导航"
-            onClick={() => setMobileOpen(false)}
-          >
-            <X size={18} />
-          </button>
-        </div>
-        <nav aria-label="主导航">
-          <span className="nav-label">ANALYSIS</span>
-          {items.map((item) => {
-            const Icon = item.icon;
-            return (
-              <button
-                type="button"
-                key={item.id}
-                className={current === item.id ? "active" : ""}
-                onClick={() => {
-                  onNavigate(item.id);
-                  setMobileOpen(false);
-                }}
-              >
-                <Icon size={18} />
-                <span>{item.label}</span>
-              </button>
-            );
-          })}
-        </nav>
-        <div className="sidebar-foot">
-          <span className="live-dot" />
-          <div>
-            <strong>本地情报快照</strong>
-            <small>仅展示已入库事实</small>
-          </div>
-        </div>
-      </aside>
+        </button>
 
-      <div className="app-main">
-        <header className="app-header">
-          <button
-            type="button"
-            className="mobile-menu"
-            aria-label="打开导航"
-            onClick={() => setMobileOpen(true)}
-          >
-            <Menu size={19} />
-          </button>
+        {!isHome && (
           <form
             className="global-search"
             onSubmit={(event) => {
@@ -115,18 +78,43 @@ export function ArgusShell({
               aria-label="全局搜索"
               value={query}
               onChange={(event) => onQuery(event.target.value)}
-              placeholder="搜索 IOC、历史事件、攻击组织或报告"
+              placeholder="搜索 IOC、报告、组织或攻击链"
             />
-            <kbd>⌘ K</kbd>
+            <button type="submit" aria-label="提交全局搜索">
+              <Search size={16} />
+            </button>
           </form>
-          <div className="header-context">
-            <span className="header-status">
-              <span />
-              DEMO
-            </span>
-            <div className="analyst-avatar">AN</div>
+        )}
+
+        <nav className="top-navigation" aria-label="主导航">
+          {items.map((item) => {
+            const Icon = item.icon;
+            return (
+              <button
+                type="button"
+                key={item.id}
+                className={current === item.id ? "active" : ""}
+                aria-current={current === item.id ? "page" : undefined}
+                onClick={() => onNavigate(item.id)}
+              >
+                <Icon size={15} />
+                <span>{item.label}</span>
+              </button>
+            );
+          })}
+        </nav>
+
+        <div className="header-context">
+          <span className="header-status">
+            <span />
+            DEMO
+          </span>
+          <div className="analyst-avatar" aria-label="当前分析员">
+            AN
           </div>
-        </header>
+        </div>
+      </header>
+      <div className="app-main">
         <div className="app-content">{children}</div>
       </div>
     </div>
