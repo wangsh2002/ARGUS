@@ -1,0 +1,404 @@
+{
+  "source": {
+    "title": "Squirrelwaffle 分阶段投递与后续载荷活动",
+    "publisher": "ARGUS curated from Zscaler ThreatLabz",
+    "canonical_url": "https://www.zscaler.com/blogs/security-research/squirrelwaffle-new-loader-delivering-cobalt-strike",
+    "published_at": "2021-09-28",
+    "content": "攻击活动首先利用接管的邮件线程发送带有嵌入链接的垃圾邮件，以提高诱饵可信度。\n\n受害者点击邮件中的链接后，浏览器下载一个包含 Microsoft Word 文档的 ZIP 压缩包。\n\n用户解压并打开 Word 文档，随后按照诱导启用宏。\n\n恶意宏在 ProgramData 目录写入 update.vbs 脚本。\n\n系统通过 cscript 或 wscript 执行该 VBS 脚本。\n\nVBS 脚本启动 PowerShell，从攻击者基础设施下载 Squirrelwaffle DLL 载荷。\n\n下载后的 DLL 通过 rundll32.exe 和 ldr 参数执行，Squirrelwaffle 加载器由此启动。\n\n加载器与命令控制服务器通信并获取后续载荷。\n\n一条后续分支下载并执行 Cobalt Strike Beacon。\n\n另一条后续分支下载 Qakbot，用于继续控制受害终端。\n\n报告还记录了一个使用 Excel 4.0 宏的独立投递变体。\n\n受害者打开恶意 Excel 文档并启用 Excel 4.0 宏。\n\n宏从工作表中保存的多个 URL 选择下载地址并获取 Squirrelwaffle 载荷。\n\n下载的 Squirrelwaffle 载荷随后在受害终端执行。\n\n邮件线程劫持属于投递细节，用于让恶意邮件看起来像已有业务对话。\n\nSquirrelwaffle 的命令控制通信使用 HTTP POST，并对 Base64 载荷进行 XOR 加密。"
+  },
+  "event_graph": {
+    "method": "curated-evidence-graph",
+    "model": "agent-assisted-curation",
+    "prompt_version": "featured-ingestion/1.0",
+    "pipeline_version": "curated-showcase/1.0",
+    "cache_hit": true,
+    "document_scope": {
+      "scope": "attack-lifecycle-candidate",
+      "attack_path_eligible": true,
+      "reason": "来源包含两个可区分的 Squirrelwaffle 投递活动及可验证的后续载荷分支。"
+    },
+    "events": [
+      {
+        "id": "SW-E1",
+        "label": "邮件线程投递恶意链接",
+        "node_type": "behavior",
+        "tactic": "initial-access",
+        "tactic_label": "初始访问",
+        "event_role": "milestone",
+        "mainline_role": "backbone",
+        "source_line_ids": [1],
+        "exact_quote": "攻击活动首先利用接管的邮件线程发送带有嵌入链接的垃圾邮件，以提高诱饵可信度。",
+        "confidence": 0.96,
+        "provenance": "curator-confirmed"
+      },
+      {
+        "id": "SW-E2",
+        "label": "受害者点击链接并下载 ZIP",
+        "node_type": "behavior",
+        "tactic": "execution",
+        "tactic_label": "执行",
+        "event_role": "milestone",
+        "mainline_role": "backbone",
+        "source_line_ids": [2],
+        "exact_quote": "受害者点击邮件中的链接后，浏览器下载一个包含 Microsoft Word 文档的 ZIP 压缩包。",
+        "confidence": 0.96,
+        "provenance": "curator-confirmed"
+      },
+      {
+        "id": "SW-E3",
+        "label": "打开 Word 文档并启用宏",
+        "node_type": "behavior",
+        "tactic": "execution",
+        "tactic_label": "执行",
+        "event_role": "milestone",
+        "mainline_role": "backbone",
+        "source_line_ids": [3],
+        "exact_quote": "用户解压并打开 Word 文档，随后按照诱导启用宏。",
+        "confidence": 0.94,
+        "provenance": "curator-confirmed"
+      },
+      {
+        "id": "SW-E4",
+        "label": "宏写入 update.vbs",
+        "node_type": "behavior",
+        "tactic": "execution",
+        "tactic_label": "执行",
+        "event_role": "milestone",
+        "mainline_role": "backbone",
+        "source_line_ids": [4],
+        "exact_quote": "恶意宏在 ProgramData 目录写入 update.vbs 脚本。",
+        "confidence": 0.93,
+        "provenance": "curator-confirmed"
+      },
+      {
+        "id": "SW-E5",
+        "label": "脚本宿主执行 VBS",
+        "node_type": "behavior",
+        "tactic": "execution",
+        "tactic_label": "执行",
+        "event_role": "milestone",
+        "mainline_role": "backbone",
+        "source_line_ids": [5],
+        "exact_quote": "系统通过 cscript 或 wscript 执行该 VBS 脚本。",
+        "confidence": 0.92,
+        "provenance": "curator-confirmed"
+      },
+      {
+        "id": "SW-E6",
+        "label": "PowerShell 下载 Squirrelwaffle DLL",
+        "node_type": "behavior",
+        "tactic": "command-and-control",
+        "tactic_label": "命令与控制",
+        "event_role": "milestone",
+        "mainline_role": "backbone",
+        "source_line_ids": [6],
+        "exact_quote": "VBS 脚本启动 PowerShell，从攻击者基础设施下载 Squirrelwaffle DLL 载荷。",
+        "confidence": 0.95,
+        "provenance": "curator-confirmed"
+      },
+      {
+        "id": "SW-E7",
+        "label": "rundll32 启动加载器",
+        "node_type": "behavior",
+        "tactic": "execution",
+        "tactic_label": "执行",
+        "event_role": "milestone",
+        "mainline_role": "backbone",
+        "source_line_ids": [7],
+        "exact_quote": "下载后的 DLL 通过 rundll32.exe 和 ldr 参数执行，Squirrelwaffle 加载器由此启动。",
+        "confidence": 0.95,
+        "provenance": "curator-confirmed"
+      },
+      {
+        "id": "SW-E8",
+        "label": "加载器获取后续载荷",
+        "node_type": "behavior",
+        "tactic": "command-and-control",
+        "tactic_label": "命令与控制",
+        "event_role": "milestone",
+        "mainline_role": "backbone",
+        "source_line_ids": [8],
+        "exact_quote": "加载器与命令控制服务器通信并获取后续载荷。",
+        "confidence": 0.91,
+        "provenance": "curator-confirmed"
+      },
+      {
+        "id": "SW-E9",
+        "label": "执行 Cobalt Strike Beacon",
+        "node_type": "behavior",
+        "tactic": "command-and-control",
+        "tactic_label": "命令与控制",
+        "event_role": "milestone",
+        "mainline_role": "branch",
+        "source_line_ids": [9],
+        "exact_quote": "一条后续分支下载并执行 Cobalt Strike Beacon。",
+        "confidence": 0.91,
+        "provenance": "curator-confirmed"
+      },
+      {
+        "id": "SW-E10",
+        "label": "执行 Qakbot",
+        "node_type": "behavior",
+        "tactic": "command-and-control",
+        "tactic_label": "命令与控制",
+        "event_role": "milestone",
+        "mainline_role": "branch",
+        "source_line_ids": [10],
+        "exact_quote": "另一条后续分支下载 Qakbot，用于继续控制受害终端。",
+        "confidence": 0.9,
+        "provenance": "curator-confirmed"
+      },
+      {
+        "id": "SW-E11",
+        "label": "投递恶意 Excel 文档",
+        "node_type": "behavior",
+        "tactic": "initial-access",
+        "tactic_label": "初始访问",
+        "event_role": "milestone",
+        "mainline_role": "backbone",
+        "source_line_ids": [11],
+        "exact_quote": "报告还记录了一个使用 Excel 4.0 宏的独立投递变体。",
+        "confidence": 0.9,
+        "provenance": "curator-confirmed"
+      },
+      {
+        "id": "SW-E12",
+        "label": "启用 Excel 4.0 宏",
+        "node_type": "behavior",
+        "tactic": "execution",
+        "tactic_label": "执行",
+        "event_role": "milestone",
+        "mainline_role": "backbone",
+        "source_line_ids": [12],
+        "exact_quote": "受害者打开恶意 Excel 文档并启用 Excel 4.0 宏。",
+        "confidence": 0.9,
+        "provenance": "curator-confirmed"
+      },
+      {
+        "id": "SW-E13",
+        "label": "宏选择 URL 并下载载荷",
+        "node_type": "behavior",
+        "tactic": "command-and-control",
+        "tactic_label": "命令与控制",
+        "event_role": "milestone",
+        "mainline_role": "backbone",
+        "source_line_ids": [13],
+        "exact_quote": "宏从工作表中保存的多个 URL 选择下载地址并获取 Squirrelwaffle 载荷。",
+        "confidence": 0.89,
+        "provenance": "curator-confirmed"
+      },
+      {
+        "id": "SW-E14",
+        "label": "执行 Squirrelwaffle 载荷",
+        "node_type": "behavior",
+        "tactic": "execution",
+        "tactic_label": "执行",
+        "event_role": "milestone",
+        "mainline_role": "backbone",
+        "source_line_ids": [14],
+        "exact_quote": "下载的 Squirrelwaffle 载荷随后在受害终端执行。",
+        "confidence": 0.9,
+        "provenance": "curator-confirmed"
+      },
+      {
+        "id": "SW-D1",
+        "label": "邮件线程劫持提高可信度",
+        "node_type": "behavior-detail",
+        "tactic": "initial-access",
+        "tactic_label": "初始访问",
+        "event_role": "detail",
+        "mainline_role": "detail",
+        "detail_parent_id": "SW-E1",
+        "source_line_ids": [15],
+        "exact_quote": "邮件线程劫持属于投递细节，用于让恶意邮件看起来像已有业务对话。",
+        "confidence": 0.9,
+        "provenance": "curator-confirmed"
+      },
+      {
+        "id": "SW-D2",
+        "label": "HTTP POST 与 XOR 通信",
+        "node_type": "behavior-detail",
+        "tactic": "command-and-control",
+        "tactic_label": "命令与控制",
+        "event_role": "detail",
+        "mainline_role": "detail",
+        "detail_parent_id": "SW-E8",
+        "source_line_ids": [16],
+        "exact_quote": "Squirrelwaffle 的命令控制通信使用 HTTP POST，并对 Base64 载荷进行 XOR 加密。",
+        "confidence": 0.9,
+        "provenance": "curator-confirmed"
+      }
+    ],
+    "relations": [
+      {"id": "SW-R1", "source_event_id": "SW-E1", "target_event_id": "SW-E2", "relation_type": "precedes", "confidence": 0.96},
+      {"id": "SW-R2", "source_event_id": "SW-E2", "target_event_id": "SW-E3", "relation_type": "enables", "confidence": 0.95},
+      {"id": "SW-R3", "source_event_id": "SW-E3", "target_event_id": "SW-E4", "relation_type": "enables", "confidence": 0.94},
+      {"id": "SW-R4", "source_event_id": "SW-E4", "target_event_id": "SW-E5", "relation_type": "precedes", "confidence": 0.93},
+      {"id": "SW-R5", "source_event_id": "SW-E5", "target_event_id": "SW-E6", "relation_type": "enables", "confidence": 0.93},
+      {"id": "SW-R6", "source_event_id": "SW-E6", "target_event_id": "SW-E7", "relation_type": "precedes", "confidence": 0.95},
+      {"id": "SW-R7", "source_event_id": "SW-E7", "target_event_id": "SW-E8", "relation_type": "enables", "confidence": 0.92},
+      {"id": "SW-R8", "source_event_id": "SW-E8", "target_event_id": "SW-E9", "relation_type": "branch", "confidence": 0.91},
+      {"id": "SW-R9", "source_event_id": "SW-E8", "target_event_id": "SW-E10", "relation_type": "branch", "confidence": 0.9},
+      {"id": "SW-R10", "source_event_id": "SW-E11", "target_event_id": "SW-E12", "relation_type": "precedes", "confidence": 0.9},
+      {"id": "SW-R11", "source_event_id": "SW-E12", "target_event_id": "SW-E13", "relation_type": "enables", "confidence": 0.89},
+      {"id": "SW-R12", "source_event_id": "SW-E13", "target_event_id": "SW-E14", "relation_type": "enables", "confidence": 0.9},
+      {"id": "SW-R13", "source_event_id": "SW-D1", "target_event_id": "SW-E1", "relation_type": "context-for", "confidence": 0.9},
+      {"id": "SW-R14", "source_event_id": "SW-E8", "target_event_id": "SW-D2", "relation_type": "context-for", "confidence": 0.9}
+    ],
+    "activity_clusters": [
+      {
+        "id": "SW-A1",
+        "title": "Word 宏投递与后续载荷分支",
+        "segment_kind": "observed-attack-activity",
+        "event_ids": ["SW-E1", "SW-E2", "SW-E3", "SW-E4", "SW-E5", "SW-E6", "SW-E7", "SW-E8", "SW-E9", "SW-E10", "SW-D1", "SW-D2"]
+      },
+      {
+        "id": "SW-A2",
+        "title": "Excel 4.0 宏投递变体",
+        "segment_kind": "observed-attack-activity",
+        "event_ids": ["SW-E11", "SW-E12", "SW-E13", "SW-E14"]
+      }
+    ],
+    "topology": {
+      "stats": {
+        "branch_groups": 1,
+        "branch_arms": 2,
+        "merge_groups": 0,
+        "merge_arms": 0,
+        "conditional_relations": 0
+      },
+      "branch_groups": [
+        {
+          "id": "SW-B1",
+          "root_event_id": "SW-E8",
+          "arm_event_ids": ["SW-E9", "SW-E10"],
+          "logic": "parallel-or-unknown"
+        }
+      ],
+      "merge_groups": []
+    },
+    "validation": {
+      "evidence_acceptance_rate": 1.0,
+      "rejected_events": 0,
+      "rejected_relations": 0
+    },
+    "mainline": {
+      "definition": "由证据完整、状态连续的攻击行为构成代表路线；后续载荷保留为真实分支。",
+      "flow_scope": "incident",
+      "projection_goal": {
+        "id": "incident-response",
+        "label": "应急响应",
+        "description": "优先展示完整入侵过程、必要分支和受影响终端上的后续载荷。"
+      },
+      "layer_contract": {
+        "evidence_graph": "保存来源支持的完整行为图。",
+        "core_process": "保留安全状态变化和真实分支。",
+        "presentation_spine": "为桌面端选择连续、可读的代表路线。",
+        "model_role_is_advisory": true
+      },
+      "review_queue": [],
+      "stats": {
+        "activities": 2,
+        "usable_paths": 2,
+        "review_paths": 0,
+        "supplemental_components": 0,
+        "core_events": 14,
+        "spine_events": 12,
+        "branch_events": 2,
+        "detail_events": 2,
+        "context_events": 0
+      },
+      "activities": [
+        {
+          "id": "SW-A1",
+          "title": "Word 宏投递与后续载荷分支",
+          "flow_scope": "incident",
+          "core_event_ids": ["SW-E1", "SW-E2", "SW-E3", "SW-E4", "SW-E5", "SW-E6", "SW-E7", "SW-E8", "SW-E9", "SW-E10"],
+          "spine_event_ids": ["SW-E1", "SW-E2", "SW-E3", "SW-E4", "SW-E5", "SW-E6", "SW-E7", "SW-E8"],
+          "branch_event_ids": ["SW-E9", "SW-E10"],
+          "detail_event_ids": ["SW-D1", "SW-D2"],
+          "context_event_ids": [],
+          "start_event_ids": ["SW-E1"],
+          "terminal_event_ids": ["SW-E9", "SW-E10"],
+          "path_units": [
+            {
+              "id": "SW-P1",
+              "kind": "observed-path",
+              "publication_status": "usable",
+              "event_ids": ["SW-E1", "SW-E2", "SW-E3", "SW-E4", "SW-E5", "SW-E6", "SW-E7", "SW-E8", "SW-E9", "SW-E10"],
+              "spine_event_ids": ["SW-E1", "SW-E2", "SW-E3", "SW-E4", "SW-E5", "SW-E6", "SW-E7", "SW-E8"],
+              "branch_event_ids": ["SW-E9", "SW-E10"],
+              "start_event_ids": ["SW-E1"],
+              "terminal_event_ids": ["SW-E9", "SW-E10"],
+              "edges": [
+                {"id": "SW-R1", "source_event_id": "SW-E1", "target_event_id": "SW-E2", "precondition_status": "supported"},
+                {"id": "SW-R2", "source_event_id": "SW-E2", "target_event_id": "SW-E3", "precondition_status": "supported"},
+                {"id": "SW-R3", "source_event_id": "SW-E3", "target_event_id": "SW-E4", "precondition_status": "supported"},
+                {"id": "SW-R4", "source_event_id": "SW-E4", "target_event_id": "SW-E5", "precondition_status": "supported"},
+                {"id": "SW-R5", "source_event_id": "SW-E5", "target_event_id": "SW-E6", "precondition_status": "supported"},
+                {"id": "SW-R6", "source_event_id": "SW-E6", "target_event_id": "SW-E7", "precondition_status": "supported"},
+                {"id": "SW-R7", "source_event_id": "SW-E7", "target_event_id": "SW-E8", "precondition_status": "supported"},
+                {"id": "SW-R8", "source_event_id": "SW-E8", "target_event_id": "SW-E9", "precondition_status": "supported"},
+                {"id": "SW-R9", "source_event_id": "SW-E8", "target_event_id": "SW-E10", "precondition_status": "supported"}
+              ],
+              "warnings": []
+            }
+          ],
+          "branch_groups": [
+            {
+              "id": "SW-B1",
+              "root_event_id": "SW-E8",
+              "arm_event_ids": ["SW-E9", "SW-E10"],
+              "logic": "parallel-or-unknown"
+            }
+          ],
+          "detail_groups": [
+            {"parent_event_id": "SW-E1", "event_ids": ["SW-D1"]},
+            {"parent_event_id": "SW-E8", "event_ids": ["SW-D2"]}
+          ],
+          "warnings": []
+        },
+        {
+          "id": "SW-A2",
+          "title": "Excel 4.0 宏投递变体",
+          "flow_scope": "incident",
+          "core_event_ids": ["SW-E11", "SW-E12", "SW-E13", "SW-E14"],
+          "spine_event_ids": ["SW-E11", "SW-E12", "SW-E13", "SW-E14"],
+          "branch_event_ids": [],
+          "detail_event_ids": [],
+          "context_event_ids": [],
+          "start_event_ids": ["SW-E11"],
+          "terminal_event_ids": ["SW-E14"],
+          "path_units": [
+            {
+              "id": "SW-P2",
+              "kind": "observed-path",
+              "publication_status": "usable",
+              "event_ids": ["SW-E11", "SW-E12", "SW-E13", "SW-E14"],
+              "spine_event_ids": ["SW-E11", "SW-E12", "SW-E13", "SW-E14"],
+              "branch_event_ids": [],
+              "start_event_ids": ["SW-E11"],
+              "terminal_event_ids": ["SW-E14"],
+              "edges": [
+                {"id": "SW-R10", "source_event_id": "SW-E11", "target_event_id": "SW-E12", "precondition_status": "supported"},
+                {"id": "SW-R11", "source_event_id": "SW-E12", "target_event_id": "SW-E13", "precondition_status": "supported"},
+                {"id": "SW-R12", "source_event_id": "SW-E13", "target_event_id": "SW-E14", "precondition_status": "supported"}
+              ],
+              "warnings": []
+            }
+          ],
+          "branch_groups": [],
+          "detail_groups": [],
+          "warnings": []
+        }
+      ]
+    },
+    "evidence_graph_policy": {
+      "scope": "evidence-bounded-attack-behavior",
+      "preserves": ["security-state milestones", "causal branches", "implementation details with evidence"],
+      "excludes_as_standalone_steps": ["IOC lists", "attribution background"],
+      "model_role_is_advisory": true,
+      "backend_projection_is_authoritative": true
+    }
+  }
+}

@@ -1,0 +1,102 @@
+{
+  "schema_version": 1,
+  "name": "AnnoCTR AttackFlow extraction acceptance set",
+  "source_policy": {
+    "input": "Only archived plaintext report content is passed to the extractor.",
+    "forbidden_inputs": [
+      "AnnoCTR/ner_bio",
+      "AnnoCTR/ner_json",
+      "AnnoCTR/linking",
+      "AnnoCTR/linking_mitre_only",
+      "AnnoCTR/linking_wiki_only",
+      "AnnoCTR/time"
+    ],
+    "ground_truth_note": "Scenario expectations were reviewed from the plaintext reports for this product contract. AnnoCTR labels and linking annotations are not extraction answers."
+  },
+  "required_contracts": [
+    "zero-to-many-candidates",
+    "local-temporary-identities",
+    "concise-verb-object-actions",
+    "context-not-action",
+    "allowed-relations-only",
+    "relation-quote-required",
+    "exact-quotes-verified",
+    "unassigned-evidence-preserved",
+    "reported-attribution-not-resolved",
+    "attack-mapping-optional"
+  ],
+  "cases": [
+    {
+      "id": "annoctr-no-flow",
+      "title": "(Cyber) GRU (XIV): conclusions",
+      "artifact_path": "data/corpus/artifacts/COLL-ANNOCTR-D510B694/b7198f0ca9b67a9b.txt",
+      "sha256": "b7198f0ca9b67a9b18005bb0748f397dc96f6ed99901010c1d1519ea73a3017e",
+      "scenarios": ["no-flow"],
+      "cardinality": {"minimum": 0, "maximum": 0},
+      "review_basis": "The full text is a strategic conclusion and attribution discussion without a source-local attack progression."
+    },
+    {
+      "id": "annoctr-multiple-activities",
+      "title": "The First Step: Initial Access Leads to Ransomware",
+      "artifact_path": "data/corpus/artifacts/COLL-ANNOCTR-D510B694/24418b0c9ebc10c6.txt",
+      "sha256": "24418b0c9ebc10c6d0741334316939b054c33f686413f215dd4be3d21c936f33",
+      "scenarios": ["ecosystem-boundary"],
+      "cardinality": {"minimum": 0, "maximum": 12},
+      "review_basis": "The report separately describes multiple tracked actors, but generic ecosystem capability statements must remain unassigned and must not be promoted merely to satisfy multi-activity cardinality."
+    },
+    {
+      "id": "annoctr-branch-and-merge",
+      "title": "Squirrelwaffle: New Loader Delivering Cobalt Strike",
+      "artifact_path": "data/corpus/artifacts/COLL-ANNOCTR-D510B694/1c1fc821d184ab3a.txt",
+      "sha256": "1c1fc821d184ab3a1d6ac00a16c71d89bd1a67697eb11e3e1f50bbdc4b6c35ec",
+      "scenarios": ["branch", "merge", "context-not-action"],
+      "cardinality": {"minimum": 1, "maximum": 3},
+      "review_basis": "Word and Excel delivery variants retain separate entry behavior and converge on the Squirrelwaffle payload; files, loaders, URLs and Cobalt Strike are Context."
+    },
+    {
+      "id": "annoctr-conditional-relations",
+      "title": "CloudFall Targets Researchers and Scientists",
+      "artifact_path": "data/corpus/artifacts/COLL-ANNOCTR-D510B694/6d78d19e545d9325.txt",
+      "sha256": "6d78d19e545d9325551344a2f9525926c90e7bad991baeed4ea07f351c8d10d4",
+      "scenarios": ["branch", "on-success", "on-failure"],
+      "cardinality": {"minimum": 1, "maximum": 3},
+      "review_basis": "The report explicitly describes two attack-chain variants and conditional execution checks."
+    },
+    {
+      "id": "annoctr-conflicting-attribution",
+      "title": "Targeted Attack on Government Organizations Delivers Netwire RAT",
+      "artifact_path": "data/corpus/artifacts/COLL-ANNOCTR-D510B694/fb95cbd80a60f2aa.txt",
+      "sha256": "fb95cbd80a60f2aa41a29bd453bf6215b601c061e7fa64bb4bf1bddc18d0c989",
+      "scenarios": ["conflicting-attribution", "context-variants"],
+      "cardinality": {"minimum": 1, "maximum": 3},
+      "review_basis": "The report declines conclusive attribution while mentioning multiple groups as historical users; document variants with the same behavior remain Context differences rather than fabricated Action branches."
+    },
+    {
+      "id": "annoctr-missing-relation-evidence",
+      "title": "Mustang Panda Recent Activity: Dll-Sideloading trojans with temporal C2 servers",
+      "artifact_path": "data/corpus/artifacts/COLL-ANNOCTR-D510B694/8ce8036143027b12.txt",
+      "sha256": "8ce8036143027b125f32814bb88d74700990460a5f986937ef8451fbf89f1338",
+      "scenarios": ["missing-relation-evidence", "context-not-action"],
+      "cardinality": {"minimum": 1, "maximum": 2},
+      "review_basis": "Only relations supported by exact source wording are accepted; adjacent technical details are not automatically connected."
+    },
+    {
+      "id": "annoctr-optional-attack",
+      "title": "APT28 Delivers Zebrocy Malware Campaign using NATO Theme as Lure",
+      "artifact_path": "data/corpus/artifacts/COLL-ANNOCTR-D510B694/96be28afd2f1c1f0.txt",
+      "sha256": "96be28afd2f1c1f0270a4ce0383b50e717c38616a752793373db48b9ca833d00",
+      "scenarios": ["optional-attack", "reported-attribution"],
+      "cardinality": {"minimum": 1, "maximum": 2},
+      "review_basis": "ATT&CK IDs may be present or absent without changing Action identity, relation evidence or publishability."
+    },
+    {
+      "id": "annoctr-sequential-baseline",
+      "title": "Whatta TA: TA505 Ramps Up Activity, Delivers New FlawedGrace Variant",
+      "artifact_path": "data/corpus/artifacts/COLL-ANNOCTR-D510B694/fd7e538942814ef1.txt",
+      "sha256": "fd7e538942814ef1fab0b950ea2ac7c522cb342c1fb1338182a5872e786b9e5b",
+      "scenarios": ["multiple-activities", "sequential-mainline", "optional-step"],
+      "cardinality": {"minimum": 1, "maximum": 3},
+      "review_basis": "The loader sequence provides a long baseline and explicitly marks KiXtart as an optional step."
+    }
+  ]
+}

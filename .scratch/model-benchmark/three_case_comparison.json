@@ -1,0 +1,1539 @@
+{
+  "models": [
+    {
+      "model": "deepseek-v4-pro",
+      "passed_cases": 2,
+      "total_seconds": 145.696,
+      "cases": [
+        {
+          "id": "annoctr-no-flow",
+          "title": "(Cyber) GRU (XIV): conclusions",
+          "scenarios": [
+            "no-flow"
+          ],
+          "elapsed_seconds": 1.169,
+          "passed": true,
+          "acceptance_passed": true,
+          "invariant_errors": [],
+          "candidate_count": 0,
+          "action_count": 0,
+          "relation_count": 0,
+          "context_count": 0,
+          "topology": {
+            "branch": false,
+            "merge": false
+          },
+          "rejected_fact_count": 0,
+          "unassigned_evidence_count": 0,
+          "review_fragment_count": 0,
+          "candidates": []
+        },
+        {
+          "id": "annoctr-missing-relation-evidence",
+          "title": "Mustang Panda Recent Activity: Dll-Sideloading trojans with temporal C2 servers",
+          "scenarios": [
+            "missing-relation-evidence",
+            "context-not-action"
+          ],
+          "elapsed_seconds": 42.601,
+          "passed": true,
+          "acceptance_passed": true,
+          "invariant_errors": [],
+          "candidate_count": 1,
+          "action_count": 8,
+          "relation_count": 7,
+          "context_count": 10,
+          "topology": {
+            "branch": false,
+            "merge": false
+          },
+          "rejected_fact_count": 0,
+          "unassigned_evidence_count": 0,
+          "review_fragment_count": 0,
+          "candidates": [
+            {
+              "title": "Mustang Panda PlugX DLL Sideloading Campaign (June 2020)",
+              "description": "A malware sample uses DLL sideloading with a legitimate Adobe Swite binary to load a PlugX Trojan. The installer drops files, the loader decrypts and executes the final payload, and the malware communicates with C2 servers that resolve only during specific hours.",
+              "actions": [
+                {
+                  "id": "A1",
+                  "name": "Download installer",
+                  "description": "The sample is downloaded from a URL.",
+                  "phase": "",
+                  "confidence": "high",
+                  "technique_ids": [],
+                  "contexts": [
+                    {
+                      "id": "C1",
+                      "type": "url",
+                      "name": "http://miandfish.]store/player/install\\_flash\\_player.exe",
+                      "role": "downloads-from",
+                      "confidence": "high",
+                      "evidence": [
+                        {
+                          "quote": "The sample in question is downloaded from the following link “http://miandfish.]store/player/install\\_flash\\_player.exe”"
+                        }
+                      ]
+                    }
+                  ],
+                  "evidence": [
+                    {
+                      "quote": "The sample in question is downloaded from the following link “http://miandfish.]store/player/install\\_flash\\_player.exe”"
+                    }
+                  ]
+                },
+                {
+                  "id": "A2",
+                  "name": "Drop files",
+                  "description": "The installer drops a legitimate binary, a malicious DLL, and an encrypted PlugX file into a folder.",
+                  "phase": "",
+                  "confidence": "high",
+                  "technique_ids": [],
+                  "contexts": [
+                    {
+                      "id": "C2",
+                      "type": "file",
+                      "name": "legitimate binary vulnerable to dll sideload",
+                      "role": "drops-on",
+                      "confidence": "high",
+                      "evidence": [
+                        {
+                          "quote": "the legitimate binary vulnerable to dll sideload"
+                        }
+                      ]
+                    },
+                    {
+                      "id": "C3",
+                      "type": "file",
+                      "name": "small dll that acts as a loader",
+                      "role": "drops-on",
+                      "confidence": "high",
+                      "evidence": [
+                        {
+                          "quote": "the small dll that acts as a loader for the final threat"
+                        }
+                      ]
+                    },
+                    {
+                      "id": "C4",
+                      "type": "file",
+                      "name": "encrypted PlugX sample",
+                      "role": "drops-on",
+                      "confidence": "high",
+                      "evidence": [
+                        {
+                          "quote": "the binary file, which consists of the encrypted PlugX sample"
+                        }
+                      ]
+                    },
+                    {
+                      "id": "C5",
+                      "type": "other",
+                      "name": "C:\\ProgramData\\AAM Updatesnnk",
+                      "role": "drops-on",
+                      "confidence": "high",
+                      "evidence": [
+                        {
+                          "quote": "drops in the folder “C:\\ProgramData\\AAM Updatesnnk”"
+                        }
+                      ]
+                    }
+                  ],
+                  "evidence": [
+                    {
+                      "quote": "The binary consists of an installer, which drops in the folder “C:\\ProgramData\\AAM Updatesnnk” the legitimate binary vulnerable to dll sideload, the small dll that acts as a loader for the final threat, and the binary file, which consists of the encrypted PlugX sample."
+                    }
+                  ]
+                },
+                {
+                  "id": "A3",
+                  "name": "Execute legitimate binary",
+                  "description": "The installer runs the legitimate binary, causing the PlugX threat to be loaded.",
+                  "phase": "",
+                  "confidence": "high",
+                  "technique_ids": [],
+                  "contexts": [],
+                  "evidence": [
+                    {
+                      "quote": "After deploying the three files, the installer runs the legitimate binary, causing the final PlugX threat to be loaded by it."
+                    }
+                  ]
+                },
+                {
+                  "id": "A4",
+                  "name": "Load malicious DLL",
+                  "description": "The legitimate Adobe Swite binary loads the malicious hex.dll via DLL sideloading.",
+                  "phase": "",
+                  "confidence": "high",
+                  "technique_ids": [],
+                  "contexts": [
+                    {
+                      "id": "C6",
+                      "type": "file",
+                      "name": "hex.dll",
+                      "role": "uses",
+                      "confidence": "high",
+                      "evidence": [
+                        {
+                          "quote": "the legitimate vulnerable binary is part of Adobe’s Swite which will load any library named “hex.dll” that is next to the executable"
+                        }
+                      ]
+                    }
+                  ],
+                  "evidence": [
+                    {
+                      "quote": "the legitimate vulnerable binary is part of Adobe’s Swite which will load any library named “hex.dll” that is next to the executable"
+                    }
+                  ]
+                },
+                {
+                  "id": "A5",
+                  "name": "Decrypt and load PlugX",
+                  "description": "The hex.dll loader decrypts the .dat file using a hardcoded XOR key and loads the PlugX payload into memory.",
+                  "phase": "",
+                  "confidence": "high",
+                  "technique_ids": [],
+                  "contexts": [
+                    {
+                      "id": "C7",
+                      "type": "file",
+                      "name": "adobeupdate.dat",
+                      "role": "uses",
+                      "confidence": "high",
+                      "evidence": [
+                        {
+                          "quote": "checks the existence of the .dat file which is hardcoded (adobeupdate.dat in this case)"
+                        }
+                      ]
+                    }
+                  ],
+                  "evidence": [
+                    {
+                      "quote": "the Main function of the library, on the other hand, calls a function that checks the existence of the .dat file which is hardcoded (adobeupdate.dat in this case), loads it, extracts the first string of the binary and uses it as XOR key to decode the rest of the file, which consists on the final threat."
+                    }
+                  ]
+                },
+                {
+                  "id": "A6",
+                  "name": "Execute PlugX in memory",
+                  "description": "The loader makes the decrypted PlugX executable and launches its logic from byte 0.",
+                  "phase": "",
+                  "confidence": "high",
+                  "technique_ids": [],
+                  "contexts": [],
+                  "evidence": [
+                    {
+                      "quote": "When it finishes deciphering it, it loads the malware into memory, makes a “Memprotect” to make it executable and launches its logic from the byte 0 of the binary."
+                    }
+                  ]
+                },
+                {
+                  "id": "A7",
+                  "name": "Decrypt configuration",
+                  "description": "PlugX decrypts its own configuration from the .data section using the hardcoded key '123456789'.",
+                  "phase": "",
+                  "confidence": "high",
+                  "technique_ids": [],
+                  "contexts": [],
+                  "evidence": [
+                    {
+                      "quote": "After loading the IAT and leaving everything ready as a normal executable, this threat decrypts its own config, which is encrypted in XOR in the .data section of the binary."
+                    },
+                    {
+                      "quote": "This time the decryption key is hardcoded in the binary, and is the string “123456789”."
+                    }
+                  ]
+                },
+                {
+                  "id": "A8",
+                  "name": "Communicate with C2 servers",
+                  "description": "PlugX uses domains as C2 servers that resolve to an IP only during specific hours.",
+                  "phase": "",
+                  "confidence": "high",
+                  "technique_ids": [],
+                  "contexts": [
+                    {
+                      "id": "C8",
+                      "type": "domain",
+                      "name": "www.destroy2013.]com",
+                      "role": "communicates-with",
+                      "confidence": "high",
+                      "evidence": [
+                        {
+                          "quote": "This particular sample has the domains “www.destroy2013.]com” and “www.fitehook.]com” as c2 servers"
+                        }
+                      ]
+                    },
+                    {
+                      "id": "C9",
+                      "type": "domain",
+                      "name": "www.fitehook.]com",
+                      "role": "communicates-with",
+                      "confidence": "high",
+                      "evidence": [
+                        {
+                          "quote": "This particular sample has the domains “www.destroy2013.]com” and “www.fitehook.]com” as c2 servers"
+                        }
+                      ]
+                    },
+                    {
+                      "id": "C10",
+                      "type": "ip",
+                      "name": "107.150.112.]250",
+                      "role": "communicates-with",
+                      "confidence": "high",
+                      "evidence": [
+                        {
+                          "quote": "from 1-3 AM (UTC) to 8-9 AM (UTC) it resolves to the IP “107.150.112.]250"
+                        }
+                      ]
+                    }
+                  ],
+                  "evidence": [
+                    {
+                      "quote": "This particular sample has the domains “www.destroy2013.]com” and “www.fitehook.]com” as c2 servers, and we have seen that they have a very characteristic behavior, since most of the day they resolve to 127.0.0.1, but from 1-3 AM (UTC) to 8-9 AM (UTC) it resolves to the IP “107.150.112.]250, except for weekends that it resolves constantly to 127.0.0.1"
+                    }
+                  ]
+                }
+              ],
+              "relations": [
+                {
+                  "id": "R1",
+                  "source_action_id": "A1",
+                  "target_action_id": "A2",
+                  "type": "leads_to",
+                  "condition": null,
+                  "confidence": "high",
+                  "evidence": [
+                    {
+                      "quote": "The binary consists of an installer, which drops in the folder “C:\\ProgramData\\AAM Updatesnnk” the legitimate binary vulnerable to dll sideload, the small dll that acts as a loader for the final threat, and the binary file, which consists of the encrypted PlugX sample."
+                    }
+                  ]
+                },
+                {
+                  "id": "R2",
+                  "source_action_id": "A2",
+                  "target_action_id": "A3",
+                  "type": "enables",
+                  "condition": null,
+                  "confidence": "high",
+                  "evidence": [
+                    {
+                      "quote": "After deploying the three files, the installer runs the legitimate binary, causing the final PlugX threat to be loaded by it."
+                    }
+                  ]
+                },
+                {
+                  "id": "R3",
+                  "source_action_id": "A3",
+                  "target_action_id": "A4",
+                  "type": "leads_to",
+                  "condition": null,
+                  "confidence": "high",
+                  "evidence": [
+                    {
+                      "quote": "the legitimate vulnerable binary is part of Adobe’s Swite which will load any library named “hex.dll” that is next to the executable"
+                    }
+                  ]
+                },
+                {
+                  "id": "R4",
+                  "source_action_id": "A4",
+                  "target_action_id": "A5",
+                  "type": "leads_to",
+                  "condition": null,
+                  "confidence": "high",
+                  "evidence": [
+                    {
+                      "quote": "the Main function of the library, on the other hand, calls a function that checks the existence of the .dat file which is hardcoded (adobeupdate.dat in this case), loads it, extracts the first string of the binary and uses it as XOR key to decode the rest of the file, which consists on the final threat."
+                    }
+                  ]
+                },
+                {
+                  "id": "R5",
+                  "source_action_id": "A5",
+                  "target_action_id": "A6",
+                  "type": "leads_to",
+                  "condition": null,
+                  "confidence": "high",
+                  "evidence": [
+                    {
+                      "quote": "When it finishes deciphering it, it loads the malware into memory, makes a “Memprotect” to make it executable and launches its logic from the byte 0 of the binary."
+                    }
+                  ]
+                },
+                {
+                  "id": "R6",
+                  "source_action_id": "A6",
+                  "target_action_id": "A7",
+                  "type": "leads_to",
+                  "condition": null,
+                  "confidence": "high",
+                  "evidence": [
+                    {
+                      "quote": "After loading the IAT and leaving everything ready as a normal executable, this threat decrypts its own config, which is encrypted in XOR in the .data section of the binary."
+                    }
+                  ]
+                },
+                {
+                  "id": "R7",
+                  "source_action_id": "A7",
+                  "target_action_id": "A8",
+                  "type": "leads_to",
+                  "condition": null,
+                  "confidence": "high",
+                  "evidence": [
+                    {
+                      "quote": "After decrypting its configuration, it contains the folder where the binary must be installed, a XOR key that will use to encrypt it’s traffic and a list of up to 4 domains or IP addresses of command and control servers together with the port to be used."
+                    }
+                  ]
+                }
+              ],
+              "mainline": [
+                "A1",
+                "A2",
+                "A3",
+                "A4",
+                "A5",
+                "A6",
+                "A7",
+                "A8"
+              ],
+              "reported_actors": [
+                {
+                  "id": "ACTOR1",
+                  "reported_name": "Mustang Panda",
+                  "confidence": "high",
+                  "evidence": [
+                    {
+                      "quote": "it has been possible to verify how both the loader and the final threat coincide in a high percentage with the samples of the “Mustang Panda” group"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "annoctr-branch-and-merge",
+          "title": "Squirrelwaffle: New Loader Delivering Cobalt Strike",
+          "scenarios": [
+            "branch",
+            "merge",
+            "context-not-action"
+          ],
+          "elapsed_seconds": 101.926,
+          "passed": false,
+          "acceptance_passed": false,
+          "invariant_errors": [],
+          "candidate_count": 2,
+          "action_count": 11,
+          "relation_count": 9,
+          "context_count": 22,
+          "topology": {
+            "branch": false,
+            "merge": false
+          },
+          "rejected_fact_count": 1,
+          "unassigned_evidence_count": 49,
+          "review_fragment_count": 0,
+          "candidates": [
+            {
+              "title": "Squirrelwaffle Campaign via Word Documents",
+              "description": "Squirrelwaffle loader delivered via malicious Word documents with macros, leading to Cobalt Strike deployment.",
+              "actions": [
+                {
+                  "id": "A1",
+                  "name": "Send spam emails with malicious URLs",
+                  "description": "The campaign starts with spam emails using email thread hijacking to deliver URLs that download a ZIP containing a malicious Word document.",
+                  "phase": "",
+                  "confidence": "high",
+                  "technique_ids": [],
+                  "contexts": [
+                    {
+                      "id": "C1",
+                      "type": "other",
+                      "name": "email thread hijacking",
+                      "role": "uses",
+                      "confidence": "high",
+                      "evidence": [
+                        {
+                          "quote": "Squirrelwaffle campaigns generally start via spam emails that attempt to convince victims to click an embedded URL using a technique known as email thread hijacking."
+                        }
+                      ]
+                    }
+                  ],
+                  "evidence": [
+                    {
+                      "quote": "Squirrelwaffle campaigns generally start via spam emails that attempt to convince victims to click an embedded URL using a technique known as email thread hijacking."
+                    }
+                  ]
+                },
+                {
+                  "id": "A2",
+                  "name": "Download ZIP with malicious document",
+                  "description": "Victim clicks the URL and downloads a ZIP file containing a Microsoft Word document.",
+                  "phase": "",
+                  "confidence": "high",
+                  "technique_ids": [],
+                  "contexts": [
+                    {
+                      "id": "C2",
+                      "type": "file",
+                      "name": "ZIP file",
+                      "role": "downloads-from",
+                      "confidence": "high",
+                      "evidence": [
+                        {
+                          "quote": "Once a victim clicks on the URL, a ZIP file is downloaded that contains a Microsoft Word document."
+                        }
+                      ]
+                    }
+                  ],
+                  "evidence": [
+                    {
+                      "quote": "Once a victim clicks on the URL, a ZIP file is downloaded that contains a Microsoft Word document."
+                    }
+                  ]
+                },
+                {
+                  "id": "A3",
+                  "name": "Enable macro in Word document",
+                  "description": "User enables macro in the Word document, which uses a DocuSign template lure.",
+                  "phase": "",
+                  "confidence": "high",
+                  "technique_ids": [],
+                  "contexts": [
+                    {
+                      "id": "C3",
+                      "type": "file",
+                      "name": "Microsoft Word document",
+                      "role": "uses",
+                      "confidence": "high",
+                      "evidence": [
+                        {
+                          "quote": "This document is using a DocuSign template lure that instructs the user to enable a macro to view the content"
+                        }
+                      ]
+                    }
+                  ],
+                  "evidence": [
+                    {
+                      "quote": "This document is using a DocuSign template lure that instructs the user to enable a macro to view the content"
+                    }
+                  ]
+                },
+                {
+                  "id": "A4",
+                  "name": "Execute malicious VBA macro",
+                  "description": "AutoOpen() subroutine calls efile() in bxh module, which extracts and executes embedded VBS file.",
+                  "phase": "",
+                  "confidence": "high",
+                  "technique_ids": [],
+                  "contexts": [
+                    {
+                      "id": "C4",
+                      "type": "file",
+                      "name": "pin.vbs",
+                      "role": "creates",
+                      "confidence": "high",
+                      "evidence": [
+                        {
+                          "quote": "There is a UserForm object in the document which contains a VBS file named pin.vbs that is embedded in the caption of the DocuSign image."
+                        }
+                      ]
+                    },
+                    {
+                      "id": "C5",
+                      "type": "process",
+                      "name": "cscript.exe",
+                      "role": "uses",
+                      "confidence": "high",
+                      "evidence": [
+                        {
+                          "quote": "The document that contains the macro code leverages cscript.exe to extract the embedded VBS file, which is written to the %ProgramData% folder, and executed using wscript.exe."
+                        }
+                      ]
+                    },
+                    {
+                      "id": "C6",
+                      "type": "process",
+                      "name": "wscript.exe",
+                      "role": "uses",
+                      "confidence": "high",
+                      "evidence": [
+                        {
+                          "quote": "The document that contains the macro code leverages cscript.exe to extract the embedded VBS file, which is written to the %ProgramData% folder, and executed using wscript.exe."
+                        }
+                      ]
+                    }
+                  ],
+                  "evidence": [
+                    {
+                      "quote": "Once the user enables the macro, an *AutoOpen()* subroutine is called which then executes a malicious Visual Basic Application (VBA) macro."
+                    },
+                    {
+                      "quote": "Here, the *AutoOpen()* subroutine calls another function *efile*() in the *bxh* module."
+                    },
+                    {
+                      "quote": "The document that contains the macro code leverages cscript.exe to extract the embedded VBS file, which is written to the %ProgramData% folder, and executed using wscript.exe."
+                    }
+                  ]
+                },
+                {
+                  "id": "A5",
+                  "name": "Download Squirrelwaffle loader via VBS",
+                  "description": "VBS file contains obfuscated PowerShell script with 5 URLs to download Squirrelwaffle payload as ww1.dll.",
+                  "phase": "",
+                  "confidence": "high",
+                  "technique_ids": [],
+                  "contexts": [
+                    {
+                      "id": "C7",
+                      "type": "file",
+                      "name": "ww1.dll",
+                      "role": "downloads-from",
+                      "confidence": "high",
+                      "evidence": [
+                        {
+                          "quote": "The payload is written to %ProgramData% with the filename ww1.dll."
+                        }
+                      ]
+                    },
+                    {
+                      "id": "C8",
+                      "type": "url",
+                      "name": "hxxps://priyacareers[.]com/u9hDQN9Yy7g/pt.html",
+                      "role": "downloads-from",
+                      "confidence": "high",
+                      "evidence": [
+                        {
+                          "quote": "hxxps://priyacareers[.]com/u9hDQN9Yy7g/pt.html"
+                        }
+                      ]
+                    },
+                    {
+                      "id": "C9",
+                      "type": "url",
+                      "name": "hxxps://perfectdemos[.]com/Gv1iNAuMKZ/pt.html",
+                      "role": "downloads-from",
+                      "confidence": "high",
+                      "evidence": [
+                        {
+                          "quote": "hxxps://perfectdemos[.]com/Gv1iNAuMKZ/pt.html"
+                        }
+                      ]
+                    },
+                    {
+                      "id": "C10",
+                      "type": "url",
+                      "name": "hxxps://bussiness-z[.]ml/ze8pCNTIkrIS/pt.html",
+                      "role": "downloads-from",
+                      "confidence": "high",
+                      "evidence": [
+                        {
+                          "quote": "hxxps://bussiness-z[.]ml/ze8pCNTIkrIS/pt.html"
+                        }
+                      ]
+                    },
+                    {
+                      "id": "C11",
+                      "type": "url",
+                      "name": "hxxps://cablingpoint[.]com/ByH5NDoE3kQA/pt.html",
+                      "role": "downloads-from",
+                      "confidence": "high",
+                      "evidence": [
+                        {
+                          "quote": "hxxps://cablingpoint[.]com/ByH5NDoE3kQA/pt.html"
+                        }
+                      ]
+                    },
+                    {
+                      "id": "C12",
+                      "type": "url",
+                      "name": "hxxps://bonus.corporatebusinessmachines[.]co.in/1Y0qVNce/pt.html",
+                      "role": "downloads-from",
+                      "confidence": "high",
+                      "evidence": [
+                        {
+                          "quote": "hxxps://bonus.corporatebusinessmachines[.]co.in/1Y0qVNce/pt.html"
+                        }
+                      ]
+                    }
+                  ],
+                  "evidence": [
+                    {
+                      "quote": "This VBS file contains an obfuscated PowerShell script with 5 different URLs to download the Squirrelwaffle payload as shown in Figure 3."
+                    },
+                    {
+                      "quote": "The payload is written to %ProgramData% with the filename ww1.dll."
+                    }
+                  ]
+                },
+                {
+                  "id": "A6",
+                  "name": "Execute Squirrelwaffle loader",
+                  "description": "Payload DLL executed via rundll32.exe by invoking export function ldr.",
+                  "phase": "",
+                  "confidence": "high",
+                  "technique_ids": [],
+                  "contexts": [
+                    {
+                      "id": "C13",
+                      "type": "process",
+                      "name": "rundll32.exe",
+                      "role": "uses",
+                      "confidence": "high",
+                      "evidence": [
+                        {
+                          "quote": "The payload DLL is executed via rundll32.exe by invoking the export function name *ldr*."
+                        }
+                      ]
+                    }
+                  ],
+                  "evidence": [
+                    {
+                      "quote": "The payload DLL is executed via rundll32.exe by invoking the export function name *ldr*."
+                    }
+                  ]
+                },
+                {
+                  "id": "A7",
+                  "name": "Communicate with C2 server",
+                  "description": "Squirrelwaffle sends HTTP POST with encrypted system info to C2 and receives response possibly containing second-stage payload.",
+                  "phase": "",
+                  "confidence": "high",
+                  "technique_ids": [],
+                  "contexts": [
+                    {
+                      "id": "C14",
+                      "type": "infrastructure",
+                      "name": "test.dirigu.ro",
+                      "role": "communicates-with",
+                      "confidence": "high",
+                      "evidence": [
+                        {
+                          "quote": "Host: test.dirigu.ro"
+                        }
+                      ]
+                    }
+                  ],
+                  "evidence": [
+                    {
+                      "quote": "The CnC communication protocol utilizes an HTTP POST request with a Base64 encoded payload that is encrypted using an XOR-based algorithm with the hardcoded key ***KJKLO***."
+                    },
+                    {
+                      "quote": "The SquirrelWaffle CnC responds with a Base64 encoded payload that uses the same encryption schema with another format that uses two tab characters as delimiter between fields."
+                    }
+                  ]
+                },
+                {
+                  "id": "A8",
+                  "name": "Download and execute second-stage payload",
+                  "description": "Squirrelwaffle writes second-stage payload to a .txt file and executes it, leading to Cobalt Strike stager.",
+                  "phase": "",
+                  "confidence": "high",
+                  "technique_ids": [],
+                  "contexts": [
+                    {
+                      "id": "C15",
+                      "type": "file",
+                      "name": "second-stage payload",
+                      "role": "creates",
+                      "confidence": "high",
+                      "evidence": [
+                        {
+                          "quote": "This second-stage payload will be written to a filename that consists of eleven random alphanumeric characters appended with a .txt extension, and then executed by SquirrelWaffle."
+                        }
+                      ]
+                    }
+                  ],
+                  "evidence": [
+                    {
+                      "quote": "This second-stage payload will be written to a filename that consists of eleven random alphanumeric characters appended with a .txt extension, and then executed by SquirrelWaffle."
+                    }
+                  ]
+                },
+                {
+                  "id": "A9",
+                  "name": "Deploy Cobalt Strike beacon",
+                  "description": "Cobalt Strike stager downloads and decrypts Cobalt Strike beacon from C2 server.",
+                  "phase": "",
+                  "confidence": "high",
+                  "technique_ids": [],
+                  "contexts": [
+                    {
+                      "id": "C16",
+                      "type": "ip",
+                      "name": "213.227.154.92",
+                      "role": "communicates-with",
+                      "confidence": "high",
+                      "evidence": [
+                        {
+                          "quote": "The Cobalt Strike stager sends an HTTPS GET request to 213.227.154[.]92 with the path /jquery-3.3.1.slim.min.js."
+                        }
+                      ]
+                    },
+                    {
+                      "id": "C17",
+                      "type": "domain",
+                      "name": "systemmentorsec.com",
+                      "role": "communicates-with",
+                      "confidence": "high",
+                      "evidence": [
+                        {
+                          "quote": "hxxps://systemmentorsec.com/jquery-3.3.1.min.js,"
+                        }
+                      ]
+                    }
+                  ],
+                  "evidence": [
+                    {
+                      "quote": "The Cobalt Strike stager sends an HTTPS GET request to 213.227.154[.]92 with the path /jquery-3.3.1.slim.min.js."
+                    },
+                    {
+                      "quote": "The Cobalt Strike beacon observed by Zscaler ThreatLabz contains the following CnC servers:\n*hxxps://systemmentorsec.com/jquery-3.3.1.min.js,*\n*hxxps://213.227.154.92/jquery-3.3.1.min.js*"
+                    }
+                  ]
+                }
+              ],
+              "relations": [
+                {
+                  "id": "R1",
+                  "source_action_id": "A1",
+                  "target_action_id": "A2",
+                  "type": "leads_to",
+                  "condition": null,
+                  "confidence": "high",
+                  "evidence": [
+                    {
+                      "quote": "Once a victim clicks on the URL, a ZIP file is downloaded that contains a Microsoft Word document."
+                    }
+                  ]
+                },
+                {
+                  "id": "R2",
+                  "source_action_id": "A2",
+                  "target_action_id": "A3",
+                  "type": "leads_to",
+                  "condition": null,
+                  "confidence": "high",
+                  "evidence": [
+                    {
+                      "quote": "This document is using a DocuSign template lure that instructs the user to enable a macro to view the content"
+                    }
+                  ]
+                },
+                {
+                  "id": "R3",
+                  "source_action_id": "A3",
+                  "target_action_id": "A4",
+                  "type": "leads_to",
+                  "condition": null,
+                  "confidence": "high",
+                  "evidence": [
+                    {
+                      "quote": "Once the user enables the macro, an *AutoOpen()* subroutine is called which then executes a malicious Visual Basic Application (VBA) macro."
+                    }
+                  ]
+                },
+                {
+                  "id": "R4",
+                  "source_action_id": "A4",
+                  "target_action_id": "A5",
+                  "type": "leads_to",
+                  "condition": null,
+                  "confidence": "high",
+                  "evidence": [
+                    {
+                      "quote": "The document that contains the macro code leverages cscript.exe to extract the embedded VBS file, which is written to the %ProgramData% folder, and executed using wscript.exe."
+                    }
+                  ]
+                },
+                {
+                  "id": "R5",
+                  "source_action_id": "A5",
+                  "target_action_id": "A6",
+                  "type": "leads_to",
+                  "condition": null,
+                  "confidence": "high",
+                  "evidence": [
+                    {
+                      "quote": "The payload DLL is executed via rundll32.exe by invoking the export function name *ldr*."
+                    }
+                  ]
+                },
+                {
+                  "id": "R6",
+                  "source_action_id": "A6",
+                  "target_action_id": "A7",
+                  "type": "leads_to",
+                  "condition": null,
+                  "confidence": "high",
+                  "evidence": [
+                    {
+                      "quote": "Once the malware decodes all of the CnC domains and IP addresses to block, it creates a **socket** and sends the data using the **send()** function and receives the content from the CnC using **recv()** calls."
+                    }
+                  ]
+                },
+                {
+                  "id": "R7",
+                  "source_action_id": "A7",
+                  "target_action_id": "A8",
+                  "type": "leads_to",
+                  "condition": null,
+                  "confidence": "high",
+                  "evidence": [
+                    {
+                      "quote": "The SquirrelWaffle CnC response may also contain a second-stage payload."
+                    }
+                  ]
+                },
+                {
+                  "id": "R8",
+                  "source_action_id": "A8",
+                  "target_action_id": "A9",
+                  "type": "leads_to",
+                  "condition": null,
+                  "confidence": "high",
+                  "evidence": [
+                    {
+                      "quote": "Zscaler ThreatLabz has observed Squirrelwaffle deliver an executable file with the MD5 hash 116301FD453397FDF3CB291341924147.\nThis file is packed and decrypted in memory to produce a Cobalt Strike stager with the MD5 hash 38DB72B33ABCEA250F5B7CB5AB514B2C, which further downloads the Cobalt Strike beacon."
+                    }
+                  ]
+                }
+              ],
+              "mainline": [
+                "A1",
+                "A2",
+                "A3",
+                "A4",
+                "A5",
+                "A6",
+                "A7",
+                "A8",
+                "A9"
+              ],
+              "reported_actors": []
+            },
+            {
+              "title": "Squirrelwaffle Delivery via Excel Macro",
+              "description": "The threat actor uses hidden Microsoft Excel sheets with an Auto_Open() macro to download the Squirrelwaffle loader from three URLs, then executes it via regsvr32.exe.",
+              "actions": [
+                {
+                  "id": "A1",
+                  "name": "Download Squirrelwaffle loader",
+                  "description": "The hidden Excel sheet with Auto_Open() macro downloads the Squirrelwaffle loader from three different URLs.",
+                  "phase": "",
+                  "confidence": "high",
+                  "technique_ids": [],
+                  "contexts": [
+                    {
+                      "id": "C1",
+                      "type": "file",
+                      "name": "Microsoft Excel document with MD5 hash 77BD39191FDC817F2F14F0462BFF8D86",
+                      "role": "uses",
+                      "confidence": "high",
+                      "evidence": [
+                        {
+                          "quote": "used a Microsoft Excel document with the MD5 hash 77BD39191FDC817F2F14F0462BFF8D86 and a filename matching the regular expression diagram-\\d{1,9}.xls."
+                        }
+                      ]
+                    },
+                    {
+                      "id": "C2",
+                      "type": "url",
+                      "name": "hxxps://cortinastelasytrazos[.]com/Yro6Atvj/sec.html",
+                      "role": "downloads-from",
+                      "confidence": "high",
+                      "evidence": [
+                        {
+                          "quote": "hxxps://cortinastelasytrazos[.]com/Yro6Atvj/sec.html"
+                        }
+                      ]
+                    },
+                    {
+                      "id": "C3",
+                      "type": "url",
+                      "name": "hxxps://orquideavallenata[.]com/4jmDb0s9sg/sec.html",
+                      "role": "downloads-from",
+                      "confidence": "high",
+                      "evidence": [
+                        {
+                          "quote": "hxxps://orquideavallenata[.]com/4jmDb0s9sg/sec.html"
+                        }
+                      ]
+                    },
+                    {
+                      "id": "C4",
+                      "type": "url",
+                      "name": "hxxps://fundacionverdaderosheroes[.]com/gY0Op5Jkht/sec.html",
+                      "role": "downloads-from",
+                      "confidence": "high",
+                      "evidence": [
+                        {
+                          "quote": "hxxps://fundacionverdaderosheroes[.]com/gY0Op5Jkht/sec.html"
+                        }
+                      ]
+                    }
+                  ],
+                  "evidence": [
+                    {
+                      "quote": "the initial infection vector has used hidden Microsoft Excel sheets with an *Auto\\_Open()* macro, which downloads the Squirrelwafle loader from three different URLs."
+                    }
+                  ]
+                },
+                {
+                  "id": "A2",
+                  "name": "Execute Squirrelwaffle loader",
+                  "description": "The Squirrelwaffle loader is executed via regsvr32.exe.",
+                  "phase": "",
+                  "confidence": "high",
+                  "technique_ids": [],
+                  "contexts": [
+                    {
+                      "id": "C5",
+                      "type": "process",
+                      "name": "regsvr32.exe",
+                      "role": "runs-on",
+                      "confidence": "high",
+                      "evidence": [
+                        {
+                          "quote": "executed via regsvr32.exe"
+                        }
+                      ]
+                    }
+                  ],
+                  "evidence": [
+                    {
+                      "quote": "The Squirrelwaffle loader is subsequently executed via regsvr32.exe."
+                    }
+                  ]
+                }
+              ],
+              "relations": [
+                {
+                  "id": "R1",
+                  "source_action_id": "A1",
+                  "target_action_id": "A2",
+                  "type": "leads_to",
+                  "condition": null,
+                  "confidence": "high",
+                  "evidence": [
+                    {
+                      "quote": "the initial infection vector has used hidden Microsoft Excel sheets with an *Auto\\_Open()* macro, which downloads the Squirrelwafle loader from three different URLs.\nThe Squirrelwaffle loader is subsequently executed via regsvr32.exe."
+                    }
+                  ]
+                }
+              ],
+              "mainline": [
+                "A1",
+                "A2"
+              ],
+              "reported_actors": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "model": "deepseek-v4-flash",
+      "passed_cases": 3,
+      "total_seconds": 72.3,
+      "cases": [
+        {
+          "id": "annoctr-no-flow",
+          "title": "(Cyber) GRU (XIV): conclusions",
+          "scenarios": [
+            "no-flow"
+          ],
+          "elapsed_seconds": 0.806,
+          "passed": true,
+          "acceptance_passed": true,
+          "invariant_errors": [],
+          "candidate_count": 0,
+          "action_count": 0,
+          "relation_count": 0,
+          "context_count": 0,
+          "topology": {
+            "branch": false,
+            "merge": false
+          },
+          "rejected_fact_count": 0,
+          "unassigned_evidence_count": 0,
+          "review_fragment_count": 0,
+          "candidates": []
+        },
+        {
+          "id": "annoctr-missing-relation-evidence",
+          "title": "Mustang Panda Recent Activity: Dll-Sideloading trojans with temporal C2 servers",
+          "scenarios": [
+            "missing-relation-evidence",
+            "context-not-action"
+          ],
+          "elapsed_seconds": 19.975,
+          "passed": true,
+          "acceptance_passed": true,
+          "invariant_errors": [],
+          "candidate_count": 1,
+          "action_count": 2,
+          "relation_count": 1,
+          "context_count": 3,
+          "topology": {
+            "branch": false,
+            "merge": false
+          },
+          "rejected_fact_count": 3,
+          "unassigned_evidence_count": 2,
+          "review_fragment_count": 1,
+          "candidates": [
+            {
+              "title": "Mustang Panda Dll-Sideloading PlugX活动",
+              "description": "攻击者使用Dll-Sideload技术，通过合法Adobe二进制加载恶意DLL，解密并执行PlugX木马，最终与C2服务器通信。",
+              "actions": [
+                {
+                  "id": "A1",
+                  "name": "下载恶意安装程序",
+                  "description": "从指定URL下载恶意安装程序，该程序包含Dll-Sideload组件和加密的PlugX样本。",
+                  "phase": "初始访问",
+                  "confidence": "high",
+                  "technique_ids": [
+                    "T1195"
+                  ],
+                  "contexts": [
+                    {
+                      "id": "C1",
+                      "type": "url",
+                      "name": "http://miandfish.]store/player/install\\_flash\\_player.exe",
+                      "role": "downloads-from",
+                      "confidence": "high",
+                      "evidence": [
+                        {
+                          "quote": "The sample in question is downloaded from the following link “http://miandfish.]store/player/install\\_flash\\_player.exe”"
+                        }
+                      ]
+                    },
+                    {
+                      "id": "C2",
+                      "type": "hash",
+                      "name": "c56ac01b3af452fedc0447d9e0fe184d093d3fd3c6631aa8182c752463de570c",
+                      "role": "uses",
+                      "confidence": "high",
+                      "evidence": [
+                        {
+                          "quote": "currently the sample hosted under that name has the following hash “c56ac01b3af452fedc0447d9e0fe184d093d3fd3c6631aa8182c752463de570c”"
+                        }
+                      ]
+                    }
+                  ],
+                  "evidence": [
+                    {
+                      "quote": "The sample in question is downloaded from the following link “http://miandfish.]store/player/install\\_flash\\_player.exe” and although in previous months, it had another hash, currently the sample hosted under that name has the following hash “c56ac01b3af452fedc0447d9e0fe184d093d3fd3c6631aa8182c752463de570c”."
+                    }
+                  ]
+                },
+                {
+                  "id": "A2",
+                  "name": "释放恶意组件",
+                  "description": "安装程序在指定文件夹中释放合法二进制、恶意DLL和加密的PlugX样本。",
+                  "phase": "执行",
+                  "confidence": "high",
+                  "technique_ids": [
+                    "T1059"
+                  ],
+                  "contexts": [
+                    {
+                      "id": "C3",
+                      "type": "file",
+                      "name": "C:\\ProgramData\\AAM Updatesnnk",
+                      "role": "drops-on",
+                      "confidence": "high",
+                      "evidence": [
+                        {
+                          "quote": "drops in the folder “C:\\ProgramData\\AAM Updatesnnk”"
+                        }
+                      ]
+                    }
+                  ],
+                  "evidence": [
+                    {
+                      "quote": "The binary consists of an installer, which drops in the folder “C:\\ProgramData\\AAM Updatesnnk” the legitimate binary vulnerable to dll sideload, the small dll that acts as a loader for the final threat, and the binary file, which consists of the encrypted PlugX sample."
+                    }
+                  ]
+                }
+              ],
+              "relations": [
+                {
+                  "id": "R1",
+                  "source_action_id": "A1",
+                  "target_action_id": "A2",
+                  "type": "leads_to",
+                  "condition": null,
+                  "confidence": "high",
+                  "evidence": [
+                    {
+                      "quote": "The binary consists of an installer, which drops in the folder “C:\\ProgramData\\AAM Updatesnnk” the legitimate binary vulnerable to dll sideload, the small dll that acts as a loader for the final threat, and the binary file, which consists of the encrypted PlugX sample."
+                    }
+                  ]
+                }
+              ],
+              "mainline": [
+                "A1",
+                "A2"
+              ],
+              "reported_actors": [
+                {
+                  "id": "ACTOR1",
+                  "reported_name": "Mustang Panda",
+                  "confidence": "high",
+                  "evidence": [
+                    {
+                      "quote": "it has been possible to verify how both the loader and the final threat coincide in a high percentage with the samples of the “Mustang Panda” group analyzed in the following reports"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "annoctr-branch-and-merge",
+          "title": "Squirrelwaffle: New Loader Delivering Cobalt Strike",
+          "scenarios": [
+            "branch",
+            "merge",
+            "context-not-action"
+          ],
+          "elapsed_seconds": 51.519,
+          "passed": true,
+          "acceptance_passed": true,
+          "invariant_errors": [],
+          "candidate_count": 1,
+          "action_count": 8,
+          "relation_count": 7,
+          "context_count": 7,
+          "topology": {
+            "branch": true,
+            "merge": true
+          },
+          "rejected_fact_count": 4,
+          "unassigned_evidence_count": 31,
+          "review_fragment_count": 1,
+          "candidates": [
+            {
+              "title": "Squirrelwaffle spam campaign with Word and Excel macro variants delivering Cobalt Strike",
+              "description": "Squirrelwaffle is delivered via spam emails with malicious documents containing macros that drop and execute VBS files, which download the loader. The loader communicates with CnC and delivers Cobalt Strike.",
+              "actions": [
+                {
+                  "id": "A1",
+                  "name": "deliver malicious document via spam email",
+                  "description": "The campaign started with a malicious document file delivered via spam email campaigns with embedded URLs.",
+                  "phase": "",
+                  "confidence": "high",
+                  "technique_ids": [],
+                  "contexts": [
+                    {
+                      "id": "C1",
+                      "type": "file",
+                      "name": "malicious document file",
+                      "role": "targets",
+                      "confidence": "high",
+                      "evidence": [
+                        {
+                          "quote": "The campaign started with a malicious document file delivered via spam email campaigns with embedded URLs."
+                        }
+                      ]
+                    }
+                  ],
+                  "evidence": [
+                    {
+                      "quote": "The campaign started with a malicious document file delivered via spam email campaigns with embedded URLs."
+                    }
+                  ]
+                },
+                {
+                  "id": "A2",
+                  "name": "execute VBA macro",
+                  "description": "Once the user enables the macro, an AutoOpen() subroutine is called which then executes a malicious Visual Basic Application (VBA) macro.",
+                  "phase": "",
+                  "confidence": "high",
+                  "technique_ids": [],
+                  "contexts": [],
+                  "evidence": [
+                    {
+                      "quote": "Once the user enables the macro, an *AutoOpen()* subroutine is called which then executes a malicious Visual Basic Application (VBA) macro."
+                    }
+                  ]
+                },
+                {
+                  "id": "A3",
+                  "name": "drop and execute VBS file",
+                  "description": "The malicious document contains a macro that drops and executes a VBS file in the %ProgramData% folder.",
+                  "phase": "",
+                  "confidence": "high",
+                  "technique_ids": [],
+                  "contexts": [
+                    {
+                      "id": "C2",
+                      "type": "file",
+                      "name": "VBS file",
+                      "role": "drops-on",
+                      "confidence": "high",
+                      "evidence": [
+                        {
+                          "quote": "The malicious document contains a macro that drops and executes a VBS file in the %ProgramData% folder."
+                        }
+                      ]
+                    }
+                  ],
+                  "evidence": [
+                    {
+                      "quote": "The malicious document contains a macro that drops and executes a VBS file in the %ProgramData% folder."
+                    }
+                  ]
+                },
+                {
+                  "id": "A4",
+                  "name": "download Squirrelwaffle loader",
+                  "description": "The VBS file downloads the Squirrelwaffle loader which in turn downloads another loader which further downloads Cobalt Strike.",
+                  "phase": "",
+                  "confidence": "high",
+                  "technique_ids": [],
+                  "contexts": [
+                    {
+                      "id": "C3",
+                      "type": "malware",
+                      "name": "Squirrelwaffle loader",
+                      "role": "downloads-from",
+                      "confidence": "high",
+                      "evidence": [
+                        {
+                          "quote": "The VBS file downloads the Squirrelwaffle loader which in turn downloads another loader which further downloads Cobalt Strike."
+                        }
+                      ]
+                    }
+                  ],
+                  "evidence": [
+                    {
+                      "quote": "The VBS file downloads the Squirrelwaffle loader which in turn downloads another loader which further downloads Cobalt Strike."
+                    }
+                  ]
+                },
+                {
+                  "id": "A5",
+                  "name": "execute Squirrelwaffle loader via rundll32",
+                  "description": "The payload DLL is executed via rundll32.exe by invoking the export function name *ldr*.",
+                  "phase": "",
+                  "confidence": "high",
+                  "technique_ids": [],
+                  "contexts": [
+                    {
+                      "id": "C4",
+                      "type": "process",
+                      "name": "rundll32.exe",
+                      "role": "runs-on",
+                      "confidence": "high",
+                      "evidence": [
+                        {
+                          "quote": "The payload DLL is executed via rundll32.exe by invoking the export function name *ldr*."
+                        }
+                      ]
+                    }
+                  ],
+                  "evidence": [
+                    {
+                      "quote": "The payload DLL is executed via rundll32.exe by invoking the export function name *ldr*."
+                    }
+                  ]
+                },
+                {
+                  "id": "A6",
+                  "name": "download Squirrelwaffle loader via Excel macro",
+                  "description": "Recently, the initial infection vector has used hidden Microsoft Excel sheets with an *Auto\\_Open()* macro, which downloads the Squirrelwafle loader from three different URLs.",
+                  "phase": "",
+                  "confidence": "high",
+                  "technique_ids": [],
+                  "contexts": [
+                    {
+                      "id": "C5",
+                      "type": "file",
+                      "name": "Microsoft Excel document",
+                      "role": "uses",
+                      "confidence": "high",
+                      "evidence": [
+                        {
+                          "quote": "Recently, the initial infection vector has used hidden Microsoft Excel sheets with an *Auto\\_Open()* macro, which downloads the Squirrelwafle loader from three different URLs."
+                        }
+                      ]
+                    }
+                  ],
+                  "evidence": [
+                    {
+                      "quote": "Recently, the initial infection vector has used hidden Microsoft Excel sheets with an *Auto\\_Open()* macro, which downloads the Squirrelwafle loader from three different URLs."
+                    }
+                  ]
+                },
+                {
+                  "id": "A7",
+                  "name": "execute Squirrelwaffle loader via regsvr32",
+                  "description": "The Squirrelwaffle loader is subsequently executed via regsvr32.exe.",
+                  "phase": "",
+                  "confidence": "high",
+                  "technique_ids": [],
+                  "contexts": [
+                    {
+                      "id": "C6",
+                      "type": "process",
+                      "name": "regsvr32.exe",
+                      "role": "runs-on",
+                      "confidence": "high",
+                      "evidence": [
+                        {
+                          "quote": "The Squirrelwaffle loader is subsequently executed via regsvr32.exe."
+                        }
+                      ]
+                    }
+                  ],
+                  "evidence": [
+                    {
+                      "quote": "The Squirrelwaffle loader is subsequently executed via regsvr32.exe."
+                    }
+                  ]
+                },
+                {
+                  "id": "A8",
+                  "name": "communicate with CnC server",
+                  "description": "Once the malware decodes all of the CnC domains and IP addresses to block, it creates a **socket** and sends the data using the **send()** function and receives the content from the CnC using **recv()** calls.",
+                  "phase": "",
+                  "confidence": "high",
+                  "technique_ids": [],
+                  "contexts": [
+                    {
+                      "id": "C7",
+                      "type": "infrastructure",
+                      "name": "CnC server",
+                      "role": "communicates-with",
+                      "confidence": "high",
+                      "evidence": [
+                        {
+                          "quote": "Once the malware decodes all of the CnC domains and IP addresses to block, it creates a **socket** and sends the data using the **send()** function and receives the content from the CnC using **recv()** calls."
+                        }
+                      ]
+                    }
+                  ],
+                  "evidence": [
+                    {
+                      "quote": "Once the malware decodes all of the CnC domains and IP addresses to block, it creates a **socket** and sends the data using the **send()** function and receives the content from the CnC using **recv()** calls."
+                    }
+                  ]
+                }
+              ],
+              "relations": [
+                {
+                  "id": "R1",
+                  "source_action_id": "A1",
+                  "target_action_id": "A2",
+                  "type": "leads_to",
+                  "condition": null,
+                  "confidence": "high",
+                  "evidence": [
+                    {
+                      "quote": "Once the user enables the macro, an *AutoOpen()* subroutine is called which then executes a malicious Visual Basic Application (VBA) macro."
+                    }
+                  ]
+                },
+                {
+                  "id": "R2",
+                  "source_action_id": "A2",
+                  "target_action_id": "A3",
+                  "type": "leads_to",
+                  "condition": null,
+                  "confidence": "high",
+                  "evidence": [
+                    {
+                      "quote": "The malicious document contains a macro that drops and executes a VBS file in the %ProgramData% folder."
+                    }
+                  ]
+                },
+                {
+                  "id": "R3",
+                  "source_action_id": "A3",
+                  "target_action_id": "A4",
+                  "type": "leads_to",
+                  "condition": null,
+                  "confidence": "high",
+                  "evidence": [
+                    {
+                      "quote": "The VBS file downloads the Squirrelwaffle loader which in turn downloads another loader which further downloads Cobalt Strike."
+                    }
+                  ]
+                },
+                {
+                  "id": "R4",
+                  "source_action_id": "A4",
+                  "target_action_id": "A5",
+                  "type": "leads_to",
+                  "condition": null,
+                  "confidence": "high",
+                  "evidence": [
+                    {
+                      "quote": "The payload DLL is executed via rundll32.exe by invoking the export function name *ldr*."
+                    }
+                  ]
+                },
+                {
+                  "id": "R5",
+                  "source_action_id": "A6",
+                  "target_action_id": "A7",
+                  "type": "leads_to",
+                  "condition": null,
+                  "confidence": "high",
+                  "evidence": [
+                    {
+                      "quote": "The Squirrelwaffle loader is subsequently executed via regsvr32.exe."
+                    }
+                  ]
+                },
+                {
+                  "id": "R6",
+                  "source_action_id": "A5",
+                  "target_action_id": "A8",
+                  "type": "leads_to",
+                  "condition": null,
+                  "confidence": "high",
+                  "evidence": [
+                    {
+                      "quote": "Once the malware decodes all of the CnC domains and IP addresses to block, it creates a **socket** and sends the data using the **send()** function and receives the content from the CnC using **recv()** calls."
+                    }
+                  ]
+                },
+                {
+                  "id": "R7",
+                  "source_action_id": "A7",
+                  "target_action_id": "A8",
+                  "type": "leads_to",
+                  "condition": null,
+                  "confidence": "high",
+                  "evidence": [
+                    {
+                      "quote": "Once the malware decodes all of the CnC domains and IP addresses to block, it creates a **socket** and sends the data using the **send()** function and receives the content from the CnC using **recv()** calls."
+                    }
+                  ]
+                }
+              ],
+              "mainline": [
+                "A1",
+                "A2",
+                "A3",
+                "A4",
+                "A5",
+                "A8"
+              ],
+              "reported_actors": []
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

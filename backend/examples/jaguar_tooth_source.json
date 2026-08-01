@@ -1,0 +1,9 @@
+{
+  "title": "Jaguar Tooth 路由器攻击公开情报摘要",
+  "publisher": "ARGUS curated from UK NCSC",
+  "canonical_url": "https://www.ncsc.gov.uk/news/apt28-exploits-known-vulnerability-to-carry-out-reconnaissance-and-deploy-malware-on-cisco-routers",
+  "published_at": "2023-04-18",
+  "mime_type": "text/plain",
+  "content": "英国 NCSC 与 NSA、CISA、FBI 的联合公告披露，攻击者使用弱或默认 SNMP community string 访问 Cisco 路由器，通过 SNMPv2 请求获取设备信息并枚举接口。\n\n在可利用设备上，攻击者利用 CVE-2017-6742 部署 Jaguar Tooth。该恶意软件通过 Cisco IOS CLI 命令收集设备信息，并查询 ARP 表和 MAC 地址。\n\n公告进一步说明，收集结果可通过 TFTP 外传，植入还会提供未认证的后门访问能力。"
+}
+

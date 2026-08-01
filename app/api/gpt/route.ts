@@ -120,7 +120,7 @@ export async function POST(request: Request) {
     "不要给出绝对归因或自动处置指令。",
     "返回严格 JSON：answer 字符串、citations 数组、suggested_nodes 数组。",
     "citations 中只能引用上下文给出的来源 id、label、url。",
-    "suggested_nodes 只用于攻击链草稿，每项包含 label、type、relation、confidence，且需要人工确认。",
+    "suggested_nodes 只作为可继续查询的参考线索，每项包含 label、type、relation、confidence；不得声称已经写入或修改攻击链。",
   ].join("\n");
   const context = JSON.stringify(
     {

@@ -1,0 +1,1815 @@
+{
+  "schema_version": "1.1",
+  "collection": {
+    "id": "COLL-ANNOCTR-D510B694",
+    "name": "AnnoCTR original report texts",
+    "owner": "Robert Bosch GmbH and research partners",
+    "upstream_url": "https://github.com/boschresearch/anno-ctr-lrec-coling-2024",
+    "version": "d510b6949e1938d47c93a43eedd562dc538439dc",
+    "license": "CC-BY-SA-4.0",
+    "retrieved_at": "2026-07-29T17:34:01.466293+00:00",
+    "notes": "Actor coverage batch contains every AnnoCTR full-text report with at least one GROUP annotation. GROUP annotations are used only for report selection and indexing; graph facts, paths and attribution must be re-derived from source evidence."
+  },
+  "reports": [
+    {
+      "collection_record_id": "annoctr:all:intel471_2016-06-17_who-hacked-the-democratic-national",
+      "source_path": "AnnoCTR/all/text/intel471_2016-06-17_who-hacked-the-democratic-national.txt",
+      "sha256": "6545ca85f848820a1e122baade60051fc1a820fb86a990a396de2bda7136453f",
+      "title": "Who hacked the Democratic National Committee?",
+      "publisher": "Intel 471",
+      "published_at": "2016-06-17",
+      "canonical_url": "https://github.com/boschresearch/anno-ctr-lrec-coling-2024/blob/d510b6949e1938d47c93a43eedd562dc538439dc/AnnoCTR/all/text/intel471_2016-06-17_who-hacked-the-democratic-national.txt",
+      "mime_type": "text/plain",
+      "dataset_license": "CC-BY-SA-4.0",
+      "source_license": "original-terms-unverified; dataset-copy-CC-BY-SA-4.0",
+      "tlp": "not-marked-public",
+      "archive_status": "archived-copy",
+      "canonical_verification_state": "unverified",
+      "canonical_verified_at": null,
+      "selection_reason": "AnnoCTR full-text report selected because its expert annotation contains GROUP candidates: APT28, Cozy Bear. Candidate labels are indexing aids only and are not imported as graph evidence.",
+      "target_case": "actor-coverage:APT28|Cozy Bear",
+      "actor_candidates": [
+        {
+          "id": "http://www.bosch.com#node1fvup9pj1x38",
+          "label": "Cozy Bear"
+        },
+        {
+          "id": "https://attack.mitre.org/groups/G0007",
+          "label": "APT28"
+        }
+      ],
+      "selection_basis": "annoctr-group-annotation-index-only",
+      "canonical_source_note": "Original publisher URL not yet verified; canonical_url points to the commit-pinned AnnoCTR full-text copy."
+    },
+    {
+      "collection_record_id": "annoctr:all:intel471_2020-10-13_travelex-ddos-attack-lazarus-group",
+      "source_path": "AnnoCTR/all/text/intel471_2020-10-13_travelex-ddos-attack-lazarus-group.txt",
+      "sha256": "ec496dc83c343f52e90ad7e3d068880c7df40a74a4bbdc74843a0d2157f96c79",
+      "title": "Criminals posing as Lazarus Group threatened Travelex: Bitcoin or DDoS",
+      "publisher": "Intel 471",
+      "published_at": "2020-10-13",
+      "canonical_url": "https://github.com/boschresearch/anno-ctr-lrec-coling-2024/blob/d510b6949e1938d47c93a43eedd562dc538439dc/AnnoCTR/all/text/intel471_2020-10-13_travelex-ddos-attack-lazarus-group.txt",
+      "mime_type": "text/plain",
+      "dataset_license": "CC-BY-SA-4.0",
+      "source_license": "original-terms-unverified; dataset-copy-CC-BY-SA-4.0",
+      "tlp": "not-marked-public",
+      "archive_status": "archived-copy",
+      "canonical_verification_state": "unverified",
+      "canonical_verified_at": null,
+      "selection_reason": "AnnoCTR full-text report selected because its expert annotation contains GROUP candidates: APT28, Lazarus Group. Candidate labels are indexing aids only and are not imported as graph evidence.",
+      "target_case": "actor-coverage:APT28|Lazarus Group",
+      "actor_candidates": [
+        {
+          "id": "https://attack.mitre.org/groups/G0007",
+          "label": "APT28"
+        },
+        {
+          "id": "https://attack.mitre.org/groups/G0032",
+          "label": "Lazarus Group"
+        }
+      ],
+      "selection_basis": "annoctr-group-annotation-index-only",
+      "canonical_source_note": "Original publisher URL not yet verified; canonical_url points to the commit-pinned AnnoCTR full-text copy."
+    },
+    {
+      "collection_record_id": "annoctr:all:intel471_2020-11-16_ransomware-as-a-service-2020",
+      "source_path": "AnnoCTR/all/text/intel471_2020-11-16_ransomware-as-a-service-2020.txt",
+      "sha256": "cdba4d8690bfde3fc40927251651a6b1e6d6661ace17574255fea1037324aecf",
+      "title": "Ransomware-as-a-service: The pandemic within a pandemic",
+      "publisher": "Intel 471",
+      "published_at": "2020-11-16",
+      "canonical_url": "https://github.com/boschresearch/anno-ctr-lrec-coling-2024/blob/d510b6949e1938d47c93a43eedd562dc538439dc/AnnoCTR/all/text/intel471_2020-11-16_ransomware-as-a-service-2020.txt",
+      "mime_type": "text/plain",
+      "dataset_license": "CC-BY-SA-4.0",
+      "source_license": "original-terms-unverified; dataset-copy-CC-BY-SA-4.0",
+      "tlp": "not-marked-public",
+      "archive_status": "archived-copy",
+      "canonical_verification_state": "unverified",
+      "canonical_verified_at": null,
+      "selection_reason": "AnnoCTR full-text report selected because its expert annotation contains GROUP candidates: DarkSide. Candidate labels are indexing aids only and are not imported as graph evidence.",
+      "target_case": "actor-coverage:DarkSide",
+      "actor_candidates": [
+        {
+          "id": "http://www.bosch.com#node1fsmh11c3x20",
+          "label": "DarkSide"
+        }
+      ],
+      "selection_basis": "annoctr-group-annotation-index-only",
+      "canonical_source_note": "Original publisher URL not yet verified; canonical_url points to the commit-pinned AnnoCTR full-text copy."
+    },
+    {
+      "collection_record_id": "annoctr:all:intel471_2020-12-17_jokers-stash-fbi-interpol-dns",
+      "source_path": "AnnoCTR/all/text/intel471_2020-12-17_jokers-stash-fbi-interpol-dns.txt",
+      "sha256": "c1af9f17dae05c37ba7c46b6f410b8434bf17718978094f3ae865e72ed29ce93",
+      "title": "More annoying than crippling: Joker’s Stash takedown is temporary",
+      "publisher": "Intel 471",
+      "published_at": "2020-12-17",
+      "canonical_url": "https://github.com/boschresearch/anno-ctr-lrec-coling-2024/blob/d510b6949e1938d47c93a43eedd562dc538439dc/AnnoCTR/all/text/intel471_2020-12-17_jokers-stash-fbi-interpol-dns.txt",
+      "mime_type": "text/plain",
+      "dataset_license": "CC-BY-SA-4.0",
+      "source_license": "original-terms-unverified; dataset-copy-CC-BY-SA-4.0",
+      "tlp": "not-marked-public",
+      "archive_status": "archived-copy",
+      "canonical_verification_state": "unverified",
+      "canonical_verified_at": null,
+      "selection_reason": "AnnoCTR full-text report selected because its expert annotation contains GROUP candidates: Magecart. Candidate labels are indexing aids only and are not imported as graph evidence.",
+      "target_case": "actor-coverage:Magecart",
+      "actor_candidates": [
+        {
+          "id": "http://www.bosch.com#node1frhbstcrx1",
+          "label": "Magecart"
+        }
+      ],
+      "selection_basis": "annoctr-group-annotation-index-only",
+      "canonical_source_note": "Original publisher URL not yet verified; canonical_url points to the commit-pinned AnnoCTR full-text copy."
+    },
+    {
+      "collection_record_id": "annoctr:all:intel471_2020-12-18_ta505-get2-loader-malware-december",
+      "source_path": "AnnoCTR/all/text/intel471_2020-12-18_ta505-get2-loader-malware-december.txt",
+      "sha256": "bd8f038fd392a176bedf0517b851894c71850c5b34e21296c0f796ac9e6077c0",
+      "title": "TA505’s modified loader means new attack campaign could be coming",
+      "publisher": "Intel 471",
+      "published_at": "2020-12-18",
+      "canonical_url": "https://github.com/boschresearch/anno-ctr-lrec-coling-2024/blob/d510b6949e1938d47c93a43eedd562dc538439dc/AnnoCTR/all/text/intel471_2020-12-18_ta505-get2-loader-malware-december.txt",
+      "mime_type": "text/plain",
+      "dataset_license": "CC-BY-SA-4.0",
+      "source_license": "original-terms-unverified; dataset-copy-CC-BY-SA-4.0",
+      "tlp": "not-marked-public",
+      "archive_status": "archived-copy",
+      "canonical_verification_state": "unverified",
+      "canonical_verified_at": null,
+      "selection_reason": "AnnoCTR full-text report selected because its expert annotation contains GROUP candidates: TA505. Candidate labels are indexing aids only and are not imported as graph evidence.",
+      "target_case": "actor-coverage:TA505",
+      "actor_candidates": [
+        {
+          "id": "https://attack.mitre.org/groups/G0092",
+          "label": "TA505"
+        }
+      ],
+      "selection_basis": "annoctr-group-annotation-index-only",
+      "canonical_source_note": "Original publisher URL not yet verified; canonical_url points to the commit-pinned AnnoCTR full-text copy."
+    },
+    {
+      "collection_record_id": "annoctr:all:intel471_2021-02-23_bulletproof-hosting-yalishanda-ransomware-banking",
+      "source_path": "AnnoCTR/all/text/intel471_2021-02-23_bulletproof-hosting-yalishanda-ransomware-banking.txt",
+      "sha256": "ad26813c8c8809cd144ab88fc4752b0c542f4ce02f49d1277a644df5f3c73c0b",
+      "title": "Bulletproof hosting: How cybercrime stays resilient",
+      "publisher": "Intel 471",
+      "published_at": "2021-02-23",
+      "canonical_url": "https://github.com/boschresearch/anno-ctr-lrec-coling-2024/blob/d510b6949e1938d47c93a43eedd562dc538439dc/AnnoCTR/all/text/intel471_2021-02-23_bulletproof-hosting-yalishanda-ransomware-banking.txt",
+      "mime_type": "text/plain",
+      "dataset_license": "CC-BY-SA-4.0",
+      "source_license": "original-terms-unverified; dataset-copy-CC-BY-SA-4.0",
+      "tlp": "not-marked-public",
+      "archive_status": "archived-copy",
+      "canonical_verification_state": "unverified",
+      "canonical_verified_at": null,
+      "selection_reason": "AnnoCTR full-text report selected because its expert annotation contains GROUP candidates: DarkSide. Candidate labels are indexing aids only and are not imported as graph evidence.",
+      "target_case": "actor-coverage:DarkSide",
+      "actor_candidates": [
+        {
+          "id": "http://www.bosch.com#node1fsmh11c3x20",
+          "label": "DarkSide"
+        }
+      ],
+      "selection_basis": "annoctr-group-annotation-index-only",
+      "canonical_source_note": "Original publisher URL not yet verified; canonical_url points to the commit-pinned AnnoCTR full-text copy."
+    },
+    {
+      "collection_record_id": "annoctr:all:intel471_2021-05-10_darkside-ransomware-colonial-pipeline-attack",
+      "source_path": "AnnoCTR/all/text/intel471_2021-05-10_darkside-ransomware-colonial-pipeline-attack.txt",
+      "sha256": "680d54866e1d2d63414b0db9da27d71e2d384486b69ebd1f78d5cdd7394ddf78",
+      "title": "Here’s what we know about DarkSide ransomware",
+      "publisher": "Intel 471",
+      "published_at": "2021-05-10",
+      "canonical_url": "https://github.com/boschresearch/anno-ctr-lrec-coling-2024/blob/d510b6949e1938d47c93a43eedd562dc538439dc/AnnoCTR/all/text/intel471_2021-05-10_darkside-ransomware-colonial-pipeline-attack.txt",
+      "mime_type": "text/plain",
+      "dataset_license": "CC-BY-SA-4.0",
+      "source_license": "original-terms-unverified; dataset-copy-CC-BY-SA-4.0",
+      "tlp": "not-marked-public",
+      "archive_status": "archived-copy",
+      "canonical_verification_state": "unverified",
+      "canonical_verified_at": null,
+      "selection_reason": "AnnoCTR full-text report selected because its expert annotation contains GROUP candidates: DarkSide. Candidate labels are indexing aids only and are not imported as graph evidence.",
+      "target_case": "actor-coverage:DarkSide",
+      "actor_candidates": [
+        {
+          "id": "http://www.bosch.com#node1fsmh11c3x20",
+          "label": "DarkSide"
+        }
+      ],
+      "selection_basis": "annoctr-group-annotation-index-only",
+      "canonical_source_note": "Original publisher URL not yet verified; canonical_url points to the commit-pinned AnnoCTR full-text copy."
+    },
+    {
+      "collection_record_id": "annoctr:all:intel471_2021-05-14_darkside-ransomware-shut-down-revil",
+      "source_path": "AnnoCTR/all/text/intel471_2021-05-14_darkside-ransomware-shut-down-revil.txt",
+      "sha256": "3c07608994315382038c144a5efb380effa9e8960cae4424f014e8c0bd1a13d1",
+      "title": "The moral underground? Ransomware operators retreat after Colonial Pipeline hack",
+      "publisher": "Intel 471",
+      "published_at": "2021-05-14",
+      "canonical_url": "https://github.com/boschresearch/anno-ctr-lrec-coling-2024/blob/d510b6949e1938d47c93a43eedd562dc538439dc/AnnoCTR/all/text/intel471_2021-05-14_darkside-ransomware-shut-down-revil.txt",
+      "mime_type": "text/plain",
+      "dataset_license": "CC-BY-SA-4.0",
+      "source_license": "original-terms-unverified; dataset-copy-CC-BY-SA-4.0",
+      "tlp": "not-marked-public",
+      "archive_status": "archived-copy",
+      "canonical_verification_state": "unverified",
+      "canonical_verified_at": null,
+      "selection_reason": "AnnoCTR full-text report selected because its expert annotation contains GROUP candidates: DarkSide. Candidate labels are indexing aids only and are not imported as graph evidence.",
+      "target_case": "actor-coverage:DarkSide",
+      "actor_candidates": [
+        {
+          "id": "http://www.bosch.com#node1fsmh11c3x20",
+          "label": "DarkSide"
+        }
+      ],
+      "selection_basis": "annoctr-group-annotation-index-only",
+      "canonical_source_note": "Original publisher URL not yet verified; canonical_url points to the commit-pinned AnnoCTR full-text copy."
+    },
+    {
+      "collection_record_id": "annoctr:all:intel471_2021-07-28_ransomware-as-a-service-fivehands",
+      "source_path": "AnnoCTR/all/text/intel471_2021-07-28_ransomware-as-a-service-fivehands.txt",
+      "sha256": "9bf08a0c4795c35fd0ed0ebce6e6d6751bed689c968a9822effb9c7ee16eb900",
+      "title": "Three ways ransomware-as-a-service has become easier than ever to launch",
+      "publisher": "Intel 471",
+      "published_at": "2021-07-28",
+      "canonical_url": "https://github.com/boschresearch/anno-ctr-lrec-coling-2024/blob/d510b6949e1938d47c93a43eedd562dc538439dc/AnnoCTR/all/text/intel471_2021-07-28_ransomware-as-a-service-fivehands.txt",
+      "mime_type": "text/plain",
+      "dataset_license": "CC-BY-SA-4.0",
+      "source_license": "original-terms-unverified; dataset-copy-CC-BY-SA-4.0",
+      "tlp": "not-marked-public",
+      "archive_status": "archived-copy",
+      "canonical_verification_state": "unverified",
+      "canonical_verified_at": null,
+      "selection_reason": "AnnoCTR full-text report selected because its expert annotation contains GROUP candidates: DarkSide. Candidate labels are indexing aids only and are not imported as graph evidence.",
+      "target_case": "actor-coverage:DarkSide",
+      "actor_candidates": [
+        {
+          "id": "http://www.bosch.com#node1fsmh11c3x20",
+          "label": "DarkSide"
+        }
+      ],
+      "selection_basis": "annoctr-group-annotation-index-only",
+      "canonical_source_note": "Original publisher URL not yet verified; canonical_url points to the commit-pinned AnnoCTR full-text copy."
+    },
+    {
+      "collection_record_id": "annoctr:all:intel471_2021-08-23_shinyhunters-data-breach-mitre-attack",
+      "source_path": "AnnoCTR/all/text/intel471_2021-08-23_shinyhunters-data-breach-mitre-attack.txt",
+      "sha256": "af428ce8890df214386632a351012f4366a7e317fe37218f40c7be98d7e31e08",
+      "title": "Here's how to guard your enterprise against ShinyHunters",
+      "publisher": "Intel 471",
+      "published_at": "2021-08-23",
+      "canonical_url": "https://github.com/boschresearch/anno-ctr-lrec-coling-2024/blob/d510b6949e1938d47c93a43eedd562dc538439dc/AnnoCTR/all/text/intel471_2021-08-23_shinyhunters-data-breach-mitre-attack.txt",
+      "mime_type": "text/plain",
+      "dataset_license": "CC-BY-SA-4.0",
+      "source_license": "original-terms-unverified; dataset-copy-CC-BY-SA-4.0",
+      "tlp": "not-marked-public",
+      "archive_status": "archived-copy",
+      "canonical_verification_state": "unverified",
+      "canonical_verified_at": null,
+      "selection_reason": "AnnoCTR full-text report selected because its expert annotation contains GROUP candidates: ShinyHunters. Candidate labels are indexing aids only and are not imported as graph evidence.",
+      "target_case": "actor-coverage:ShinyHunters",
+      "actor_candidates": [
+        {
+          "id": "http://www.bosch.com#node1fvup9pj1x18",
+          "label": "ShinyHunters"
+        }
+      ],
+      "selection_basis": "annoctr-group-annotation-index-only",
+      "canonical_source_note": "Original publisher URL not yet verified; canonical_url points to the commit-pinned AnnoCTR full-text copy."
+    },
+    {
+      "collection_record_id": "annoctr:all:intel471_2021-09-09_groove-gang-ransomware-babuk-revil",
+      "source_path": "AnnoCTR/all/text/intel471_2021-09-09_groove-gang-ransomware-babuk-revil.txt",
+      "sha256": "87e1e45070dffc9ae446013754ae6466c28cc5910c56501c4d8f1dcb573e7d56",
+      "title": "How Groove Gang is shaking up the Ransomware-as-a-Service market to empower affiliates",
+      "publisher": "Intel 471",
+      "published_at": "2021-09-09",
+      "canonical_url": "https://github.com/boschresearch/anno-ctr-lrec-coling-2024/blob/d510b6949e1938d47c93a43eedd562dc538439dc/AnnoCTR/all/text/intel471_2021-09-09_groove-gang-ransomware-babuk-revil.txt",
+      "mime_type": "text/plain",
+      "dataset_license": "CC-BY-SA-4.0",
+      "source_license": "original-terms-unverified; dataset-copy-CC-BY-SA-4.0",
+      "tlp": "not-marked-public",
+      "archive_status": "archived-copy",
+      "canonical_verification_state": "unverified",
+      "canonical_verified_at": null,
+      "selection_reason": "AnnoCTR full-text report selected because its expert annotation contains GROUP candidates: BabukGang, BlackMatter, DarkSide, GrooveGang. Candidate labels are indexing aids only and are not imported as graph evidence.",
+      "target_case": "actor-coverage:BabukGang|BlackMatter|DarkSide|GrooveGang",
+      "actor_candidates": [
+        {
+          "id": "http://www.bosch.com#node1fsmh11c3x20",
+          "label": "DarkSide"
+        },
+        {
+          "id": "http://www.bosch.com#node1fsmh11c3x21",
+          "label": "GrooveGang"
+        },
+        {
+          "id": "http://www.bosch.com#node1fsmh11c3x22",
+          "label": "BabukGang"
+        },
+        {
+          "id": "http://www.bosch.com#node1fuu313m0x1",
+          "label": "BlackMatter"
+        }
+      ],
+      "selection_basis": "annoctr-group-annotation-index-only",
+      "canonical_source_note": "Original publisher URL not yet verified; canonical_url points to the commit-pinned AnnoCTR full-text copy."
+    },
+    {
+      "collection_record_id": "annoctr:all:intel471_2021-09-30_public-sector-cybersecurity-threats-2021",
+      "source_path": "AnnoCTR/all/text/intel471_2021-09-30_public-sector-cybersecurity-threats-2021.txt",
+      "sha256": "53e15640dda2b76717ea8b774540b23e1abab9518268d884f346b9be06868058",
+      "title": "The public sector is a juicy target for cybercriminals",
+      "publisher": "Intel 471",
+      "published_at": "2021-09-30",
+      "canonical_url": "https://github.com/boschresearch/anno-ctr-lrec-coling-2024/blob/d510b6949e1938d47c93a43eedd562dc538439dc/AnnoCTR/all/text/intel471_2021-09-30_public-sector-cybersecurity-threats-2021.txt",
+      "mime_type": "text/plain",
+      "dataset_license": "CC-BY-SA-4.0",
+      "source_license": "original-terms-unverified; dataset-copy-CC-BY-SA-4.0",
+      "tlp": "not-marked-public",
+      "archive_status": "archived-copy",
+      "canonical_verification_state": "unverified",
+      "canonical_verified_at": null,
+      "selection_reason": "AnnoCTR full-text report selected because its expert annotation contains GROUP candidates: DarkSide. Candidate labels are indexing aids only and are not imported as graph evidence.",
+      "target_case": "actor-coverage:DarkSide",
+      "actor_candidates": [
+        {
+          "id": "http://www.bosch.com#node1fsmh11c3x20",
+          "label": "DarkSide"
+        }
+      ],
+      "selection_basis": "annoctr-group-annotation-index-only",
+      "canonical_source_note": "Original publisher URL not yet verified; canonical_url points to the commit-pinned AnnoCTR full-text copy."
+    },
+    {
+      "collection_record_id": "annoctr:all:lab52_2019-04-02_wirte-group-attacking-the-middle",
+      "source_path": "AnnoCTR/all/text/lab52_2019-04-02_wirte-group-attacking-the-middle.txt",
+      "sha256": "0ed1f10c3b52731e2a8a4b1139a3f337694d04ed9d357c7af49c3532f73ab68f",
+      "title": "WIRTE Group attacking the Middle East",
+      "publisher": "Lab52 / S2 Grupo",
+      "published_at": "2019-04-02",
+      "canonical_url": "https://github.com/boschresearch/anno-ctr-lrec-coling-2024/blob/d510b6949e1938d47c93a43eedd562dc538439dc/AnnoCTR/all/text/lab52_2019-04-02_wirte-group-attacking-the-middle.txt",
+      "mime_type": "text/plain",
+      "dataset_license": "CC-BY-SA-4.0",
+      "source_license": "original-terms-unverified; dataset-copy-CC-BY-SA-4.0",
+      "tlp": "not-marked-public",
+      "archive_status": "archived-copy",
+      "canonical_verification_state": "unverified",
+      "canonical_verified_at": null,
+      "selection_reason": "AnnoCTR full-text report selected because its expert annotation contains GROUP candidates: WIRTE. Candidate labels are indexing aids only and are not imported as graph evidence.",
+      "target_case": "actor-coverage:WIRTE",
+      "actor_candidates": [
+        {
+          "id": "https://attack.mitre.org/groups/G0090",
+          "label": "WIRTE"
+        }
+      ],
+      "selection_basis": "annoctr-group-annotation-index-only",
+      "canonical_source_note": "Original publisher URL not yet verified; canonical_url points to the commit-pinned AnnoCTR full-text copy."
+    },
+    {
+      "collection_record_id": "annoctr:all:lab52_2019-05-16_winnti-group-geostrategic-analysis-and",
+      "source_path": "AnnoCTR/all/text/lab52_2019-05-16_winnti-group-geostrategic-analysis-and.txt",
+      "sha256": "f7a09a86d5e6f8686960a8cd73366a90abf4c099c6d4967610c99984c1908427",
+      "title": "Winnti Group: Geostrategic and TTP (Tactics, Techniques and Procedures)",
+      "publisher": "Lab52 / S2 Grupo",
+      "published_at": "2019-05-16",
+      "canonical_url": "https://github.com/boschresearch/anno-ctr-lrec-coling-2024/blob/d510b6949e1938d47c93a43eedd562dc538439dc/AnnoCTR/all/text/lab52_2019-05-16_winnti-group-geostrategic-analysis-and.txt",
+      "mime_type": "text/plain",
+      "dataset_license": "CC-BY-SA-4.0",
+      "source_license": "original-terms-unverified; dataset-copy-CC-BY-SA-4.0",
+      "tlp": "not-marked-public",
+      "archive_status": "archived-copy",
+      "canonical_verification_state": "unverified",
+      "canonical_verified_at": null,
+      "selection_reason": "AnnoCTR full-text report selected because its expert annotation contains GROUP candidates: Winnti Group. Candidate labels are indexing aids only and are not imported as graph evidence.",
+      "target_case": "actor-coverage:Winnti Group",
+      "actor_candidates": [
+        {
+          "id": "https://attack.mitre.org/groups/G0044",
+          "label": "Winnti Group"
+        }
+      ],
+      "selection_basis": "annoctr-group-annotation-index-only",
+      "canonical_source_note": "Original publisher URL not yet verified; canonical_url points to the commit-pinned AnnoCTR full-text copy."
+    },
+    {
+      "collection_record_id": "annoctr:all:lab52_2019-05-30_leviathan-geostrategy-and-ttp-technical",
+      "source_path": "AnnoCTR/all/text/lab52_2019-05-30_leviathan-geostrategy-and-ttp-technical.txt",
+      "sha256": "83007c8141b2e545b432f5f7457fad0b3a5eb2494fed018673e007cedda27427",
+      "title": "Leviathan: Geostrategy and TTP (Tactics, Techniques and Procedures)",
+      "publisher": "Lab52 / S2 Grupo",
+      "published_at": "2019-05-30",
+      "canonical_url": "https://github.com/boschresearch/anno-ctr-lrec-coling-2024/blob/d510b6949e1938d47c93a43eedd562dc538439dc/AnnoCTR/all/text/lab52_2019-05-30_leviathan-geostrategy-and-ttp-technical.txt",
+      "mime_type": "text/plain",
+      "dataset_license": "CC-BY-SA-4.0",
+      "source_license": "original-terms-unverified; dataset-copy-CC-BY-SA-4.0",
+      "tlp": "not-marked-public",
+      "archive_status": "archived-copy",
+      "canonical_verification_state": "unverified",
+      "canonical_verified_at": null,
+      "selection_reason": "AnnoCTR full-text report selected because its expert annotation contains GROUP candidates: Leviathan, Orz. Candidate labels are indexing aids only and are not imported as graph evidence.",
+      "target_case": "actor-coverage:Leviathan|Orz",
+      "actor_candidates": [
+        {
+          "id": "https://attack.mitre.org/groups/G0065",
+          "label": "Leviathan"
+        },
+        {
+          "id": "https://attack.mitre.org/software/S0229",
+          "label": "Orz"
+        }
+      ],
+      "selection_basis": "annoctr-group-annotation-index-only",
+      "canonical_source_note": "Original publisher URL not yet verified; canonical_url points to the commit-pinned AnnoCTR full-text copy."
+    },
+    {
+      "collection_record_id": "annoctr:all:lab52_2019-10-18_cyber-gru-xiv-conclusions",
+      "source_path": "AnnoCTR/all/text/lab52_2019-10-18_cyber-gru-xiv-conclusions.txt",
+      "sha256": "b7198f0ca9b67a9b18005bb0748f397dc96f6ed99901010c1d1519ea73a3017e",
+      "title": "(Cyber) GRU (XIV): conclusions",
+      "publisher": "Lab52 / S2 Grupo",
+      "published_at": "2019-10-18",
+      "canonical_url": "https://github.com/boschresearch/anno-ctr-lrec-coling-2024/blob/d510b6949e1938d47c93a43eedd562dc538439dc/AnnoCTR/all/text/lab52_2019-10-18_cyber-gru-xiv-conclusions.txt",
+      "mime_type": "text/plain",
+      "dataset_license": "CC-BY-SA-4.0",
+      "source_license": "original-terms-unverified; dataset-copy-CC-BY-SA-4.0",
+      "tlp": "not-marked-public",
+      "archive_status": "archived-copy",
+      "canonical_verification_state": "unverified",
+      "canonical_verified_at": null,
+      "selection_reason": "AnnoCTR full-text report selected because its expert annotation contains GROUP candidates: APT28, Dragonfly. Candidate labels are indexing aids only and are not imported as graph evidence.",
+      "target_case": "actor-coverage:APT28|Dragonfly",
+      "actor_candidates": [
+        {
+          "id": "https://attack.mitre.org/groups/G0007",
+          "label": "APT28"
+        },
+        {
+          "id": "https://attack.mitre.org/groups/G0035",
+          "label": "Dragonfly"
+        }
+      ],
+      "selection_basis": "annoctr-group-annotation-index-only",
+      "canonical_source_note": "Original publisher URL not yet verified; canonical_url points to the commit-pinned AnnoCTR full-text copy."
+    },
+    {
+      "collection_record_id": "annoctr:all:lab52_2019-10-18_cyber-iii-cold-war-hack",
+      "source_path": "AnnoCTR/all/text/lab52_2019-10-18_cyber-iii-cold-war-hack.txt",
+      "sha256": "ef1ff0551db8027bf264f6e37421b18f711dbc4798d5b5e8bac1eaed19422e50",
+      "title": "(Cyber) III Cold War: Hack the vote?",
+      "publisher": "Lab52 / S2 Grupo",
+      "published_at": "2019-10-18",
+      "canonical_url": "https://github.com/boschresearch/anno-ctr-lrec-coling-2024/blob/d510b6949e1938d47c93a43eedd562dc538439dc/AnnoCTR/all/text/lab52_2019-10-18_cyber-iii-cold-war-hack.txt",
+      "mime_type": "text/plain",
+      "dataset_license": "CC-BY-SA-4.0",
+      "source_license": "original-terms-unverified; dataset-copy-CC-BY-SA-4.0",
+      "tlp": "not-marked-public",
+      "archive_status": "archived-copy",
+      "canonical_verification_state": "unverified",
+      "canonical_verified_at": null,
+      "selection_reason": "AnnoCTR full-text report selected because its expert annotation contains GROUP candidates: APT28, APT29, Dragonfly. Candidate labels are indexing aids only and are not imported as graph evidence.",
+      "target_case": "actor-coverage:APT28|APT29|Dragonfly",
+      "actor_candidates": [
+        {
+          "id": "https://attack.mitre.org/groups/G0007",
+          "label": "APT28"
+        },
+        {
+          "id": "https://attack.mitre.org/groups/G0016",
+          "label": "APT29"
+        },
+        {
+          "id": "https://attack.mitre.org/groups/G0035",
+          "label": "Dragonfly"
+        }
+      ],
+      "selection_basis": "annoctr-group-annotation-index-only",
+      "canonical_source_note": "Original publisher URL not yet verified; canonical_url points to the commit-pinned AnnoCTR full-text copy."
+    },
+    {
+      "collection_record_id": "annoctr:all:lab52_2020-01-09_icefog-apt-group-abusing-recent",
+      "source_path": "AnnoCTR/all/text/lab52_2020-01-09_icefog-apt-group-abusing-recent.txt",
+      "sha256": "dd6e91ec7dd5bed2007a5748628216fd076e44aaef5a74664f782ce220c6a9b2",
+      "title": "TA428 Group abusing recent conflict between Iran and USA",
+      "publisher": "Lab52 / S2 Grupo",
+      "published_at": "2020-01-09",
+      "canonical_url": "https://github.com/boschresearch/anno-ctr-lrec-coling-2024/blob/d510b6949e1938d47c93a43eedd562dc538439dc/AnnoCTR/all/text/lab52_2020-01-09_icefog-apt-group-abusing-recent.txt",
+      "mime_type": "text/plain",
+      "dataset_license": "CC-BY-SA-4.0",
+      "source_license": "original-terms-unverified; dataset-copy-CC-BY-SA-4.0",
+      "tlp": "not-marked-public",
+      "archive_status": "archived-copy",
+      "canonical_verification_state": "unverified",
+      "canonical_verified_at": null,
+      "selection_reason": "AnnoCTR full-text report selected because its expert annotation contains GROUP candidates: TA428. Candidate labels are indexing aids only and are not imported as graph evidence.",
+      "target_case": "actor-coverage:TA428",
+      "actor_candidates": [
+        {
+          "id": "http://www.bosch.com#node1fvup9pj1x43",
+          "label": "TA428"
+        }
+      ],
+      "selection_basis": "annoctr-group-annotation-index-only",
+      "canonical_source_note": "Original publisher URL not yet verified; canonical_url points to the commit-pinned AnnoCTR full-text copy."
+    },
+    {
+      "collection_record_id": "annoctr:all:lab52_2020-01-13_apt27-rootkit-updates",
+      "source_path": "AnnoCTR/all/text/lab52_2020-01-13_apt27-rootkit-updates.txt",
+      "sha256": "2283e171668652f9f2127d367932e3b6a087e3649ddfca015db1f8b257a03f77",
+      "title": "APT27 ZxShell RootKit module updates",
+      "publisher": "Lab52 / S2 Grupo",
+      "published_at": "2020-01-13",
+      "canonical_url": "https://github.com/boschresearch/anno-ctr-lrec-coling-2024/blob/d510b6949e1938d47c93a43eedd562dc538439dc/AnnoCTR/all/text/lab52_2020-01-13_apt27-rootkit-updates.txt",
+      "mime_type": "text/plain",
+      "dataset_license": "CC-BY-SA-4.0",
+      "source_license": "original-terms-unverified; dataset-copy-CC-BY-SA-4.0",
+      "tlp": "not-marked-public",
+      "archive_status": "archived-copy",
+      "canonical_verification_state": "unverified",
+      "canonical_verified_at": null,
+      "selection_reason": "AnnoCTR full-text report selected because its expert annotation contains GROUP candidates: Emissary Panda. Candidate labels are indexing aids only and are not imported as graph evidence.",
+      "target_case": "actor-coverage:Emissary Panda",
+      "actor_candidates": [
+        {
+          "id": "http://www.bosch.com#node1fvup9pj1x44",
+          "label": "Emissary Panda"
+        }
+      ],
+      "selection_basis": "annoctr-group-annotation-index-only",
+      "canonical_source_note": "Original publisher URL not yet verified; canonical_url points to the commit-pinned AnnoCTR full-text copy."
+    },
+    {
+      "collection_record_id": "annoctr:all:lab52_2020-01-15_apt-c-36-recent-activity",
+      "source_path": "AnnoCTR/all/text/lab52_2020-01-15_apt-c-36-recent-activity.txt",
+      "sha256": "3ab41bfc989240209cbf56f90f97b384a06c26ccbfa418637e38eb655e19e2ca",
+      "title": "APT-C-36 recent activity analysis",
+      "publisher": "Lab52 / S2 Grupo",
+      "published_at": "2020-01-15",
+      "canonical_url": "https://github.com/boschresearch/anno-ctr-lrec-coling-2024/blob/d510b6949e1938d47c93a43eedd562dc538439dc/AnnoCTR/all/text/lab52_2020-01-15_apt-c-36-recent-activity.txt",
+      "mime_type": "text/plain",
+      "dataset_license": "CC-BY-SA-4.0",
+      "source_license": "original-terms-unverified; dataset-copy-CC-BY-SA-4.0",
+      "tlp": "not-marked-public",
+      "archive_status": "archived-copy",
+      "canonical_verification_state": "unverified",
+      "canonical_verified_at": null,
+      "selection_reason": "AnnoCTR full-text report selected because its expert annotation contains GROUP candidates: APT-C-36. Candidate labels are indexing aids only and are not imported as graph evidence.",
+      "target_case": "actor-coverage:APT-C-36",
+      "actor_candidates": [
+        {
+          "id": "https://attack.mitre.org/groups/G0099",
+          "label": "APT-C-36"
+        }
+      ],
+      "selection_basis": "annoctr-group-annotation-index-only",
+      "canonical_source_note": "Original publisher URL not yet verified; canonical_url points to the commit-pinned AnnoCTR full-text copy."
+    },
+    {
+      "collection_record_id": "annoctr:all:lab52_2020-02-18_the-role-of-china-in",
+      "source_path": "AnnoCTR/all/text/lab52_2020-02-18_the-role-of-china-in.txt",
+      "sha256": "8d98b4118cb745a0ae189967f2ebc0fe125b7fdeee4f0cbffcdacd545253b57c",
+      "title": "The role of China in the Persian Gulf and potential cyberthreats:",
+      "publisher": "Lab52 / S2 Grupo",
+      "published_at": "2020-02-18",
+      "canonical_url": "https://github.com/boschresearch/anno-ctr-lrec-coling-2024/blob/d510b6949e1938d47c93a43eedd562dc538439dc/AnnoCTR/all/text/lab52_2020-02-18_the-role-of-china-in.txt",
+      "mime_type": "text/plain",
+      "dataset_license": "CC-BY-SA-4.0",
+      "source_license": "original-terms-unverified; dataset-copy-CC-BY-SA-4.0",
+      "tlp": "not-marked-public",
+      "archive_status": "archived-copy",
+      "canonical_verification_state": "unverified",
+      "canonical_verified_at": null,
+      "selection_reason": "AnnoCTR full-text report selected because its expert annotation contains GROUP candidates: menuPass. Candidate labels are indexing aids only and are not imported as graph evidence.",
+      "target_case": "actor-coverage:menuPass",
+      "actor_candidates": [
+        {
+          "id": "https://attack.mitre.org/groups/G0045",
+          "label": "menuPass"
+        }
+      ],
+      "selection_basis": "annoctr-group-annotation-index-only",
+      "canonical_source_note": "Original publisher URL not yet verified; canonical_url points to the commit-pinned AnnoCTR full-text copy."
+    },
+    {
+      "collection_record_id": "annoctr:all:lab52_2020-03-23_apt-c-36-new-anti",
+      "source_path": "AnnoCTR/all/text/lab52_2020-03-23_apt-c-36-new-anti.txt",
+      "sha256": "e83195fe17c391bfa61301a3064ea3320b5bc3e4d545bf09fa4c2dd34f0e72b9",
+      "title": "APT-C-36 new anti-detection tricks",
+      "publisher": "Lab52 / S2 Grupo",
+      "published_at": "2020-03-23",
+      "canonical_url": "https://github.com/boschresearch/anno-ctr-lrec-coling-2024/blob/d510b6949e1938d47c93a43eedd562dc538439dc/AnnoCTR/all/text/lab52_2020-03-23_apt-c-36-new-anti.txt",
+      "mime_type": "text/plain",
+      "dataset_license": "CC-BY-SA-4.0",
+      "source_license": "original-terms-unverified; dataset-copy-CC-BY-SA-4.0",
+      "tlp": "not-marked-public",
+      "archive_status": "archived-copy",
+      "canonical_verification_state": "unverified",
+      "canonical_verified_at": null,
+      "selection_reason": "AnnoCTR full-text report selected because its expert annotation contains GROUP candidates: APT-C-36. Candidate labels are indexing aids only and are not imported as graph evidence.",
+      "target_case": "actor-coverage:APT-C-36",
+      "actor_candidates": [
+        {
+          "id": "https://attack.mitre.org/groups/G0099",
+          "label": "APT-C-36"
+        }
+      ],
+      "selection_basis": "annoctr-group-annotation-index-only",
+      "canonical_source_note": "Original publisher URL not yet verified; canonical_url points to the commit-pinned AnnoCTR full-text copy."
+    },
+    {
+      "collection_record_id": "annoctr:all:lab52_2020-04-14_china-from-culture-to-conflict",
+      "source_path": "AnnoCTR/all/text/lab52_2020-04-14_china-from-culture-to-conflict.txt",
+      "sha256": "0b7fa51d381ff7231977c54ab717deba551b3e6055839b1c34a47268bf54b2c7",
+      "title": "China: From culture to conflict in the cyberspace",
+      "publisher": "Lab52 / S2 Grupo",
+      "published_at": "2020-04-14",
+      "canonical_url": "https://github.com/boschresearch/anno-ctr-lrec-coling-2024/blob/d510b6949e1938d47c93a43eedd562dc538439dc/AnnoCTR/all/text/lab52_2020-04-14_china-from-culture-to-conflict.txt",
+      "mime_type": "text/plain",
+      "dataset_license": "CC-BY-SA-4.0",
+      "source_license": "original-terms-unverified; dataset-copy-CC-BY-SA-4.0",
+      "tlp": "not-marked-public",
+      "archive_status": "archived-copy",
+      "canonical_verification_state": "unverified",
+      "canonical_verified_at": null,
+      "selection_reason": "AnnoCTR full-text report selected because its expert annotation contains GROUP candidates: APT1, APT41, Emissary Panda, Ke3chang, Lazarus Group, menuPass. Candidate labels are indexing aids only and are not imported as graph evidence.",
+      "target_case": "actor-coverage:APT1|APT41|Emissary Panda|Ke3chang|Lazarus Group|menuPass",
+      "actor_candidates": [
+        {
+          "id": "http://www.bosch.com#node1fvup9pj1x44",
+          "label": "Emissary Panda"
+        },
+        {
+          "id": "https://attack.mitre.org/groups/G0004",
+          "label": "Ke3chang"
+        },
+        {
+          "id": "https://attack.mitre.org/groups/G0006",
+          "label": "APT1"
+        },
+        {
+          "id": "https://attack.mitre.org/groups/G0032",
+          "label": "Lazarus Group"
+        },
+        {
+          "id": "https://attack.mitre.org/groups/G0045",
+          "label": "menuPass"
+        },
+        {
+          "id": "https://attack.mitre.org/groups/G0096",
+          "label": "APT41"
+        }
+      ],
+      "selection_basis": "annoctr-group-annotation-index-only",
+      "canonical_source_note": "Original publisher URL not yet verified; canonical_url points to the commit-pinned AnnoCTR full-text copy."
+    },
+    {
+      "collection_record_id": "annoctr:all:lab52_2020-05-14_the-energy-reserves-in-the",
+      "source_path": "AnnoCTR/all/text/lab52_2020-05-14_the-energy-reserves-in-the.txt",
+      "sha256": "6f0a7b6d32fa89d8d09a9f0dff8bd88faf173147ad736b4f82a71e276356c455",
+      "title": "The energy reserves in the Eastern Mediterranean Sea and a malicious campaign of APT10 against Turkey",
+      "publisher": "Lab52 / S2 Grupo",
+      "published_at": "2020-05-14",
+      "canonical_url": "https://github.com/boschresearch/anno-ctr-lrec-coling-2024/blob/d510b6949e1938d47c93a43eedd562dc538439dc/AnnoCTR/all/text/lab52_2020-05-14_the-energy-reserves-in-the.txt",
+      "mime_type": "text/plain",
+      "dataset_license": "CC-BY-SA-4.0",
+      "source_license": "original-terms-unverified; dataset-copy-CC-BY-SA-4.0",
+      "tlp": "not-marked-public",
+      "archive_status": "archived-copy",
+      "canonical_verification_state": "unverified",
+      "canonical_verified_at": null,
+      "selection_reason": "AnnoCTR full-text report selected because its expert annotation contains GROUP candidates: menuPass. Candidate labels are indexing aids only and are not imported as graph evidence.",
+      "target_case": "actor-coverage:menuPass",
+      "actor_candidates": [
+        {
+          "id": "https://attack.mitre.org/groups/G0045",
+          "label": "menuPass"
+        }
+      ],
+      "selection_basis": "annoctr-group-annotation-index-only",
+      "canonical_source_note": "Original publisher URL not yet verified; canonical_url points to the commit-pinned AnnoCTR full-text copy."
+    },
+    {
+      "collection_record_id": "annoctr:all:lab52_2020-06-02_mustang-panda-recent-activity-dll",
+      "source_path": "AnnoCTR/all/text/lab52_2020-06-02_mustang-panda-recent-activity-dll.txt",
+      "sha256": "8ce8036143027b125f32814bb88d74700990460a5f986937ef8451fbf89f1338",
+      "title": "Mustang Panda Recent Activity: Dll-Sideloading trojans with temporal C2 servers",
+      "publisher": "Lab52 / S2 Grupo",
+      "published_at": "2020-06-02",
+      "canonical_url": "https://lab52.io/blog/mustang-panda-recent-activity-dll-sideloading-trojans-with-temporal-c2-servers/",
+      "mime_type": "text/plain",
+      "dataset_license": "CC-BY-SA-4.0",
+      "source_license": "publisher-site-terms",
+      "tlp": "not-marked-public",
+      "archive_status": "canonical-verified-copy",
+      "canonical_verification_state": "verified",
+      "canonical_verified_at": "2026-07-28",
+      "selection_reason": "AnnoCTR full-text report selected because its expert annotation contains GROUP candidates: APT1, Emissary Panda, Mustang Panda. Candidate labels are indexing aids only and are not imported as graph evidence.",
+      "target_case": "actor-coverage:APT1|Emissary Panda|Mustang Panda",
+      "actor_candidates": [
+        {
+          "id": "http://www.bosch.com#node1fvup9pj1x44",
+          "label": "Emissary Panda"
+        },
+        {
+          "id": "https://attack.mitre.org/groups/G0006",
+          "label": "APT1"
+        },
+        {
+          "id": "https://attack.mitre.org/groups/G0129",
+          "label": "Mustang Panda"
+        }
+      ],
+      "selection_basis": "annoctr-group-annotation-index-only",
+      "canonical_source_note": "Original publisher URL verified in an existing curated manifest."
+    },
+    {
+      "collection_record_id": "annoctr:all:lab52_2021-04-29_chimera-apt-updates-on-its",
+      "source_path": "AnnoCTR/all/text/lab52_2021-04-29_chimera-apt-updates-on-its.txt",
+      "sha256": "9cdc5c824003d229edf8a9557b13ff2aaff4183a76528114564a87a36a137603",
+      "title": "Updates on OwlProxy malware",
+      "publisher": "Lab52 / S2 Grupo",
+      "published_at": "2021-04-29",
+      "canonical_url": "https://github.com/boschresearch/anno-ctr-lrec-coling-2024/blob/d510b6949e1938d47c93a43eedd562dc538439dc/AnnoCTR/all/text/lab52_2021-04-29_chimera-apt-updates-on-its.txt",
+      "mime_type": "text/plain",
+      "dataset_license": "CC-BY-SA-4.0",
+      "source_license": "original-terms-unverified; dataset-copy-CC-BY-SA-4.0",
+      "tlp": "not-marked-public",
+      "archive_status": "archived-copy",
+      "canonical_verification_state": "unverified",
+      "canonical_verified_at": null,
+      "selection_reason": "AnnoCTR full-text report selected because its expert annotation contains GROUP candidates: Chimera. Candidate labels are indexing aids only and are not imported as graph evidence.",
+      "target_case": "actor-coverage:Chimera",
+      "actor_candidates": [
+        {
+          "id": "https://attack.mitre.org/groups/G0114",
+          "label": "Chimera"
+        }
+      ],
+      "selection_basis": "annoctr-group-annotation-index-only",
+      "canonical_source_note": "Original publisher URL not yet verified; canonical_url points to the commit-pinned AnnoCTR full-text copy."
+    },
+    {
+      "collection_record_id": "annoctr:all:lab52_2021-05-17_literature-lover-targeting-colombia-with",
+      "source_path": "AnnoCTR/all/text/lab52_2021-05-17_literature-lover-targeting-colombia-with.txt",
+      "sha256": "ed2ee382c760f162e2c240e116b33c662a356f8b272c560b99520e44c329273c",
+      "title": "Literature lover targeting Colombia with LimeRAT",
+      "publisher": "Lab52 / S2 Grupo",
+      "published_at": "2021-05-17",
+      "canonical_url": "https://github.com/boschresearch/anno-ctr-lrec-coling-2024/blob/d510b6949e1938d47c93a43eedd562dc538439dc/AnnoCTR/all/text/lab52_2021-05-17_literature-lover-targeting-colombia-with.txt",
+      "mime_type": "text/plain",
+      "dataset_license": "CC-BY-SA-4.0",
+      "source_license": "original-terms-unverified; dataset-copy-CC-BY-SA-4.0",
+      "tlp": "not-marked-public",
+      "archive_status": "archived-copy",
+      "canonical_verification_state": "unverified",
+      "canonical_verified_at": null,
+      "selection_reason": "AnnoCTR full-text report selected because its expert annotation contains GROUP candidates: APT-C-36. Candidate labels are indexing aids only and are not imported as graph evidence.",
+      "target_case": "actor-coverage:APT-C-36",
+      "actor_candidates": [
+        {
+          "id": "https://attack.mitre.org/groups/G0099",
+          "label": "APT-C-36"
+        }
+      ],
+      "selection_basis": "annoctr-group-annotation-index-only",
+      "canonical_source_note": "Original publisher URL not yet verified; canonical_url points to the commit-pinned AnnoCTR full-text copy."
+    },
+    {
+      "collection_record_id": "annoctr:all:lab52_2022-01-24_new-transparentribe-operation-targeting-india",
+      "source_path": "AnnoCTR/all/text/lab52_2022-01-24_new-transparentribe-operation-targeting-india.txt",
+      "sha256": "a4e4eae69d46f92d2da0775a2577ee003cc39166d94a61b50300bb918a7b9306",
+      "title": "New TransparenTribe Operation: Targeting India with weaponized COVID-19 lure documents",
+      "publisher": "Lab52 / S2 Grupo",
+      "published_at": "2022-01-24",
+      "canonical_url": "https://github.com/boschresearch/anno-ctr-lrec-coling-2024/blob/d510b6949e1938d47c93a43eedd562dc538439dc/AnnoCTR/all/text/lab52_2022-01-24_new-transparentribe-operation-targeting-india.txt",
+      "mime_type": "text/plain",
+      "dataset_license": "CC-BY-SA-4.0",
+      "source_license": "original-terms-unverified; dataset-copy-CC-BY-SA-4.0",
+      "tlp": "None",
+      "archive_status": "archived-copy",
+      "canonical_verification_state": "unverified",
+      "canonical_verified_at": null,
+      "selection_reason": "AnnoCTR full-text report selected because its expert annotation contains GROUP candidates: Transparent Tribe. Candidate labels are indexing aids only and are not imported as graph evidence.",
+      "target_case": "actor-coverage:Transparent Tribe",
+      "actor_candidates": [
+        {
+          "id": "https://attack.mitre.org/groups/G0134",
+          "label": "Transparent Tribe"
+        }
+      ],
+      "selection_basis": "annoctr-group-annotation-index-only",
+      "canonical_source_note": "Original publisher URL not yet verified; canonical_url points to the commit-pinned AnnoCTR full-text copy."
+    },
+    {
+      "collection_record_id": "annoctr:all:proofpoint_2021-04-15_threat-actors-pair-tax-themed",
+      "source_path": "AnnoCTR/all/text/proofpoint_2021-04-15_threat-actors-pair-tax-themed.txt",
+      "sha256": "40f9ea6fb686f1526031603e75b926c40fd4c1a677ceaec534fab67ec7cc5aed",
+      "title": "Security Brief: Threat Actors Pair Tax-Themed Lures With COVID-19, Healthcare Themes",
+      "publisher": "Proofpoint",
+      "published_at": "2021-04-15",
+      "canonical_url": "https://github.com/boschresearch/anno-ctr-lrec-coling-2024/blob/d510b6949e1938d47c93a43eedd562dc538439dc/AnnoCTR/all/text/proofpoint_2021-04-15_threat-actors-pair-tax-themed.txt",
+      "mime_type": "text/plain",
+      "dataset_license": "CC-BY-SA-4.0",
+      "source_license": "original-terms-unverified; dataset-copy-CC-BY-SA-4.0",
+      "tlp": "not-marked-public",
+      "archive_status": "archived-copy",
+      "canonical_verification_state": "unverified",
+      "canonical_verified_at": null,
+      "selection_reason": "AnnoCTR full-text report selected because its expert annotation contains GROUP candidates: TA574, TA575. Candidate labels are indexing aids only and are not imported as graph evidence.",
+      "target_case": "actor-coverage:TA574|TA575",
+      "actor_candidates": [
+        {
+          "id": "http://www.bosch.com#node1g51dalmax4",
+          "label": "TA575"
+        },
+        {
+          "id": "http://www.bosch.com#node1g8ftt36lx1",
+          "label": "TA574"
+        }
+      ],
+      "selection_basis": "annoctr-group-annotation-index-only",
+      "canonical_source_note": "Original publisher URL not yet verified; canonical_url points to the commit-pinned AnnoCTR full-text copy."
+    },
+    {
+      "collection_record_id": "annoctr:all:proofpoint_2021-06-10_ransom-ddos-extortion-actor-fancy",
+      "source_path": "AnnoCTR/all/text/proofpoint_2021-06-10_ransom-ddos-extortion-actor-fancy.txt",
+      "sha256": "979dbf6a1a3b485a1cbf0456dcd27d26405bde6063337b5ba90800a7ab78349d",
+      "title": "Ransom DDoS Extortion Actor “Fancy Lazarus” Returns",
+      "publisher": "Proofpoint",
+      "published_at": "2021-06-10",
+      "canonical_url": "https://github.com/boschresearch/anno-ctr-lrec-coling-2024/blob/d510b6949e1938d47c93a43eedd562dc538439dc/AnnoCTR/all/text/proofpoint_2021-06-10_ransom-ddos-extortion-actor-fancy.txt",
+      "mime_type": "text/plain",
+      "dataset_license": "CC-BY-SA-4.0",
+      "source_license": "original-terms-unverified; dataset-copy-CC-BY-SA-4.0",
+      "tlp": "not-marked-public",
+      "archive_status": "archived-copy",
+      "canonical_verification_state": "unverified",
+      "canonical_verified_at": null,
+      "selection_reason": "AnnoCTR full-text report selected because its expert annotation contains GROUP candidates: APT28, Fancy Bear, Fancy Lazarus. Candidate labels are indexing aids only and are not imported as graph evidence.",
+      "target_case": "actor-coverage:APT28|Fancy Bear|Fancy Lazarus",
+      "actor_candidates": [
+        {
+          "id": "http://www.bosch.com#node1fvup9pj1x36",
+          "label": "Fancy Bear"
+        },
+        {
+          "id": "http://www.bosch.com#node1g7env4v1x9",
+          "label": "Fancy Lazarus"
+        },
+        {
+          "id": "https://attack.mitre.org/groups/G0007",
+          "label": "APT28"
+        }
+      ],
+      "selection_basis": "annoctr-group-annotation-index-only",
+      "canonical_source_note": "Original publisher URL not yet verified; canonical_url points to the commit-pinned AnnoCTR full-text copy."
+    },
+    {
+      "collection_record_id": "annoctr:all:proofpoint_2021-06-24_jssloader-recoded-and-reloaded",
+      "source_path": "AnnoCTR/all/text/proofpoint_2021-06-24_jssloader-recoded-and-reloaded.txt",
+      "sha256": "776bee58611290f6e6530c213e82b2190008d9f006330f269de97cadabd4f91e",
+      "title": "JSSLoader: Recoded and Reloaded",
+      "publisher": "Proofpoint",
+      "published_at": "2021-06-24",
+      "canonical_url": "https://github.com/boschresearch/anno-ctr-lrec-coling-2024/blob/d510b6949e1938d47c93a43eedd562dc538439dc/AnnoCTR/all/text/proofpoint_2021-06-24_jssloader-recoded-and-reloaded.txt",
+      "mime_type": "text/plain",
+      "dataset_license": "CC-BY-SA-4.0",
+      "source_license": "original-terms-unverified; dataset-copy-CC-BY-SA-4.0",
+      "tlp": "not-marked-public",
+      "archive_status": "archived-copy",
+      "canonical_verification_state": "unverified",
+      "canonical_verified_at": null,
+      "selection_reason": "AnnoCTR full-text report selected because its expert annotation contains GROUP candidates: FIN7, TA453. Candidate labels are indexing aids only and are not imported as graph evidence.",
+      "target_case": "actor-coverage:FIN7|TA453",
+      "actor_candidates": [
+        {
+          "id": "http://www.bosch.com#node1g7env4v1x8",
+          "label": "TA453"
+        },
+        {
+          "id": "https://attack.mitre.org/groups/G0046",
+          "label": "FIN7"
+        }
+      ],
+      "selection_basis": "annoctr-group-annotation-index-only",
+      "canonical_source_note": "Original publisher URL not yet verified; canonical_url points to the commit-pinned AnnoCTR full-text copy."
+    },
+    {
+      "collection_record_id": "annoctr:all:proofpoint_2021-06-29_cobalt-strike-favorite-tool-apt",
+      "source_path": "AnnoCTR/all/text/proofpoint_2021-06-29_cobalt-strike-favorite-tool-apt.txt",
+      "sha256": "cda2911145d0a8ddd9cab1cd39f3ac55eaa9a4ee192bc38e1d5daffc6ca624ad",
+      "title": "Cobalt Strike: Favorite Tool from APT to Crimeware",
+      "publisher": "Proofpoint",
+      "published_at": "2021-06-29",
+      "canonical_url": "https://github.com/boschresearch/anno-ctr-lrec-coling-2024/blob/d510b6949e1938d47c93a43eedd562dc538439dc/AnnoCTR/all/text/proofpoint_2021-06-29_cobalt-strike-favorite-tool-apt.txt",
+      "mime_type": "text/plain",
+      "dataset_license": "CC-BY-SA-4.0",
+      "source_license": "original-terms-unverified; dataset-copy-CC-BY-SA-4.0",
+      "tlp": "not-marked-public",
+      "archive_status": "archived-copy",
+      "canonical_verification_state": "unverified",
+      "canonical_verified_at": null,
+      "selection_reason": "AnnoCTR full-text report selected because its expert annotation contains GROUP candidates: APT29, APT41, FIN7, Leviathan, menuPass, TA547, TA800. Candidate labels are indexing aids only and are not imported as graph evidence.",
+      "target_case": "actor-coverage:APT29|APT41|FIN7|Leviathan|menuPass|TA547|TA800",
+      "actor_candidates": [
+        {
+          "id": "http://www.bosch.com#node1g7env4v1x4",
+          "label": "TA800"
+        },
+        {
+          "id": "http://www.bosch.com#node1g7env4v1x5",
+          "label": "TA547"
+        },
+        {
+          "id": "https://attack.mitre.org/groups/G0016",
+          "label": "APT29"
+        },
+        {
+          "id": "https://attack.mitre.org/groups/G0045",
+          "label": "menuPass"
+        },
+        {
+          "id": "https://attack.mitre.org/groups/G0046",
+          "label": "FIN7"
+        },
+        {
+          "id": "https://attack.mitre.org/groups/G0065",
+          "label": "Leviathan"
+        },
+        {
+          "id": "https://attack.mitre.org/groups/G0096",
+          "label": "APT41"
+        }
+      ],
+      "selection_basis": "annoctr-group-annotation-index-only",
+      "canonical_source_note": "Original publisher URL not yet verified; canonical_url points to the commit-pinned AnnoCTR full-text copy."
+    },
+    {
+      "collection_record_id": "annoctr:all:proofpoint_2021-07-01_malware-masquerades-privacy-tool",
+      "source_path": "AnnoCTR/all/text/proofpoint_2021-07-01_malware-masquerades-privacy-tool.txt",
+      "sha256": "b3653c517baef27621db962ef305875e6d71ee44e40403d0892e22fe5e76e517",
+      "title": "Malware Masquerades as Privacy Tool",
+      "publisher": "Proofpoint",
+      "published_at": "2021-07-01",
+      "canonical_url": "https://github.com/boschresearch/anno-ctr-lrec-coling-2024/blob/d510b6949e1938d47c93a43eedd562dc538439dc/AnnoCTR/all/text/proofpoint_2021-07-01_malware-masquerades-privacy-tool.txt",
+      "mime_type": "text/plain",
+      "dataset_license": "CC-BY-SA-4.0",
+      "source_license": "original-terms-unverified; dataset-copy-CC-BY-SA-4.0",
+      "tlp": "None",
+      "archive_status": "archived-copy",
+      "canonical_verification_state": "unverified",
+      "canonical_verified_at": null,
+      "selection_reason": "AnnoCTR full-text report selected because its expert annotation contains GROUP candidates: TA505. Candidate labels are indexing aids only and are not imported as graph evidence.",
+      "target_case": "actor-coverage:TA505",
+      "actor_candidates": [
+        {
+          "id": "https://attack.mitre.org/groups/G0092",
+          "label": "TA505"
+        }
+      ],
+      "selection_basis": "annoctr-group-annotation-index-only",
+      "canonical_source_note": "Original publisher URL not yet verified; canonical_url points to the commit-pinned AnnoCTR full-text copy."
+    },
+    {
+      "collection_record_id": "annoctr:all:proofpoint_2021-07-13_operation-spoofedscholars-conversation-ta453",
+      "source_path": "AnnoCTR/all/text/proofpoint_2021-07-13_operation-spoofedscholars-conversation-ta453.txt",
+      "sha256": "4edfebe56466701695a156ee0945bc07b43a59eeb0ed73e29f50746ac7573d16",
+      "title": "Operation SpoofedScholars: A Conversation with TA453",
+      "publisher": "Proofpoint",
+      "published_at": "2021-07-13",
+      "canonical_url": "https://github.com/boschresearch/anno-ctr-lrec-coling-2024/blob/d510b6949e1938d47c93a43eedd562dc538439dc/AnnoCTR/all/text/proofpoint_2021-07-13_operation-spoofedscholars-conversation-ta453.txt",
+      "mime_type": "text/plain",
+      "dataset_license": "CC-BY-SA-4.0",
+      "source_license": "original-terms-unverified; dataset-copy-CC-BY-SA-4.0",
+      "tlp": "not-marked-public",
+      "archive_status": "archived-copy",
+      "canonical_verification_state": "unverified",
+      "canonical_verified_at": null,
+      "selection_reason": "AnnoCTR full-text report selected because its expert annotation contains GROUP candidates: Magic Hound. Candidate labels are indexing aids only and are not imported as graph evidence.",
+      "target_case": "actor-coverage:Magic Hound",
+      "actor_candidates": [
+        {
+          "id": "https://attack.mitre.org/groups/G0059",
+          "label": "Magic Hound"
+        }
+      ],
+      "selection_basis": "annoctr-group-annotation-index-only",
+      "canonical_source_note": "Original publisher URL not yet verified; canonical_url points to the commit-pinned AnnoCTR full-text copy."
+    },
+    {
+      "collection_record_id": "annoctr:all:proofpoint_2021-07-28_i-knew-you-were-trouble",
+      "source_path": "AnnoCTR/all/text/proofpoint_2021-07-28_i-knew-you-were-trouble.txt",
+      "sha256": "85c34591465208223cd6087e33c5822d403b12aef4f1ba948428355254979461",
+      "title": "I Knew You Were Trouble: TA456 Targets Defense Contractor with Alluring Social Media Persona",
+      "publisher": "Proofpoint",
+      "published_at": "2021-07-28",
+      "canonical_url": "https://github.com/boschresearch/anno-ctr-lrec-coling-2024/blob/d510b6949e1938d47c93a43eedd562dc538439dc/AnnoCTR/all/text/proofpoint_2021-07-28_i-knew-you-were-trouble.txt",
+      "mime_type": "text/plain",
+      "dataset_license": "CC-BY-SA-4.0",
+      "source_license": "original-terms-unverified; dataset-copy-CC-BY-SA-4.0",
+      "tlp": "not-marked-public",
+      "archive_status": "archived-copy",
+      "canonical_verification_state": "unverified",
+      "canonical_verified_at": null,
+      "selection_reason": "AnnoCTR full-text report selected because its expert annotation contains GROUP candidates: Cleaver. Candidate labels are indexing aids only and are not imported as graph evidence.",
+      "target_case": "actor-coverage:Cleaver",
+      "actor_candidates": [
+        {
+          "id": "https://attack.mitre.org/groups/G0003",
+          "label": "Cleaver"
+        }
+      ],
+      "selection_basis": "annoctr-group-annotation-index-only",
+      "canonical_source_note": "Original publisher URL not yet verified; canonical_url points to the commit-pinned AnnoCTR full-text copy."
+    },
+    {
+      "collection_record_id": "annoctr:all:proofpoint_2021-08-24_delta-variant-spreads-covid-19",
+      "source_path": "AnnoCTR/all/text/proofpoint_2021-08-24_delta-variant-spreads-covid-19.txt",
+      "sha256": "e80b08d64fd14f8c4d1a38e4503eec73cdcbc794b874186cdb5fe1c6c2ccd25b",
+      "title": "As Delta Variant Spreads, COVID-19 Themes Make Resurgence In Email Threats",
+      "publisher": "Proofpoint",
+      "published_at": "2021-08-24",
+      "canonical_url": "https://github.com/boschresearch/anno-ctr-lrec-coling-2024/blob/d510b6949e1938d47c93a43eedd562dc538439dc/AnnoCTR/all/text/proofpoint_2021-08-24_delta-variant-spreads-covid-19.txt",
+      "mime_type": "text/plain",
+      "dataset_license": "CC-BY-SA-4.0",
+      "source_license": "original-terms-unverified; dataset-copy-CC-BY-SA-4.0",
+      "tlp": "not-marked-public",
+      "archive_status": "archived-copy",
+      "canonical_verification_state": "unverified",
+      "canonical_verified_at": null,
+      "selection_reason": "AnnoCTR full-text report selected because its expert annotation contains GROUP candidates: mummy-spider. Candidate labels are indexing aids only and are not imported as graph evidence.",
+      "target_case": "actor-coverage:mummy-spider",
+      "actor_candidates": [
+        {
+          "id": "http://www.bosch.com/group/mummy-spider",
+          "label": "mummy-spider"
+        }
+      ],
+      "selection_basis": "annoctr-group-annotation-index-only",
+      "canonical_source_note": "Original publisher URL not yet verified; canonical_url points to the commit-pinned AnnoCTR full-text copy."
+    },
+    {
+      "collection_record_id": "annoctr:all:proofpoint_2021-09-29_ta544-targets-italian-organizations-ursnif",
+      "source_path": "AnnoCTR/all/text/proofpoint_2021-09-29_ta544-targets-italian-organizations-ursnif.txt",
+      "sha256": "caa83e56bccfb3997c74a02288b739f456dc5dd1c4b20629b4833845e18a2d86",
+      "title": "Security Brief: TA544 Targets Italian Organizations with Ursnif Malware",
+      "publisher": "Proofpoint",
+      "published_at": "2021-09-29",
+      "canonical_url": "https://github.com/boschresearch/anno-ctr-lrec-coling-2024/blob/d510b6949e1938d47c93a43eedd562dc538439dc/AnnoCTR/all/text/proofpoint_2021-09-29_ta544-targets-italian-organizations-ursnif.txt",
+      "mime_type": "text/plain",
+      "dataset_license": "CC-BY-SA-4.0",
+      "source_license": "original-terms-unverified; dataset-copy-CC-BY-SA-4.0",
+      "tlp": "not-marked-public",
+      "archive_status": "archived-copy",
+      "canonical_verification_state": "unverified",
+      "canonical_verified_at": null,
+      "selection_reason": "AnnoCTR full-text report selected because its expert annotation contains GROUP candidates: TA544. Candidate labels are indexing aids only and are not imported as graph evidence.",
+      "target_case": "actor-coverage:TA544",
+      "actor_candidates": [
+        {
+          "id": "http://www.bosch.com/group/ta544",
+          "label": "TA544"
+        }
+      ],
+      "selection_basis": "annoctr-group-annotation-index-only",
+      "canonical_source_note": "Original publisher URL not yet verified; canonical_url points to the commit-pinned AnnoCTR full-text copy."
+    },
+    {
+      "collection_record_id": "annoctr:all:proofpoint_2021-10-19_whatta-ta-ta505-ramps-activity",
+      "source_path": "AnnoCTR/all/text/proofpoint_2021-10-19_whatta-ta-ta505-ramps-activity.txt",
+      "sha256": "fd7e538942814ef1fab0b950ea2ac7c522cb342c1fb1338182a5872e786b9e5b",
+      "title": "Whatta TA: TA505 Ramps Up Activity, Delivers New FlawedGrace Variant",
+      "publisher": "Proofpoint",
+      "published_at": "2021-10-19",
+      "canonical_url": "https://www.proofpoint.com/uk/blog/threat-insight/whatta-ta-ta505-ramps-activity-delivers-new-flawedgrace-variant",
+      "mime_type": "text/plain",
+      "dataset_license": "CC-BY-SA-4.0",
+      "source_license": "publisher-site-terms",
+      "tlp": "not-marked-public",
+      "archive_status": "canonical-verified-copy",
+      "canonical_verification_state": "verified",
+      "canonical_verified_at": "2026-07-28",
+      "selection_reason": "AnnoCTR full-text report selected because its expert annotation contains GROUP candidates: TA505. Candidate labels are indexing aids only and are not imported as graph evidence.",
+      "target_case": "actor-coverage:TA505",
+      "actor_candidates": [
+        {
+          "id": "https://attack.mitre.org/groups/G0092",
+          "label": "TA505"
+        }
+      ],
+      "selection_basis": "annoctr-group-annotation-index-only",
+      "canonical_source_note": "Original publisher URL verified in an existing curated manifest."
+    },
+    {
+      "collection_record_id": "annoctr:all:proofpoint_2021-10-20_ta551-uses-sliver-red-team",
+      "source_path": "AnnoCTR/all/text/proofpoint_2021-10-20_ta551-uses-sliver-red-team.txt",
+      "sha256": "8e385d1d29e29349cea4c3bc07116111ef35e9710417c86988c8e50551ed2da1",
+      "title": "Security Brief: TA551 Uses ‘SLIVER’ Red Team Tool in New Activity",
+      "publisher": "Proofpoint",
+      "published_at": "2021-10-20",
+      "canonical_url": "https://github.com/boschresearch/anno-ctr-lrec-coling-2024/blob/d510b6949e1938d47c93a43eedd562dc538439dc/AnnoCTR/all/text/proofpoint_2021-10-20_ta551-uses-sliver-red-team.txt",
+      "mime_type": "text/plain",
+      "dataset_license": "CC-BY-SA-4.0",
+      "source_license": "original-terms-unverified; dataset-copy-CC-BY-SA-4.0",
+      "tlp": "None",
+      "archive_status": "archived-copy",
+      "canonical_verification_state": "unverified",
+      "canonical_verified_at": null,
+      "selection_reason": "AnnoCTR full-text report selected because its expert annotation contains GROUP candidates: TA551. Candidate labels are indexing aids only and are not imported as graph evidence.",
+      "target_case": "actor-coverage:TA551",
+      "actor_candidates": [
+        {
+          "id": "https://attack.mitre.org/groups/G0127",
+          "label": "TA551"
+        }
+      ],
+      "selection_basis": "annoctr-group-annotation-index-only",
+      "canonical_source_note": "Original publisher URL not yet verified; canonical_url points to the commit-pinned AnnoCTR full-text copy."
+    },
+    {
+      "collection_record_id": "annoctr:all:proofpoint_2021-10-27_new-threat-actor-spoofs-philippine",
+      "source_path": "AnnoCTR/all/text/proofpoint_2021-10-27_new-threat-actor-spoofs-philippine.txt",
+      "sha256": "1f0e8ad1cedcd550e7667b252b55f231f0e1aed9ab57c94546bc5be06ceb7b89",
+      "title": "New Threat Actor Spoofs Philippine Government, COVID-19 Health Data in Widespread RAT Campaigns",
+      "publisher": "Proofpoint",
+      "published_at": "2021-10-27",
+      "canonical_url": "https://github.com/boschresearch/anno-ctr-lrec-coling-2024/blob/d510b6949e1938d47c93a43eedd562dc538439dc/AnnoCTR/all/text/proofpoint_2021-10-27_new-threat-actor-spoofs-philippine.txt",
+      "mime_type": "text/plain",
+      "dataset_license": "CC-BY-SA-4.0",
+      "source_license": "original-terms-unverified; dataset-copy-CC-BY-SA-4.0",
+      "tlp": "not-marked-public",
+      "archive_status": "archived-copy",
+      "canonical_verification_state": "unverified",
+      "canonical_verified_at": null,
+      "selection_reason": "AnnoCTR full-text report selected because its expert annotation contains GROUP candidates: TA2722. Candidate labels are indexing aids only and are not imported as graph evidence.",
+      "target_case": "actor-coverage:TA2722",
+      "actor_candidates": [
+        {
+          "id": "http://www.bosch.com#node1g51dalmax6",
+          "label": "TA2722"
+        }
+      ],
+      "selection_basis": "annoctr-group-annotation-index-only",
+      "canonical_source_note": "Original publisher URL not yet verified; canonical_url points to the commit-pinned AnnoCTR full-text copy."
+    },
+    {
+      "collection_record_id": "annoctr:all:proofpoint_2021-10-28_ta575-uses-squid-game-lures",
+      "source_path": "AnnoCTR/all/text/proofpoint_2021-10-28_ta575-uses-squid-game-lures.txt",
+      "sha256": "1240a69114ed1431aafdccfee327e886be71d0cc3dd2c9c5aeb65138abda82ad",
+      "title": "TA575 Uses ‘Squid Game’ Lures to Distribute Dridex malware",
+      "publisher": "Proofpoint",
+      "published_at": "2021-10-28",
+      "canonical_url": "https://github.com/boschresearch/anno-ctr-lrec-coling-2024/blob/d510b6949e1938d47c93a43eedd562dc538439dc/AnnoCTR/all/text/proofpoint_2021-10-28_ta575-uses-squid-game-lures.txt",
+      "mime_type": "text/plain",
+      "dataset_license": "CC-BY-SA-4.0",
+      "source_license": "original-terms-unverified; dataset-copy-CC-BY-SA-4.0",
+      "tlp": "not-marked-public",
+      "archive_status": "archived-copy",
+      "canonical_verification_state": "unverified",
+      "canonical_verified_at": null,
+      "selection_reason": "AnnoCTR full-text report selected because its expert annotation contains GROUP candidates: TA575. Candidate labels are indexing aids only and are not imported as graph evidence.",
+      "target_case": "actor-coverage:TA575",
+      "actor_candidates": [
+        {
+          "id": "http://www.bosch.com#node1g51dalmax4",
+          "label": "TA575"
+        }
+      ],
+      "selection_basis": "annoctr-group-annotation-index-only",
+      "canonical_source_note": "Original publisher URL not yet verified; canonical_url points to the commit-pinned AnnoCTR full-text copy."
+    },
+    {
+      "collection_record_id": "annoctr:all:proofpoint_2021-11-18_triple-threat-north-korea-aligned",
+      "source_path": "AnnoCTR/all/text/proofpoint_2021-11-18_triple-threat-north-korea-aligned.txt",
+      "sha256": "5021b5689e11ae55852e4bb4d838710810c54ec69d4bd8b37238c26c9590492d",
+      "title": "Triple Threat: North Korea-Aligned TA406 Scams, Spies, and Steals",
+      "publisher": "Proofpoint",
+      "published_at": "2021-11-18",
+      "canonical_url": "https://github.com/boschresearch/anno-ctr-lrec-coling-2024/blob/d510b6949e1938d47c93a43eedd562dc538439dc/AnnoCTR/all/text/proofpoint_2021-11-18_triple-threat-north-korea-aligned.txt",
+      "mime_type": "text/plain",
+      "dataset_license": "CC-BY-SA-4.0",
+      "source_license": "original-terms-unverified; dataset-copy-CC-BY-SA-4.0",
+      "tlp": "not-marked-public",
+      "archive_status": "archived-copy",
+      "canonical_verification_state": "unverified",
+      "canonical_verified_at": null,
+      "selection_reason": "AnnoCTR full-text report selected because its expert annotation contains GROUP candidates: Kimsuky. Candidate labels are indexing aids only and are not imported as graph evidence.",
+      "target_case": "actor-coverage:Kimsuky",
+      "actor_candidates": [
+        {
+          "id": "https://attack.mitre.org/groups/G0094",
+          "label": "Kimsuky"
+        }
+      ],
+      "selection_basis": "annoctr-group-annotation-index-only",
+      "canonical_source_note": "Original publisher URL not yet verified; canonical_url points to the commit-pinned AnnoCTR full-text copy."
+    },
+    {
+      "collection_record_id": "annoctr:all:proofpoint_2021-12-09_holiday-feelin-ta575-brings-warm",
+      "source_path": "AnnoCTR/all/text/proofpoint_2021-12-09_holiday-feelin-ta575-brings-warm.txt",
+      "sha256": "c472d3c9f3f9606911207655454bcd1fdb714712e2b7dffd0ff5a513113572ff",
+      "title": "That Holiday Feelin’: TA575 Brings the Warm and Fuzzies with Year-end, Festive Lures",
+      "publisher": "Proofpoint",
+      "published_at": "2021-12-09",
+      "canonical_url": "https://github.com/boschresearch/anno-ctr-lrec-coling-2024/blob/d510b6949e1938d47c93a43eedd562dc538439dc/AnnoCTR/all/text/proofpoint_2021-12-09_holiday-feelin-ta575-brings-warm.txt",
+      "mime_type": "text/plain",
+      "dataset_license": "CC-BY-SA-4.0",
+      "source_license": "original-terms-unverified; dataset-copy-CC-BY-SA-4.0",
+      "tlp": "not-marked-public",
+      "archive_status": "archived-copy",
+      "canonical_verification_state": "unverified",
+      "canonical_verified_at": null,
+      "selection_reason": "AnnoCTR full-text report selected because its expert annotation contains GROUP candidates: TA575. Candidate labels are indexing aids only and are not imported as graph evidence.",
+      "target_case": "actor-coverage:TA575",
+      "actor_candidates": [
+        {
+          "id": "http://www.bosch.com#node1g51dalmax4",
+          "label": "TA575"
+        }
+      ],
+      "selection_basis": "annoctr-group-annotation-index-only",
+      "canonical_source_note": "Original publisher URL not yet verified; canonical_url points to the commit-pinned AnnoCTR full-text copy."
+    },
+    {
+      "collection_record_id": "annoctr:all:quoteintelligence_2018-11-29_golden-chickens-uncovering-a-malware",
+      "source_path": "AnnoCTR/all/text/quoteintelligence_2018-11-29_golden-chickens-uncovering-a-malware.txt",
+      "sha256": "b92ddcbe294f96c274197376d413aff28447466266864a512d018efc69d2ca90",
+      "title": "Golden Chickens: Uncovering a Malware-as-a-Service (MaaS) Provider",
+      "publisher": "quoteintelligence",
+      "published_at": "2018-11-29",
+      "canonical_url": "https://github.com/boschresearch/anno-ctr-lrec-coling-2024/blob/d510b6949e1938d47c93a43eedd562dc538439dc/AnnoCTR/all/text/quoteintelligence_2018-11-29_golden-chickens-uncovering-a-malware.txt",
+      "mime_type": "text/plain",
+      "dataset_license": "CC-BY-SA-4.0",
+      "source_license": "original-terms-unverified; dataset-copy-CC-BY-SA-4.0",
+      "tlp": "not-marked-public",
+      "archive_status": "archived-copy",
+      "canonical_verification_state": "unverified",
+      "canonical_verified_at": null,
+      "selection_reason": "AnnoCTR full-text report selected because its expert annotation contains GROUP candidates: Cobalt Group, Golden Chickens. Candidate labels are indexing aids only and are not imported as graph evidence.",
+      "target_case": "actor-coverage:Cobalt Group|Golden Chickens",
+      "actor_candidates": [
+        {
+          "id": "http://www.bosch.com#node1fvup9pj1x14",
+          "label": "Golden Chickens"
+        },
+        {
+          "id": "https://attack.mitre.org/groups/G0080",
+          "label": "Cobalt Group"
+        }
+      ],
+      "selection_basis": "annoctr-group-annotation-index-only",
+      "canonical_source_note": "Original publisher URL not yet verified; canonical_url points to the commit-pinned AnnoCTR full-text copy."
+    },
+    {
+      "collection_record_id": "annoctr:all:quoteintelligence_2019-01-21_new-evidence-might-link-lazarus",
+      "source_path": "AnnoCTR/all/text/quoteintelligence_2019-01-21_new-evidence-might-link-lazarus.txt",
+      "sha256": "04837ef8975e44a42f2228c48c4f009a3fbb701b9c39dd39eb44f3a83b45509a",
+      "title": "New Evidence Might Link Lazarus Tool Found in Chile RedBanc Intrusion to Previous Attacks in Pakistan",
+      "publisher": "quoteintelligence",
+      "published_at": "2019-01-21",
+      "canonical_url": "https://github.com/boschresearch/anno-ctr-lrec-coling-2024/blob/d510b6949e1938d47c93a43eedd562dc538439dc/AnnoCTR/all/text/quoteintelligence_2019-01-21_new-evidence-might-link-lazarus.txt",
+      "mime_type": "text/plain",
+      "dataset_license": "CC-BY-SA-4.0",
+      "source_license": "original-terms-unverified; dataset-copy-CC-BY-SA-4.0",
+      "tlp": "not-marked-public",
+      "archive_status": "archived-copy",
+      "canonical_verification_state": "unverified",
+      "canonical_verified_at": null,
+      "selection_reason": "AnnoCTR full-text report selected because its expert annotation contains GROUP candidates: Lazarus Group. Candidate labels are indexing aids only and are not imported as graph evidence.",
+      "target_case": "actor-coverage:Lazarus Group",
+      "actor_candidates": [
+        {
+          "id": "https://attack.mitre.org/groups/G0032",
+          "label": "Lazarus Group"
+        }
+      ],
+      "selection_basis": "annoctr-group-annotation-index-only",
+      "canonical_source_note": "Original publisher URL not yet verified; canonical_url points to the commit-pinned AnnoCTR full-text copy."
+    },
+    {
+      "collection_record_id": "annoctr:all:quoteintelligence_2020-04-20_winnti-group-insights-from-the",
+      "source_path": "AnnoCTR/all/text/quoteintelligence_2020-04-20_winnti-group-insights-from-the.txt",
+      "sha256": "f35eb1fc7314de99fa4ddd52883f09f61b8f26151c230ed1549c6b0bcf48f825",
+      "title": "WINNTI GROUP: Insights From the Past",
+      "publisher": "quoteintelligence",
+      "published_at": "2020-04-20",
+      "canonical_url": "https://github.com/boschresearch/anno-ctr-lrec-coling-2024/blob/d510b6949e1938d47c93a43eedd562dc538439dc/AnnoCTR/all/text/quoteintelligence_2020-04-20_winnti-group-insights-from-the.txt",
+      "mime_type": "text/plain",
+      "dataset_license": "CC-BY-SA-4.0",
+      "source_license": "original-terms-unverified; dataset-copy-CC-BY-SA-4.0",
+      "tlp": "not-marked-public",
+      "archive_status": "archived-copy",
+      "canonical_verification_state": "unverified",
+      "canonical_verified_at": null,
+      "selection_reason": "AnnoCTR full-text report selected because its expert annotation contains GROUP candidates: APT17, APT32, APT41, Ke3chang, Turla, Winnti Group. Candidate labels are indexing aids only and are not imported as graph evidence.",
+      "target_case": "actor-coverage:APT17|APT32|APT41|Ke3chang|Turla|Winnti Group",
+      "actor_candidates": [
+        {
+          "id": "https://attack.mitre.org/groups/G0004",
+          "label": "Ke3chang"
+        },
+        {
+          "id": "https://attack.mitre.org/groups/G0010",
+          "label": "Turla"
+        },
+        {
+          "id": "https://attack.mitre.org/groups/G0025",
+          "label": "APT17"
+        },
+        {
+          "id": "https://attack.mitre.org/groups/G0044",
+          "label": "Winnti Group"
+        },
+        {
+          "id": "https://attack.mitre.org/groups/G0050",
+          "label": "APT32"
+        },
+        {
+          "id": "https://attack.mitre.org/groups/G0096",
+          "label": "APT41"
+        }
+      ],
+      "selection_basis": "annoctr-group-annotation-index-only",
+      "canonical_source_note": "Original publisher URL not yet verified; canonical_url points to the commit-pinned AnnoCTR full-text copy."
+    },
+    {
+      "collection_record_id": "annoctr:all:quoteintelligence_2020-08-07_blackwater-malware-leveraging-beirut-tragedy",
+      "source_path": "AnnoCTR/all/text/quoteintelligence_2020-08-07_blackwater-malware-leveraging-beirut-tragedy.txt",
+      "sha256": "8acdc4cd0505a3413a554947bfd06f3417e305774c5aff47a78a2f70ff45cc6e",
+      "title": "BlackWater Malware Leveraging Beirut Tragedy in New Targeted Campaign",
+      "publisher": "quoteintelligence",
+      "published_at": "2020-08-07",
+      "canonical_url": "https://github.com/boschresearch/anno-ctr-lrec-coling-2024/blob/d510b6949e1938d47c93a43eedd562dc538439dc/AnnoCTR/all/text/quoteintelligence_2020-08-07_blackwater-malware-leveraging-beirut-tragedy.txt",
+      "mime_type": "text/plain",
+      "dataset_license": "CC-BY-SA-4.0",
+      "source_license": "original-terms-unverified; dataset-copy-CC-BY-SA-4.0",
+      "tlp": "not-marked-public",
+      "archive_status": "archived-copy",
+      "canonical_verification_state": "unverified",
+      "canonical_verified_at": null,
+      "selection_reason": "AnnoCTR full-text report selected because its expert annotation contains GROUP candidates: Naikon, ReconHellcat, vicious-panda. Candidate labels are indexing aids only and are not imported as graph evidence.",
+      "target_case": "actor-coverage:Naikon|ReconHellcat|vicious-panda",
+      "actor_candidates": [
+        {
+          "id": "http://www.bosch.com#node1fsmh11c3x10",
+          "label": "ReconHellcat"
+        },
+        {
+          "id": "http://www.bosch.com/group/vicious-panda",
+          "label": "vicious-panda"
+        },
+        {
+          "id": "https://attack.mitre.org/groups/G0019",
+          "label": "Naikon"
+        }
+      ],
+      "selection_basis": "annoctr-group-annotation-index-only",
+      "canonical_source_note": "Original publisher URL not yet verified; canonical_url points to the commit-pinned AnnoCTR full-text copy."
+    },
+    {
+      "collection_record_id": "annoctr:all:quoteintelligence_2020-09-22_apt28-zebrocy-malware-campaign-nato",
+      "source_path": "AnnoCTR/all/text/quoteintelligence_2020-09-22_apt28-zebrocy-malware-campaign-nato.txt",
+      "sha256": "96be28afd2f1c1f0270a4ce0383b50e717c38616a752793373db48b9ca833d00",
+      "title": "APT28 Delivers Zebrocy Malware Campaign using NATO Theme as Lure",
+      "publisher": "QuoIntelligence",
+      "published_at": "2020-09-22",
+      "canonical_url": "https://quointelligence.eu/2020/09/apt28-zebrocy-malware-campaign-nato-theme/",
+      "mime_type": "text/plain",
+      "dataset_license": "CC-BY-SA-4.0",
+      "source_license": "publisher-site-terms",
+      "tlp": "not-marked-public",
+      "archive_status": "canonical-verified-copy",
+      "canonical_verification_state": "verified",
+      "canonical_verified_at": "2026-07-28",
+      "selection_reason": "AnnoCTR full-text report selected because its expert annotation contains GROUP candidates: APT28, ReconHellcat, Turla. Candidate labels are indexing aids only and are not imported as graph evidence.",
+      "target_case": "actor-coverage:APT28|ReconHellcat|Turla",
+      "actor_candidates": [
+        {
+          "id": "http://www.bosch.com#node1fsmh11c3x10",
+          "label": "ReconHellcat"
+        },
+        {
+          "id": "https://attack.mitre.org/groups/G0007",
+          "label": "APT28"
+        },
+        {
+          "id": "https://attack.mitre.org/groups/G0010",
+          "label": "Turla"
+        }
+      ],
+      "selection_basis": "annoctr-group-annotation-index-only",
+      "canonical_source_note": "Original publisher URL verified in an existing curated manifest."
+    },
+    {
+      "collection_record_id": "annoctr:all:quoteintelligence_2021-01-06_reconhellcat-uses-nist-theme-as",
+      "source_path": "AnnoCTR/all/text/quoteintelligence_2021-01-06_reconhellcat-uses-nist-theme-as.txt",
+      "sha256": "19b90430a170dbab6c1758c9009373ddc12836a60e981c456ce9ce1d44229ddf",
+      "title": "ReconHellcat Uses NIST Theme as Lure To Deliver New BlackSoul Malware",
+      "publisher": "quoteintelligence",
+      "published_at": "2021-01-06",
+      "canonical_url": "https://github.com/boschresearch/anno-ctr-lrec-coling-2024/blob/d510b6949e1938d47c93a43eedd562dc538439dc/AnnoCTR/all/text/quoteintelligence_2021-01-06_reconhellcat-uses-nist-theme-as.txt",
+      "mime_type": "text/plain",
+      "dataset_license": "CC-BY-SA-4.0",
+      "source_license": "original-terms-unverified; dataset-copy-CC-BY-SA-4.0",
+      "tlp": "not-marked-public",
+      "archive_status": "archived-copy",
+      "canonical_verification_state": "unverified",
+      "canonical_verified_at": null,
+      "selection_reason": "AnnoCTR full-text report selected because its expert annotation contains GROUP candidates: APT28, ReconHellcat. Candidate labels are indexing aids only and are not imported as graph evidence.",
+      "target_case": "actor-coverage:APT28|ReconHellcat",
+      "actor_candidates": [
+        {
+          "id": "http://www.bosch.com#node1fsmh11c3x10",
+          "label": "ReconHellcat"
+        },
+        {
+          "id": "https://attack.mitre.org/groups/G0007",
+          "label": "APT28"
+        }
+      ],
+      "selection_basis": "annoctr-group-annotation-index-only",
+      "canonical_source_note": "Original publisher URL not yet verified; canonical_url points to the commit-pinned AnnoCTR full-text copy."
+    },
+    {
+      "collection_record_id": "annoctr:all:quoteintelligence_2021-01-27_supply-chain-attacks-cybersecurity-regulations",
+      "source_path": "AnnoCTR/all/text/quoteintelligence_2021-01-27_supply-chain-attacks-cybersecurity-regulations.txt",
+      "sha256": "73af969668aa69314d621643ff7ae3b968aac25c0623fc0a3a49677de17dcb95",
+      "title": "Supply Chain Attacks, Cybersecurity & Regulations: What to Expect in 2021",
+      "publisher": "quoteintelligence",
+      "published_at": "2021-01-27",
+      "canonical_url": "https://github.com/boschresearch/anno-ctr-lrec-coling-2024/blob/d510b6949e1938d47c93a43eedd562dc538439dc/AnnoCTR/all/text/quoteintelligence_2021-01-27_supply-chain-attacks-cybersecurity-regulations.txt",
+      "mime_type": "text/plain",
+      "dataset_license": "CC-BY-SA-4.0",
+      "source_license": "original-terms-unverified; dataset-copy-CC-BY-SA-4.0",
+      "tlp": "not-marked-public",
+      "archive_status": "archived-copy",
+      "canonical_verification_state": "unverified",
+      "canonical_verified_at": null,
+      "selection_reason": "AnnoCTR full-text report selected because its expert annotation contains GROUP candidates: APT40, Winnti Group. Candidate labels are indexing aids only and are not imported as graph evidence.",
+      "target_case": "actor-coverage:APT40|Winnti Group",
+      "actor_candidates": [
+        {
+          "id": "http://www.bosch.com#node1fvup9pj1x9",
+          "label": "APT40"
+        },
+        {
+          "id": "https://attack.mitre.org/groups/G0044",
+          "label": "Winnti Group"
+        }
+      ],
+      "selection_basis": "annoctr-group-annotation-index-only",
+      "canonical_source_note": "Original publisher URL not yet verified; canonical_url points to the commit-pinned AnnoCTR full-text copy."
+    },
+    {
+      "collection_record_id": "annoctr:all:quoteintelligence_2021-02-16_dns-over-https-doh",
+      "source_path": "AnnoCTR/all/text/quoteintelligence_2021-02-16_dns-over-https-doh.txt",
+      "sha256": "f00b04cc1c97988be2646b0d4c40a5383d81cde9dd0b5188bb3981cee9c87248",
+      "title": "How DNS-over-HTTPS (DoH) has Changed the Threat Landscape For Companies",
+      "publisher": "quoteintelligence",
+      "published_at": "2021-02-16",
+      "canonical_url": "https://github.com/boschresearch/anno-ctr-lrec-coling-2024/blob/d510b6949e1938d47c93a43eedd562dc538439dc/AnnoCTR/all/text/quoteintelligence_2021-02-16_dns-over-https-doh.txt",
+      "mime_type": "text/plain",
+      "dataset_license": "CC-BY-SA-4.0",
+      "source_license": "original-terms-unverified; dataset-copy-CC-BY-SA-4.0",
+      "tlp": "not-marked-public",
+      "archive_status": "archived-copy",
+      "canonical_verification_state": "unverified",
+      "canonical_verified_at": null,
+      "selection_reason": "AnnoCTR full-text report selected because its expert annotation contains GROUP candidates: OilRig, ReconHellcat. Candidate labels are indexing aids only and are not imported as graph evidence.",
+      "target_case": "actor-coverage:OilRig|ReconHellcat",
+      "actor_candidates": [
+        {
+          "id": "http://www.bosch.com#node1fsmh11c3x10",
+          "label": "ReconHellcat"
+        },
+        {
+          "id": "https://attack.mitre.org/groups/G0049",
+          "label": "OilRig"
+        }
+      ],
+      "selection_basis": "annoctr-group-annotation-index-only",
+      "canonical_source_note": "Original publisher URL not yet verified; canonical_url points to the commit-pinned AnnoCTR full-text copy."
+    },
+    {
+      "collection_record_id": "annoctr:all:quoteintelligence_2021-04-28_us-sanctions-against-russias-cyber",
+      "source_path": "AnnoCTR/all/text/quoteintelligence_2021-04-28_us-sanctions-against-russias-cyber.txt",
+      "sha256": "3f12d658218bc56a666ac6991c90f70b3d58e7323ed1152253ac4ab9843c9cbd",
+      "title": "US Sanctions Against Russia Unlikely to Limit Russian Cyber Espionage",
+      "publisher": "quoteintelligence",
+      "published_at": "2021-04-28",
+      "canonical_url": "https://github.com/boschresearch/anno-ctr-lrec-coling-2024/blob/d510b6949e1938d47c93a43eedd562dc538439dc/AnnoCTR/all/text/quoteintelligence_2021-04-28_us-sanctions-against-russias-cyber.txt",
+      "mime_type": "text/plain",
+      "dataset_license": "CC-BY-SA-4.0",
+      "source_license": "original-terms-unverified; dataset-copy-CC-BY-SA-4.0",
+      "tlp": "not-marked-public",
+      "archive_status": "archived-copy",
+      "canonical_verification_state": "unverified",
+      "canonical_verified_at": null,
+      "selection_reason": "AnnoCTR full-text report selected because its expert annotation contains GROUP candidates: APT28, APT29, Berserk Bear, Gamaredon Group, ReconHellcat, Sandworm Team, Turla, Xenotime. Candidate labels are indexing aids only and are not imported as graph evidence.",
+      "target_case": "actor-coverage:APT28|APT29|Berserk Bear|Gamaredon Group|ReconHellcat|Sandworm Team|Turla|Xenotime",
+      "actor_candidates": [
+        {
+          "id": "http://www.bosch.com#node1fsmh11c3x10",
+          "label": "ReconHellcat"
+        },
+        {
+          "id": "http://www.bosch.com#node1fsmh11c3x14",
+          "label": "Xenotime"
+        },
+        {
+          "id": "http://www.bosch.com#node1fsmh11c3x16",
+          "label": "Berserk Bear"
+        },
+        {
+          "id": "https://attack.mitre.org/groups/G0007",
+          "label": "APT28"
+        },
+        {
+          "id": "https://attack.mitre.org/groups/G0010",
+          "label": "Turla"
+        },
+        {
+          "id": "https://attack.mitre.org/groups/G0016",
+          "label": "APT29"
+        },
+        {
+          "id": "https://attack.mitre.org/groups/G0034",
+          "label": "Sandworm Team"
+        },
+        {
+          "id": "https://attack.mitre.org/groups/G0047",
+          "label": "Gamaredon Group"
+        }
+      ],
+      "selection_basis": "annoctr-group-annotation-index-only",
+      "canonical_source_note": "Original publisher URL not yet verified; canonical_url points to the commit-pinned AnnoCTR full-text copy."
+    },
+    {
+      "collection_record_id": "annoctr:all:quoteintelligence_2021-06-30_daily-operations-of-a-nigerian",
+      "source_path": "AnnoCTR/all/text/quoteintelligence_2021-06-30_daily-operations-of-a-nigerian.txt",
+      "sha256": "09d3cc90888f2a2722df08c2f8ec4ee154ba8ca6169e565f852eeea5773a8ff6",
+      "title": "E.K.P. & Agent Tesla: The Daily Operations of a Nigerian eCrime Gang",
+      "publisher": "quoteintelligence",
+      "published_at": "2021-06-30",
+      "canonical_url": "https://github.com/boschresearch/anno-ctr-lrec-coling-2024/blob/d510b6949e1938d47c93a43eedd562dc538439dc/AnnoCTR/all/text/quoteintelligence_2021-06-30_daily-operations-of-a-nigerian.txt",
+      "mime_type": "text/plain",
+      "dataset_license": "CC-BY-SA-4.0",
+      "source_license": "original-terms-unverified; dataset-copy-CC-BY-SA-4.0",
+      "tlp": "not-marked-public",
+      "archive_status": "archived-copy",
+      "canonical_verification_state": "unverified",
+      "canonical_verified_at": null,
+      "selection_reason": "AnnoCTR full-text report selected because its expert annotation contains GROUP candidates: Cobalt Group, E.K.P, Evilnum, FIN6, Golden Chickens. Candidate labels are indexing aids only and are not imported as graph evidence.",
+      "target_case": "actor-coverage:Cobalt Group|E.K.P|Evilnum|FIN6|Golden Chickens",
+      "actor_candidates": [
+        {
+          "id": "http://www.bosch.com#node1fsmh11c3x7",
+          "label": "E.K.P"
+        },
+        {
+          "id": "http://www.bosch.com#node1fvup9pj1x14",
+          "label": "Golden Chickens"
+        },
+        {
+          "id": "https://attack.mitre.org/groups/G0037",
+          "label": "FIN6"
+        },
+        {
+          "id": "https://attack.mitre.org/groups/G0080",
+          "label": "Cobalt Group"
+        },
+        {
+          "id": "https://attack.mitre.org/groups/G0120",
+          "label": "Evilnum"
+        }
+      ],
+      "selection_basis": "annoctr-group-annotation-index-only",
+      "canonical_source_note": "Original publisher URL not yet verified; canonical_url points to the commit-pinned AnnoCTR full-text copy."
+    },
+    {
+      "collection_record_id": "annoctr:all:zscaler_2020-09-29_spear-phishing-campaign-delivers-buer",
+      "source_path": "AnnoCTR/all/text/zscaler_2020-09-29_spear-phishing-campaign-delivers-buer.txt",
+      "sha256": "06bab77b0e189134e51b55197999c36552e361c15d306b1c8b839ef1432045ef",
+      "title": "Spear Phishing Campaign Delivers Buer and Bazar Malware",
+      "publisher": "Zscaler ThreatLabz",
+      "published_at": "2020-09-29",
+      "canonical_url": "https://github.com/boschresearch/anno-ctr-lrec-coling-2024/blob/d510b6949e1938d47c93a43eedd562dc538439dc/AnnoCTR/all/text/zscaler_2020-09-29_spear-phishing-campaign-delivers-buer.txt",
+      "mime_type": "text/plain",
+      "dataset_license": "CC-BY-SA-4.0",
+      "source_license": "original-terms-unverified; dataset-copy-CC-BY-SA-4.0",
+      "tlp": "not-marked-public",
+      "archive_status": "archived-copy",
+      "canonical_verification_state": "unverified",
+      "canonical_verified_at": null,
+      "selection_reason": "AnnoCTR full-text report selected because its expert annotation contains GROUP candidates: TrickbotGang. Candidate labels are indexing aids only and are not imported as graph evidence.",
+      "target_case": "actor-coverage:TrickbotGang",
+      "actor_candidates": [
+        {
+          "id": "http://www.bosch.com#node1fuu313m0x4",
+          "label": "TrickbotGang"
+        }
+      ],
+      "selection_basis": "annoctr-group-annotation-index-only",
+      "canonical_source_note": "Original publisher URL not yet verified; canonical_url points to the commit-pinned AnnoCTR full-text copy."
+    },
+    {
+      "collection_record_id": "annoctr:all:zscaler_2021-01-08_ransomware-delivered-using-rdp-brute",
+      "source_path": "AnnoCTR/all/text/zscaler_2021-01-08_ransomware-delivered-using-rdp-brute.txt",
+      "sha256": "c35fa4b2cc86ef9529b078dd636b3e96ca7ab925edd5060a9631799eebcf5ba0",
+      "title": "Ransomware Delivered Using RDP Brute-Force Attack",
+      "publisher": "Zscaler ThreatLabz",
+      "published_at": "2021-01-08",
+      "canonical_url": "https://github.com/boschresearch/anno-ctr-lrec-coling-2024/blob/d510b6949e1938d47c93a43eedd562dc538439dc/AnnoCTR/all/text/zscaler_2021-01-08_ransomware-delivered-using-rdp-brute.txt",
+      "mime_type": "text/plain",
+      "dataset_license": "CC-BY-SA-4.0",
+      "source_license": "original-terms-unverified; dataset-copy-CC-BY-SA-4.0",
+      "tlp": "not-marked-public",
+      "archive_status": "archived-copy",
+      "canonical_verification_state": "unverified",
+      "canonical_verified_at": null,
+      "selection_reason": "AnnoCTR full-text report selected because its expert annotation contains GROUP candidates: Dharma. Candidate labels are indexing aids only and are not imported as graph evidence.",
+      "target_case": "actor-coverage:Dharma",
+      "actor_candidates": [
+        {
+          "id": "http://www.bosch.com#node1fsmh11c3x5",
+          "label": "Dharma"
+        }
+      ],
+      "selection_basis": "annoctr-group-annotation-index-only",
+      "canonical_source_note": "Original publisher URL not yet verified; canonical_url points to the commit-pinned AnnoCTR full-text copy."
+    },
+    {
+      "collection_record_id": "annoctr:all:zscaler_2021-04-14_look-hydrojiin-campaign",
+      "source_path": "AnnoCTR/all/text/zscaler_2021-04-14_look-hydrojiin-campaign.txt",
+      "sha256": "991851f98cd5a421f4cb1f3227fdcb253cacf7e3515bcac3eca3690c5f0f99c3",
+      "title": "A look at HydroJiin campaign",
+      "publisher": "Zscaler ThreatLabz",
+      "published_at": "2021-04-14",
+      "canonical_url": "https://github.com/boschresearch/anno-ctr-lrec-coling-2024/blob/d510b6949e1938d47c93a43eedd562dc538439dc/AnnoCTR/all/text/zscaler_2021-04-14_look-hydrojiin-campaign.txt",
+      "mime_type": "text/plain",
+      "dataset_license": "CC-BY-SA-4.0",
+      "source_license": "original-terms-unverified; dataset-copy-CC-BY-SA-4.0",
+      "tlp": "not-marked-public",
+      "archive_status": "archived-copy",
+      "canonical_verification_state": "unverified",
+      "canonical_verified_at": null,
+      "selection_reason": "AnnoCTR full-text report selected because its expert annotation contains GROUP candidates: HydroJiin. Candidate labels are indexing aids only and are not imported as graph evidence.",
+      "target_case": "actor-coverage:HydroJiin",
+      "actor_candidates": [
+        {
+          "id": "http://www.bosch.com#node1frhbstcrx10",
+          "label": "HydroJiin"
+        }
+      ],
+      "selection_basis": "annoctr-group-annotation-index-only",
+      "canonical_source_note": "Original publisher URL not yet verified; canonical_url points to the commit-pinned AnnoCTR full-text copy."
+    },
+    {
+      "collection_record_id": "annoctr:all:zscaler_2021-05-05_catching-rats-over-custom-protocols",
+      "source_path": "AnnoCTR/all/text/zscaler_2021-05-05_catching-rats-over-custom-protocols.txt",
+      "sha256": "2e55ddf8db45e383cf9e0a2c10e82174e21d55c058c26fcefac3558eeed8dc93",
+      "title": "Catching RATs Over Custom Protocols",
+      "publisher": "Zscaler ThreatLabz",
+      "published_at": "2021-05-05",
+      "canonical_url": "https://github.com/boschresearch/anno-ctr-lrec-coling-2024/blob/d510b6949e1938d47c93a43eedd562dc538439dc/AnnoCTR/all/text/zscaler_2021-05-05_catching-rats-over-custom-protocols.txt",
+      "mime_type": "text/plain",
+      "dataset_license": "CC-BY-SA-4.0",
+      "source_license": "original-terms-unverified; dataset-copy-CC-BY-SA-4.0",
+      "tlp": "not-marked-public",
+      "archive_status": "archived-copy",
+      "canonical_verification_state": "unverified",
+      "canonical_verified_at": null,
+      "selection_reason": "AnnoCTR full-text report selected because its expert annotation contains GROUP candidates: APT18, APT33, APT41, Gorgon Group, Patchwork, SilverTerrier, TA459, The White Company. Candidate labels are indexing aids only and are not imported as graph evidence.",
+      "target_case": "actor-coverage:APT18|APT33|APT41|Gorgon Group|Patchwork|SilverTerrier|TA459|The White Company",
+      "actor_candidates": [
+        {
+          "id": "https://attack.mitre.org/groups/G0026",
+          "label": "APT18"
+        },
+        {
+          "id": "https://attack.mitre.org/groups/G0040",
+          "label": "Patchwork"
+        },
+        {
+          "id": "https://attack.mitre.org/groups/G0062",
+          "label": "TA459"
+        },
+        {
+          "id": "https://attack.mitre.org/groups/G0064",
+          "label": "APT33"
+        },
+        {
+          "id": "https://attack.mitre.org/groups/G0078",
+          "label": "Gorgon Group"
+        },
+        {
+          "id": "https://attack.mitre.org/groups/G0083",
+          "label": "SilverTerrier"
+        },
+        {
+          "id": "https://attack.mitre.org/groups/G0089",
+          "label": "The White Company"
+        },
+        {
+          "id": "https://attack.mitre.org/groups/G0096",
+          "label": "APT41"
+        }
+      ],
+      "selection_basis": "annoctr-group-annotation-index-only",
+      "canonical_source_note": "Original publisher URL not yet verified; canonical_url points to the commit-pinned AnnoCTR full-text copy."
+    },
+    {
+      "collection_record_id": "annoctr:all:zscaler_2021-05-21_threat-actors-distribute-malicious-vpn",
+      "source_path": "AnnoCTR/all/text/zscaler_2021-05-21_threat-actors-distribute-malicious-vpn.txt",
+      "sha256": "163628bc7207f7c27a00d83d7fa5c5932112e621856f4b126c00fdf25ec2529b",
+      "title": "Threat Actors Distribute Malicious VPN Apps Masquerading as Popular Vendors",
+      "publisher": "Zscaler ThreatLabz",
+      "published_at": "2021-05-21",
+      "canonical_url": "https://github.com/boschresearch/anno-ctr-lrec-coling-2024/blob/d510b6949e1938d47c93a43eedd562dc538439dc/AnnoCTR/all/text/zscaler_2021-05-21_threat-actors-distribute-malicious-vpn.txt",
+      "mime_type": "text/plain",
+      "dataset_license": "CC-BY-SA-4.0",
+      "source_license": "original-terms-unverified; dataset-copy-CC-BY-SA-4.0",
+      "tlp": "not-marked-public",
+      "archive_status": "archived-copy",
+      "canonical_verification_state": "unverified",
+      "canonical_verified_at": null,
+      "selection_reason": "AnnoCTR full-text report selected because its expert annotation contains GROUP candidates: Lazarus Group, Sandworm Team. Candidate labels are indexing aids only and are not imported as graph evidence.",
+      "target_case": "actor-coverage:Lazarus Group|Sandworm Team",
+      "actor_candidates": [
+        {
+          "id": "https://attack.mitre.org/groups/G0032",
+          "label": "Lazarus Group"
+        },
+        {
+          "id": "https://attack.mitre.org/groups/G0034",
+          "label": "Sandworm Team"
+        }
+      ],
+      "selection_basis": "annoctr-group-annotation-index-only",
+      "canonical_source_note": "Original publisher URL not yet verified; canonical_url points to the commit-pinned AnnoCTR full-text copy."
+    },
+    {
+      "collection_record_id": "annoctr:all:zscaler_2021-07-14_targeted-attack-government-organizations-delivers",
+      "source_path": "AnnoCTR/all/text/zscaler_2021-07-14_targeted-attack-government-organizations-delivers.txt",
+      "sha256": "fb95cbd80a60f2aa41a29bd453bf6215b601c061e7fa64bb4bf1bddc18d0c989",
+      "title": "Targeted Attack on Government Organizations Delivers Netwire RAT",
+      "publisher": "Zscaler ThreatLabz",
+      "published_at": "2021-07-14",
+      "canonical_url": "https://www.zscaler.com/blogs/security-research/targeted-attack-government-organizations-delivers-netwire-rat",
+      "mime_type": "text/plain",
+      "dataset_license": "CC-BY-SA-4.0",
+      "source_license": "publisher-site-terms",
+      "tlp": "not-marked-public",
+      "archive_status": "canonical-verified-copy",
+      "canonical_verification_state": "verified",
+      "canonical_verified_at": "2026-07-28",
+      "selection_reason": "AnnoCTR full-text report selected because its expert annotation contains GROUP candidates: APT33, Gorgon Group. Candidate labels are indexing aids only and are not imported as graph evidence.",
+      "target_case": "actor-coverage:APT33|Gorgon Group",
+      "actor_candidates": [
+        {
+          "id": "https://attack.mitre.org/groups/G0064",
+          "label": "APT33"
+        },
+        {
+          "id": "https://attack.mitre.org/groups/G0078",
+          "label": "Gorgon Group"
+        }
+      ],
+      "selection_basis": "annoctr-group-annotation-index-only",
+      "canonical_source_note": "Original publisher URL verified in an existing curated manifest."
+    },
+    {
+      "collection_record_id": "annoctr:all:zscaler_2021-09-09_cloudfall-targets-researchers-and-scientists",
+      "source_path": "AnnoCTR/all/text/zscaler_2021-09-09_cloudfall-targets-researchers-and-scientists.txt",
+      "sha256": "6d78d19e545d9325551344a2f9525926c90e7bad991baeed4ea07f351c8d10d4",
+      "title": "CloudFall Targets Researchers and Scientists Invited to International Military Conferences in Central Asia and Eastern Europe",
+      "publisher": "Zscaler ThreatLabz",
+      "published_at": "2021-09-09",
+      "canonical_url": "https://www.zscaler.com/blogs/security-research/cloudfall-targets-researchers-and-scientists-invited-international-military",
+      "mime_type": "text/plain",
+      "dataset_license": "CC-BY-SA-4.0",
+      "source_license": "publisher-site-terms",
+      "tlp": "not-marked-public",
+      "archive_status": "canonical-verified-copy",
+      "canonical_verification_state": "verified",
+      "canonical_verified_at": "2026-07-28",
+      "selection_reason": "AnnoCTR full-text report selected because its expert annotation contains GROUP candidates: CloudAtlas APT, CloudFall. Candidate labels are indexing aids only and are not imported as graph evidence.",
+      "target_case": "actor-coverage:CloudAtlas APT|CloudFall",
+      "actor_candidates": [
+        {
+          "id": "http://www.bosch.com#node1fq5p8ki8x1",
+          "label": "CloudFall"
+        },
+        {
+          "id": "http://www.bosch.com#node1fq5p8ki8x2",
+          "label": "CloudAtlas APT"
+        }
+      ],
+      "selection_basis": "annoctr-group-annotation-index-only",
+      "canonical_source_note": "Original publisher URL verified in an existing curated manifest."
+    }
+  ]
+}

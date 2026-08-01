@@ -44,3 +44,6 @@ next-env.d.ts
 /work/
 __pycache__/
 /data/backups/
+/data/experiments/chunked_path_cache/
+/data/llm_path_cache/
+/data/corpus/upstream/

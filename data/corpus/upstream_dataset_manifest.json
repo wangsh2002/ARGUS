@@ -1,0 +1,48 @@
+{
+  "schema_version": "1.0",
+  "datasets": [
+    {
+      "id": "anno-ctr-lrec-coling-2024",
+      "name": "AnnoCTR: A Dataset for Detecting and Linking Entities, Tactics, and Techniques in Cyber Threat Reports",
+      "paper": "LREC-COLING 2024",
+      "source_repository": "https://github.com/boschresearch/anno-ctr-lrec-coling-2024",
+      "source_commit": "d510b6949e1938d47c93a43eedd562dc538439dc",
+      "downloaded_at": "2026-07-29",
+      "license": "CC-BY-SA-4.0",
+      "local_root": "data/corpus/upstream/anno-ctr-lrec-coling-2024",
+      "storage_kib": 632020,
+      "contents": {
+        "all_plaintext_reports": {
+          "path": "AnnoCTR/all/text",
+          "count": 400,
+          "purpose": "本项目后续挑选真实报告原文的默认入口"
+        },
+        "split_plaintext_reports": {
+          "path": "AnnoCTR/text",
+          "count": 190,
+          "splits": {
+            "train": 70,
+            "train_ext": 70,
+            "dev": 16,
+            "test": 34
+          }
+        },
+        "annotations": [
+          "AnnoCTR/ner_bio",
+          "AnnoCTR/ner_json",
+          "AnnoCTR/linking",
+          "AnnoCTR/linking_mitre_only",
+          "AnnoCTR/linking_wiki_only",
+          "AnnoCTR/time",
+          "AnnoCTR/time_text_only"
+        ],
+        "guidelines": [
+          "Annotation_Guidelines_General_Layer.pdf",
+          "Annotation_Guidelines_Cysec_Layer.pdf"
+        ]
+      },
+      "usage_note": "实验选择报告时只读取 all/text 中的原文；官方结构化标注不得作为攻击路径抽取输入，可单独用于实体识别或 ATT&CK 映射评测。",
+      "version_control_note": "上游数据集目录已加入项目 .gitignore，避免把约 617 MiB 的第三方语料重复提交到当前仓库。"
+    }
+  ]
+}

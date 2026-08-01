@@ -1,0 +1,261 @@
+{
+  "schema_version": "1.1",
+  "collection": {
+    "id": "COLL-ANNOCTR-D510B694",
+    "name": "AnnoCTR manually reviewed ext actor reports",
+    "owner": "Robert Bosch GmbH and research partners",
+    "upstream_url": "https://github.com/boschresearch/anno-ctr-lrec-coling-2024",
+    "version": "d510b6949e1938d47c93a43eedd562dc538439dc",
+    "license": "CC-BY-SA-4.0",
+    "retrieved_at": "2026-07-29T17:46:42.386481+00:00",
+    "notes": "Every actor-report link in this supplemental batch was manually reviewed against an exact source line. The review decisions are stored separately and include explicit rejected candidates."
+  },
+  "reports": [
+    {
+      "collection_record_id": "annoctr:all:lab52_2019-10-22_new-patchwork-campaign-against-pakistan",
+      "source_path": "AnnoCTR/all/text/lab52_2019-10-22_new-patchwork-campaign-against-pakistan.txt",
+      "sha256": "203dc4a660751571654c5b8fbf80b7dcdbf987728e94056c7e330d35835ebb43",
+      "title": "New PatchWork Spearphishing Attack",
+      "publisher": "Lab52 / S2 Grupo",
+      "published_at": "2019-10-22",
+      "canonical_url": "https://github.com/boschresearch/anno-ctr-lrec-coling-2024/blob/d510b6949e1938d47c93a43eedd562dc538439dc/AnnoCTR/all/text/lab52_2019-10-22_new-patchwork-campaign-against-pakistan.txt",
+      "mime_type": "text/plain",
+      "dataset_license": "CC-BY-SA-4.0",
+      "source_license": "original-terms-unverified; dataset-copy-CC-BY-SA-4.0",
+      "tlp": "not-marked-public",
+      "archive_status": "archived-copy",
+      "canonical_verification_state": "unverified",
+      "canonical_verified_at": null,
+      "selection_reason": "Manually reviewed AnnoCTR ext report accepted for actor coverage. Patchwork: Report reconstructs the infection chain and explicitly compares it with Patchwork TTPs.",
+      "target_case": "actor-coverage:Patchwork",
+      "actor_candidates": [
+        {
+          "id": "mitre:G0040",
+          "label": "Patchwork"
+        }
+      ],
+      "selection_basis": "manual-review-of-annoctr-ext-report",
+      "canonical_source_note": "Original publisher URL not yet verified; canonical_url points to the commit-pinned AnnoCTR full-text copy."
+    },
+    {
+      "collection_record_id": "annoctr:all:proofpoint_2020-08-28_comprehensive-look-emotets-summer-2020",
+      "source_path": "AnnoCTR/all/text/proofpoint_2020-08-28_comprehensive-look-emotets-summer-2020.txt",
+      "sha256": "2fb67a3a03170da3b1d9826d7266243b4cb111c0e0b7ad0b7f3c25b15969a7fa",
+      "title": "A Comprehensive Look at Emotet’s Summer 2020 Return",
+      "publisher": "Proofpoint",
+      "published_at": "2020-08-28",
+      "canonical_url": "https://github.com/boschresearch/anno-ctr-lrec-coling-2024/blob/d510b6949e1938d47c93a43eedd562dc538439dc/AnnoCTR/all/text/proofpoint_2020-08-28_comprehensive-look-emotets-summer-2020.txt",
+      "mime_type": "text/plain",
+      "dataset_license": "CC-BY-SA-4.0",
+      "source_license": "original-terms-unverified; dataset-copy-CC-BY-SA-4.0",
+      "tlp": "not-marked-public",
+      "archive_status": "archived-copy",
+      "canonical_verification_state": "unverified",
+      "canonical_verified_at": null,
+      "selection_reason": "Manually reviewed AnnoCTR ext report accepted for actor coverage. mummy-spider: Proofpoint identifies TA542 as the actor distributing Emotet and details its delivery behavior.",
+      "target_case": "actor-coverage:mummy-spider",
+      "actor_candidates": [
+        {
+          "id": "annoctr:http://www.bosch.com/group/mummy-spider",
+          "label": "mummy-spider"
+        }
+      ],
+      "selection_basis": "manual-review-of-annoctr-ext-report",
+      "canonical_source_note": "Original publisher URL not yet verified; canonical_url points to the commit-pinned AnnoCTR full-text copy."
+    },
+    {
+      "collection_record_id": "annoctr:all:proofpoint_2020-10-01_emotet-makes-timely-adoption-political",
+      "source_path": "AnnoCTR/all/text/proofpoint_2020-10-01_emotet-makes-timely-adoption-political.txt",
+      "sha256": "d5709291149f8533eb6a24257f7c3af268102bc9060fbc420b7701b7db2e5cb6",
+      "title": "Emotet Makes Timely Adoption of Political and Elections Lures",
+      "publisher": "Proofpoint",
+      "published_at": "2020-10-01",
+      "canonical_url": "https://github.com/boschresearch/anno-ctr-lrec-coling-2024/blob/d510b6949e1938d47c93a43eedd562dc538439dc/AnnoCTR/all/text/proofpoint_2020-10-01_emotet-makes-timely-adoption-political.txt",
+      "mime_type": "text/plain",
+      "dataset_license": "CC-BY-SA-4.0",
+      "source_license": "original-terms-unverified; dataset-copy-CC-BY-SA-4.0",
+      "tlp": "not-marked-public",
+      "archive_status": "archived-copy",
+      "canonical_verification_state": "unverified",
+      "canonical_verified_at": null,
+      "selection_reason": "Manually reviewed AnnoCTR ext report accepted for actor coverage. mummy-spider: Report directly observes a TA542 Emotet campaign and its lure-to-payload sequence.",
+      "target_case": "actor-coverage:mummy-spider",
+      "actor_candidates": [
+        {
+          "id": "annoctr:http://www.bosch.com/group/mummy-spider",
+          "label": "mummy-spider"
+        }
+      ],
+      "selection_basis": "manual-review-of-annoctr-ext-report",
+      "canonical_source_note": "Original publisher URL not yet verified; canonical_url points to the commit-pinned AnnoCTR full-text copy."
+    },
+    {
+      "collection_record_id": "annoctr:all:proofpoint_2020-11-23_ta416-goes-ground-and-returns",
+      "source_path": "AnnoCTR/all/text/proofpoint_2020-11-23_ta416-goes-ground-and-returns.txt",
+      "sha256": "b2bfee2f4acdec9cb11ea62524854d9de88507e4977635220a582ee9acc67ce4",
+      "title": "TA416 Goes to Ground and Returns with a Golang PlugX Malware Loader",
+      "publisher": "Proofpoint",
+      "published_at": "2020-11-23",
+      "canonical_url": "https://github.com/boschresearch/anno-ctr-lrec-coling-2024/blob/d510b6949e1938d47c93a43eedd562dc538439dc/AnnoCTR/all/text/proofpoint_2020-11-23_ta416-goes-ground-and-returns.txt",
+      "mime_type": "text/plain",
+      "dataset_license": "CC-BY-SA-4.0",
+      "source_license": "original-terms-unverified; dataset-copy-CC-BY-SA-4.0",
+      "tlp": "not-marked-public",
+      "archive_status": "archived-copy",
+      "canonical_verification_state": "unverified",
+      "canonical_verified_at": null,
+      "selection_reason": "Manually reviewed AnnoCTR ext report accepted for actor coverage. Mustang Panda: Proofpoint explicitly maps TA416 to Mustang Panda and documents the resumed PlugX campaign.",
+      "target_case": "actor-coverage:Mustang Panda",
+      "actor_candidates": [
+        {
+          "id": "mitre:G0129",
+          "label": "Mustang Panda"
+        }
+      ],
+      "selection_basis": "manual-review-of-annoctr-ext-report",
+      "canonical_source_note": "Original publisher URL not yet verified; canonical_url points to the commit-pinned AnnoCTR full-text copy."
+    },
+    {
+      "collection_record_id": "annoctr:all:proofpoint_2021-03-10_nimzaloader-ta800s-new-initial-access",
+      "source_path": "AnnoCTR/all/text/proofpoint_2021-03-10_nimzaloader-ta800s-new-initial-access.txt",
+      "sha256": "8a8dc7f1425b33f2327ea5b1d1a59a5c1c34ee5997922dd12c0b658bbe96187e",
+      "title": "NimzaLoader: TA800’s New Initial Access Malware",
+      "publisher": "Proofpoint",
+      "published_at": "2021-03-10",
+      "canonical_url": "https://github.com/boschresearch/anno-ctr-lrec-coling-2024/blob/d510b6949e1938d47c93a43eedd562dc538439dc/AnnoCTR/all/text/proofpoint_2021-03-10_nimzaloader-ta800s-new-initial-access.txt",
+      "mime_type": "text/plain",
+      "dataset_license": "CC-BY-SA-4.0",
+      "source_license": "original-terms-unverified; dataset-copy-CC-BY-SA-4.0",
+      "tlp": "not-marked-public",
+      "archive_status": "archived-copy",
+      "canonical_verification_state": "unverified",
+      "canonical_verified_at": null,
+      "selection_reason": "Manually reviewed AnnoCTR ext report accepted for actor coverage. TA800: Report directly documents a TA800 campaign distributing NimzaLoader.",
+      "target_case": "actor-coverage:TA800",
+      "actor_candidates": [
+        {
+          "id": "annoctr:http://www.bosch.com#node1g7env4v1x4",
+          "label": "TA800"
+        }
+      ],
+      "selection_basis": "manual-review-of-annoctr-ext-report",
+      "canonical_source_note": "Original publisher URL not yet verified; canonical_url points to the commit-pinned AnnoCTR full-text copy."
+    },
+    {
+      "collection_record_id": "annoctr:all:proofpoint_2021-03-30_badblood-ta453-targets-us-and",
+      "source_path": "AnnoCTR/all/text/proofpoint_2021-03-30_badblood-ta453-targets-us-and.txt",
+      "sha256": "869097c4fd72f0e41bb221a5ac78b52ce6eb5ab1adb861961caad3cd6741be8e",
+      "title": "BadBlood: TA453 Targets US and Israeli Medical Research Personnel in Credential Phishing Campaigns",
+      "publisher": "Proofpoint",
+      "published_at": "2021-03-30",
+      "canonical_url": "https://github.com/boschresearch/anno-ctr-lrec-coling-2024/blob/d510b6949e1938d47c93a43eedd562dc538439dc/AnnoCTR/all/text/proofpoint_2021-03-30_badblood-ta453-targets-us-and.txt",
+      "mime_type": "text/plain",
+      "dataset_license": "CC-BY-SA-4.0",
+      "source_license": "original-terms-unverified; dataset-copy-CC-BY-SA-4.0",
+      "tlp": "not-marked-public",
+      "archive_status": "archived-copy",
+      "canonical_verification_state": "unverified",
+      "canonical_verified_at": null,
+      "selection_reason": "Manually reviewed AnnoCTR ext report accepted for actor coverage. Magic Hound: Report is a first-party analysis of a TA453 credential-phishing campaign.",
+      "target_case": "actor-coverage:Magic Hound",
+      "actor_candidates": [
+        {
+          "id": "mitre:G0059",
+          "label": "Magic Hound"
+        }
+      ],
+      "selection_basis": "manual-review-of-annoctr-ext-report",
+      "canonical_source_note": "Original publisher URL not yet verified; canonical_url points to the commit-pinned AnnoCTR full-text copy."
+    },
+    {
+      "collection_record_id": "annoctr:all:proofpoint_2021-06-16_first-step-initial-access-leads",
+      "source_path": "AnnoCTR/all/text/proofpoint_2021-06-16_first-step-initial-access-leads.txt",
+      "sha256": "24418b0c9ebc10c6d0741334316939b054c33f686413f215dd4be3d21c936f33",
+      "title": "The First Step: Initial Access Leads to Ransomware",
+      "publisher": "Proofpoint",
+      "published_at": "2021-06-16",
+      "canonical_url": "https://github.com/boschresearch/anno-ctr-lrec-coling-2024/blob/d510b6949e1938d47c93a43eedd562dc538439dc/AnnoCTR/all/text/proofpoint_2021-06-16_first-step-initial-access-leads.txt",
+      "mime_type": "text/plain",
+      "dataset_license": "CC-BY-SA-4.0",
+      "source_license": "original-terms-unverified; dataset-copy-CC-BY-SA-4.0",
+      "tlp": "not-marked-public",
+      "archive_status": "archived-copy",
+      "canonical_verification_state": "unverified",
+      "canonical_verified_at": null,
+      "selection_reason": "Manually reviewed AnnoCTR ext report accepted for actor coverage. TA800: Report contains a substantive TA800 section with tracked payload and ransomware relationships.; TA551: Report contains a substantive TA551 section describing delivery behavior and payloads.; TA544: Report contains a substantive TA544 section describing volume, geography and payloads.; TA574: Report contains a substantive TA574 section describing delivery volume and techniques.",
+      "target_case": "actor-coverage:TA544|TA551|TA574|TA800",
+      "actor_candidates": [
+        {
+          "id": "annoctr:http://www.bosch.com#node1g7env4v1x4",
+          "label": "TA800"
+        },
+        {
+          "id": "annoctr:http://www.bosch.com#node1g8ftt36lx1",
+          "label": "TA574"
+        },
+        {
+          "id": "annoctr:http://www.bosch.com/group/ta544",
+          "label": "TA544"
+        },
+        {
+          "id": "mitre:G0127",
+          "label": "TA551"
+        }
+      ],
+      "selection_basis": "manual-review-of-annoctr-ext-report",
+      "canonical_source_note": "Original publisher URL not yet verified; canonical_url points to the commit-pinned AnnoCTR full-text copy."
+    },
+    {
+      "collection_record_id": "annoctr:all:quoteintelligence_2020-01-27_the-chicken-keeps-laying-new",
+      "source_path": "AnnoCTR/all/text/quoteintelligence_2020-01-27_the-chicken-keeps-laying-new.txt",
+      "sha256": "e2db7a5837173f986bc5ab43ed7abf4d513fad11bb5fb8e73301464587b7e007",
+      "title": "The Chicken Keeps Laying New Eggs: Uncovering New GC MaaS Tools Used By Top-tier Threat Actors",
+      "publisher": "quoteintelligence",
+      "published_at": "2020-01-27",
+      "canonical_url": "https://github.com/boschresearch/anno-ctr-lrec-coling-2024/blob/d510b6949e1938d47c93a43eedd562dc538439dc/AnnoCTR/all/text/quoteintelligence_2020-01-27_the-chicken-keeps-laying-new.txt",
+      "mime_type": "text/plain",
+      "dataset_license": "CC-BY-SA-4.0",
+      "source_license": "original-terms-unverified; dataset-copy-CC-BY-SA-4.0",
+      "tlp": "not-marked-public",
+      "archive_status": "archived-copy",
+      "canonical_verification_state": "unverified",
+      "canonical_verified_at": null,
+      "selection_reason": "Manually reviewed AnnoCTR ext report accepted for actor coverage. Golden Chickens: Report is explicitly about the tracked Golden Chickens MaaS provider and its actor clients.",
+      "target_case": "actor-coverage:Golden Chickens",
+      "actor_candidates": [
+        {
+          "id": "annoctr:http://www.bosch.com#node1fvup9pj1x14",
+          "label": "Golden Chickens"
+        }
+      ],
+      "selection_basis": "manual-review-of-annoctr-ext-report",
+      "canonical_source_note": "Original publisher URL not yet verified; canonical_url points to the commit-pinned AnnoCTR full-text copy."
+    },
+    {
+      "collection_record_id": "annoctr:all:quoteintelligence_2020-07-20_golden-chickens-evolution-of-the",
+      "source_path": "AnnoCTR/all/text/quoteintelligence_2020-07-20_golden-chickens-evolution-of-the.txt",
+      "sha256": "52e743d2074a2b0e2e5c9b71c2ebd9338969be668bea534b0a6326fbd428675d",
+      "title": "GOLDEN CHICKENS: Evolution of the MaaS",
+      "publisher": "quoteintelligence",
+      "published_at": "2020-07-20",
+      "canonical_url": "https://github.com/boschresearch/anno-ctr-lrec-coling-2024/blob/d510b6949e1938d47c93a43eedd562dc538439dc/AnnoCTR/all/text/quoteintelligence_2020-07-20_golden-chickens-evolution-of-the.txt",
+      "mime_type": "text/plain",
+      "dataset_license": "CC-BY-SA-4.0",
+      "source_license": "original-terms-unverified; dataset-copy-CC-BY-SA-4.0",
+      "tlp": "not-marked-public",
+      "archive_status": "archived-copy",
+      "canonical_verification_state": "unverified",
+      "canonical_verified_at": null,
+      "selection_reason": "Manually reviewed AnnoCTR ext report accepted for actor coverage. Golden Chickens: Title and body directly analyze Golden Chickens MaaS evolution and observed attacks.",
+      "target_case": "actor-coverage:Golden Chickens",
+      "actor_candidates": [
+        {
+          "id": "annoctr:http://www.bosch.com#node1fvup9pj1x14",
+          "label": "Golden Chickens"
+        }
+      ],
+      "selection_basis": "manual-review-of-annoctr-ext-report",
+      "canonical_source_note": "Original publisher URL not yet verified; canonical_url points to the commit-pinned AnnoCTR full-text copy."
+    }
+  ]
+}

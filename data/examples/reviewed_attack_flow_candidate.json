@@ -1,0 +1,83 @@
+{
+  "source": {
+    "title": "NightFox 文档投递与计划任务驻留",
+    "publisher": "Example CERT",
+    "canonical_url": "https://example.invalid/nightfox-reviewed",
+    "published_at": "2026-08-01",
+    "content": "NightFox 被报告通过钓鱼邮件投递恶意文档。\n\n受害者打开文档后执行加载器，并连接到 198.51.100.77。\n\n加载器随后创建计划任务以保持驻留。"
+  },
+  "attack_flow_candidate": {
+    "title": "NightFox 文档投递至计划任务驻留",
+    "description": "经人工复核的三步历史攻击过程。",
+    "actions": [
+      {
+        "id": "A1",
+        "name": "投递恶意文档",
+        "description": "通过钓鱼邮件投递文档。",
+        "phase": "初始访问",
+        "confidence": "high",
+        "technique_ids": [],
+        "contexts": [],
+        "evidence": [{ "quote": "NightFox 被报告通过钓鱼邮件投递恶意文档。" }]
+      },
+      {
+        "id": "A2",
+        "name": "执行加载器",
+        "description": "打开文档后执行加载器。",
+        "phase": "执行",
+        "confidence": "high",
+        "technique_ids": [],
+        "contexts": [
+          {
+            "id": "C1",
+            "type": "ip",
+            "name": "198.51.100.77",
+            "role": "communicates-with",
+            "confidence": "high",
+            "evidence": [{ "quote": "受害者打开文档后执行加载器，并连接到 198.51.100.77。" }]
+          }
+        ],
+        "evidence": [{ "quote": "受害者打开文档后执行加载器，并连接到 198.51.100.77。" }]
+      },
+      {
+        "id": "A3",
+        "name": "创建计划任务",
+        "description": "加载器创建计划任务以驻留。",
+        "phase": "持久化",
+        "confidence": "high",
+        "technique_ids": ["T1053.005"],
+        "contexts": [],
+        "evidence": [{ "quote": "加载器随后创建计划任务以保持驻留。" }]
+      }
+    ],
+    "relations": [
+      {
+        "id": "R1",
+        "source_action_id": "A1",
+        "target_action_id": "A2",
+        "type": "causes",
+        "condition": null,
+        "confidence": "high",
+        "evidence": [{ "quote": "受害者打开文档后执行加载器，并连接到 198.51.100.77。" }]
+      },
+      {
+        "id": "R2",
+        "source_action_id": "A2",
+        "target_action_id": "A3",
+        "type": "enables",
+        "condition": null,
+        "confidence": "high",
+        "evidence": [{ "quote": "加载器随后创建计划任务以保持驻留。" }]
+      }
+    ],
+    "mainline": ["A1", "A2", "A3"],
+    "reported_actors": [
+      {
+        "id": "ACTOR-1",
+        "reported_name": "NightFox",
+        "confidence": "medium",
+        "evidence": [{ "quote": "NightFox 被报告通过钓鱼邮件投递恶意文档。" }]
+      }
+    ]
+  }
+}

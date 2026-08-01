@@ -15,7 +15,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
   return {
     title: {
-      default: "ARGUS 可追溯攻击链研判平台",
+      default: "ARGUS 威胁情报分析平台",
       template: "%s · ARGUS",
     },
     description,
@@ -24,14 +24,14 @@ export async function generateMetadata(): Promise<Metadata> {
       shortcut: "/favicon.svg",
     },
     openGraph: {
-      title: "ARGUS 可追溯攻击链研判平台",
+      title: "ARGUS 威胁情报分析平台",
       description,
       type: "website",
       images: [{ url: socialImage, width: 1731, height: 909 }],
     },
     twitter: {
       card: "summary_large_image",
-      title: "ARGUS 可追溯攻击链研判平台",
+      title: "ARGUS 威胁情报分析平台",
       description,
       images: [socialImage],
     },

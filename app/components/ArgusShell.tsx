@@ -2,13 +2,16 @@
 
 import {
   Bot,
-  BriefcaseBusiness,
-  FileStack,
-  GitBranch,
+  ClipboardCheck,
+  Database,
+  Menu,
+  Network,
   Search,
   Shield,
   Users,
+  X,
 } from "lucide-react";
+import { useState } from "react";
 import type { AppPage } from "../types";
 
 const items: Array<{
@@ -17,12 +20,28 @@ const items: Array<{
   icon: typeof Search;
 }> = [
   { id: "search", label: "综合查询", icon: Search },
-  { id: "chain-intake", label: "攻击链", icon: GitBranch },
-  { id: "cases", label: "调查案件", icon: BriefcaseBusiness },
-  { id: "reports", label: "历史报告", icon: FileStack },
   { id: "actors", label: "攻击组织", icon: Users },
+  { id: "graph", label: "情报图谱", icon: Network },
+  { id: "ingest", label: "情报入库", icon: Database },
+  { id: "fragment-review", label: "路径复核", icon: ClipboardCheck },
   { id: "gpt", label: "ARGUS GPT", icon: Bot },
 ];
+
+function queryDisplayValue(query: string) {
+  if (!query.trim().startsWith("{")) return query;
+  try {
+    const parsed = JSON.parse(query) as {
+      title?: unknown;
+      case_id?: unknown;
+    };
+    if (typeof parsed.title === "string") {
+      return `${typeof parsed.case_id === "string" ? `${parsed.case_id} · ` : ""}${parsed.title}`;
+    }
+  } catch {
+    // Keep incomplete JSON editable as-is.
+  }
+  return query;
+}
 
 export function ArgusShell({
   page,
@@ -39,13 +58,23 @@ export function ArgusShell({
   onNavigate: (page: AppPage) => void;
   children: React.ReactNode;
 }) {
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const isHome = page === "search";
+  const showGlobalSearch =
+    !isHome &&
+    page !== "graph" &&
+    page !== "ingest" &&
+    page !== "fragment-review";
   const current =
-    page === "intel" || page === "graph"
-      ? "search"
-      : page === "chain"
-        ? "chain-intake"
-        : page;
+    page === "intel" ||
+    page === "actor" ||
+    page === "path-review" ||
+    page === "path" ||
+    page === "report"
+      ? page === "actor"
+        ? "actors"
+        : "search"
+      : page;
 
   return (
     <div className={`argus-app ${isHome ? "is-home" : "is-subpage"}`}>
@@ -65,7 +94,7 @@ export function ArgusShell({
           </span>
         </button>
 
-        {!isHome && (
+        {showGlobalSearch && (
           <form
             className="global-search"
             onSubmit={(event) => {
@@ -76,7 +105,7 @@ export function ArgusShell({
             <Search size={17} />
             <input
               aria-label="全局搜索"
-              value={query}
+              value={queryDisplayValue(query)}
               onChange={(event) => onQuery(event.target.value)}
               placeholder="搜索 IOC、报告、组织或攻击链"
             />
@@ -86,7 +115,10 @@ export function ArgusShell({
           </form>
         )}
 
-        <nav className="top-navigation" aria-label="主导航">
+        <nav
+          className={`top-navigation ${mobileNavOpen ? "is-open" : ""}`}
+          aria-label="主导航"
+        >
           {items.map((item) => {
             const Icon = item.icon;
             return (
@@ -95,7 +127,10 @@ export function ArgusShell({
                 key={item.id}
                 className={current === item.id ? "active" : ""}
                 aria-current={current === item.id ? "page" : undefined}
-                onClick={() => onNavigate(item.id)}
+                onClick={() => {
+                  setMobileNavOpen(false);
+                  onNavigate(item.id);
+                }}
               >
                 <Icon size={15} />
                 <span>{item.label}</span>
@@ -113,6 +148,16 @@ export function ArgusShell({
             AN
           </div>
         </div>
+
+        <button
+          type="button"
+          className="mobile-navigation-toggle"
+          aria-label={mobileNavOpen ? "关闭主导航" : "打开主导航"}
+          aria-expanded={mobileNavOpen}
+          onClick={() => setMobileNavOpen((open) => !open)}
+        >
+          {mobileNavOpen ? <X size={19} /> : <Menu size={19} />}
+        </button>
       </header>
       <div className="app-main">
         <div className="app-content">{children}</div>

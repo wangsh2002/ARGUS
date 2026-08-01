@@ -1,11 +1,10 @@
 "use client";
 
 import {
+  ArrowLeft,
   ArrowRight,
   Bot,
-  Check,
   FileText,
-  GitBranch,
   LoaderCircle,
   Paperclip,
   Plus,
@@ -15,30 +14,20 @@ import {
   TriangleAlert,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import type {
-  GptResponse,
-  InvestigationCase,
-  Snapshot,
-  SourceCitation,
-} from "../types";
-import { citationsForCase } from "../argus-domain";
+import type { GptResponse } from "../types";
 
 type Message =
   | { id: string; role: "user"; text: string }
   | { id: string; role: "assistant"; text: string; response?: GptResponse };
 
 export function GPTView({
-  data,
   initialPrompt,
-  investigation,
-  onAddSuggestedNode,
-  onOpenChain,
+  backLabel,
+  onBack,
 }: {
-  data: Snapshot;
   initialPrompt: string;
-  investigation?: InvestigationCase;
-  onAddSuggestedNode: (node: GptResponse["suggested_nodes"][number]) => void;
-  onOpenChain: () => void;
+  backLabel: string;
+  onBack: () => void;
 }) {
   const [prompt, setPrompt] = useState(initialPrompt);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -48,9 +37,6 @@ export function GPTView({
   const [filename, setFilename] = useState("");
   const [attachment, setAttachment] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
-  const citations: SourceCitation[] = investigation
-    ? citationsForCase(data, investigation)
-    : [];
 
   useEffect(() => {
     fetch("/api/gpt")
@@ -79,28 +65,7 @@ export function GPTView({
       const response = await fetch("/api/gpt", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          message,
-          context: investigation
-            ? {
-                case_id: investigation.id,
-                title: investigation.title,
-                nodes: investigation.steps.map((step) => ({
-                  label: step.label,
-                  type: step.type,
-                  phase: step.phase,
-                  status: step.reviewStatus,
-                })),
-                sources: citations.map((citation) => ({
-                  id: citation.id,
-                  title: citation.title,
-                  publisher: citation.publisher,
-                  excerpt: citation.excerpt,
-                  url: citation.externalUrl,
-                })),
-              }
-            : undefined,
-        }),
+        body: JSON.stringify({ message }),
       });
       const payload = (await response.json()) as
         | GptResponse
@@ -153,24 +118,9 @@ export function GPTView({
         </button>
         <div className="gpt-context-card">
           <span className="eyebrow">CURRENT CONTEXT</span>
-          {investigation ? (
-            <>
-              <GitBranch size={19} />
-              <strong>{investigation.title}</strong>
-              <small>
-                {investigation.steps.length} 个节点 · {citations.length} 条来源
-              </small>
-              <button type="button" onClick={onOpenChain}>
-                返回工作台 <ArrowRight size={13} />
-              </button>
-            </>
-          ) : (
-            <>
-              <Sparkles size={19} />
-              <strong>未携带调查案件</strong>
-              <small>仍可进行通用安全问答。</small>
-            </>
-          )}
+          <Sparkles size={19} />
+          <strong>通用安全问答</strong>
+          <small>当前对话未携带额外工作台上下文。</small>
         </div>
         <div className={`model-status ${configured ? "is-online" : ""}`}>
           <span />
@@ -187,11 +137,18 @@ export function GPTView({
         </div>
         <div className="gpt-boundary">
           <ShieldCheck size={15} />
-          GPT 建议不会自动写入正式情报库，加入攻击链前必须人工确认。
+          GPT 只用于解释、总结和提供参考建议，不会修改正式情报库。
         </div>
       </aside>
 
       <section className="gpt-stage">
+        <button
+          type="button"
+          className="back-link gpt-stage-back"
+          onClick={onBack}
+        >
+          <ArrowLeft size={15} /> {backLabel}
+        </button>
         <header>
           <span className="gpt-logo"><Bot size={24} /></span>
           <div>
@@ -247,16 +204,14 @@ export function GPTView({
                     )}
                     {message.response.suggested_nodes.length > 0 && (
                       <div className="gpt-suggestions">
-                        <span>建议加入研判草稿</span>
+                        <span>可继续查询的参考线索</span>
                         {message.response.suggested_nodes.map((node) => (
                           <div key={node.id}>
                             <span>
                               <strong>{node.label}</strong>
                               <small>{node.type} · {node.relation}</small>
                             </span>
-                            <button type="button" onClick={() => onAddSuggestedNode(node)}>
-                              <Check size={13} /> 确认加入
-                            </button>
+                            <small>{Math.round(node.confidence * 100)}% 参考相关度</small>
                           </div>
                         ))}
                       </div>

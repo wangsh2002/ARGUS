@@ -1,0 +1,111 @@
+{
+  "schema_version": "1.0",
+  "reviewed_at": "2026-07-30",
+  "review_policy": "Accept only when the actor is a report subject or has a substantive behavior section with an exact source line. Background-only mentions are rejected.",
+  "accepted": [
+    {
+      "document": "quoteintelligence_2020-01-27_the-chicken-keeps-laying-new",
+      "actor_key": "annoctr:http://www.bosch.com#node1fvup9pj1x14",
+      "actor_label": "Golden Chickens",
+      "mention": "Golden Chickens",
+      "evidence_line": 9,
+      "decision": "Report is explicitly about the tracked Golden Chickens MaaS provider and its actor clients."
+    },
+    {
+      "document": "quoteintelligence_2020-07-20_golden-chickens-evolution-of-the",
+      "actor_key": "annoctr:http://www.bosch.com#node1fvup9pj1x14",
+      "actor_label": "Golden Chickens",
+      "mention": "Golden Chickens",
+      "evidence_line": 1,
+      "decision": "Title and body directly analyze Golden Chickens MaaS evolution and observed attacks."
+    },
+    {
+      "document": "proofpoint_2020-08-28_comprehensive-look-emotets-summer-2020",
+      "actor_key": "annoctr:http://www.bosch.com/group/mummy-spider",
+      "actor_label": "mummy-spider",
+      "mention": "TA542",
+      "evidence_line": 12,
+      "decision": "Proofpoint identifies TA542 as the actor distributing Emotet and details its delivery behavior."
+    },
+    {
+      "document": "proofpoint_2020-10-01_emotet-makes-timely-adoption-political",
+      "actor_key": "annoctr:http://www.bosch.com/group/mummy-spider",
+      "actor_label": "mummy-spider",
+      "mention": "TA542",
+      "evidence_line": 5,
+      "decision": "Report directly observes a TA542 Emotet campaign and its lure-to-payload sequence."
+    },
+    {
+      "document": "lab52_2019-10-22_new-patchwork-campaign-against-pakistan",
+      "actor_key": "mitre:G0040",
+      "actor_label": "Patchwork",
+      "mention": "Patchwork",
+      "evidence_line": 44,
+      "decision": "Report reconstructs the infection chain and explicitly compares it with Patchwork TTPs."
+    },
+    {
+      "document": "proofpoint_2021-03-30_badblood-ta453-targets-us-and",
+      "actor_key": "mitre:G0059",
+      "actor_label": "Magic Hound",
+      "mention": "TA453",
+      "evidence_line": 13,
+      "decision": "Report is a first-party analysis of a TA453 credential-phishing campaign."
+    },
+    {
+      "document": "proofpoint_2020-11-23_ta416-goes-ground-and-returns",
+      "actor_key": "mitre:G0129",
+      "actor_label": "Mustang Panda",
+      "mention": "TA416",
+      "evidence_line": 14,
+      "decision": "Proofpoint explicitly maps TA416 to Mustang Panda and documents the resumed PlugX campaign."
+    },
+    {
+      "document": "proofpoint_2021-03-10_nimzaloader-ta800s-new-initial-access",
+      "actor_key": "annoctr:http://www.bosch.com#node1g7env4v1x4",
+      "actor_label": "TA800",
+      "mention": "TA800",
+      "evidence_line": 3,
+      "decision": "Report directly documents a TA800 campaign distributing NimzaLoader."
+    },
+    {
+      "document": "proofpoint_2021-06-16_first-step-initial-access-leads",
+      "actor_key": "annoctr:http://www.bosch.com#node1g7env4v1x4",
+      "actor_label": "TA800",
+      "mention": "TA800",
+      "evidence_line": 46,
+      "decision": "Report contains a substantive TA800 section with tracked payload and ransomware relationships."
+    },
+    {
+      "document": "proofpoint_2021-06-16_first-step-initial-access-leads",
+      "actor_key": "mitre:G0127",
+      "actor_label": "TA551",
+      "mention": "TA551",
+      "evidence_line": 63,
+      "decision": "Report contains a substantive TA551 section describing delivery behavior and payloads."
+    },
+    {
+      "document": "proofpoint_2021-06-16_first-step-initial-access-leads",
+      "actor_key": "annoctr:http://www.bosch.com/group/ta544",
+      "actor_label": "TA544",
+      "mention": "TA544",
+      "evidence_line": 84,
+      "decision": "Report contains a substantive TA544 section describing volume, geography and payloads."
+    },
+    {
+      "document": "proofpoint_2021-06-16_first-step-initial-access-leads",
+      "actor_key": "annoctr:http://www.bosch.com#node1g8ftt36lx1",
+      "actor_label": "TA574",
+      "mention": "TA574",
+      "evidence_line": 90,
+      "decision": "Report contains a substantive TA574 section describing delivery volume and techniques."
+    }
+  ],
+  "rejected": [
+    {
+      "document": "proofpoint_2021-02-11_baza-valentines-day",
+      "actor_label": "TA800",
+      "evidence_line": 7,
+      "decision": "The report explicitly says the observed campaigns are not associated with TA800 or TA572."
+    }
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "title": "Cisco 边界设备高危行为告警",
+  "publisher": "ARGUS demo SOC",
+  "canonical_url": "https://example.invalid/alerts/jaguar-tooth",
+  "published_at": "2026-07-28",
+  "mime_type": "text/plain",
+  "content": "边界 Cisco IOS 路由器在 09:13 触发 CVE-2017-6742 利用告警。随后在设备上发现 Jaguar Tooth 植入，并记录到通过 CLI 执行 show version、show interfaces 等系统信息收集命令。"
+}
+
