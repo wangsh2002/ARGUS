@@ -207,6 +207,24 @@ export function AttackPathReviewView({
       ),
     0,
   );
+  const concreteInputSets =
+    backendAnalysis?.candidates.map(
+      (candidate) =>
+        new Set(
+          candidate.matches
+            .filter((match) => match.match_kind !== "attack")
+            .map((match) => match.input_index),
+        ),
+    ) ?? [];
+  const coveredConcreteInputs = new Set(
+    concreteInputSets.flatMap((inputSet) => [...inputSet]),
+  );
+  const isMultiFlowSplit =
+    concreteInputSets.length > 1 &&
+    coveredConcreteInputs.size > 1 &&
+    concreteInputSets.every(
+      (inputSet) => inputSet.size < coveredConcreteInputs.size,
+    );
   return (
     <main className="path-review-page activity-review-page">
       <div className="path-review-inner">
@@ -230,8 +248,16 @@ export function AttackPathReviewView({
         <section className="path-review-notice" aria-label="分析说明">
           <Split size={18} />
           <div>
-            <strong>{backendAnalysis?.algorithm_version ?? "AttackFlow Matcher"} · 候选排序可重放</strong>
-            <span>已规范化 {backendAnalysis?.normalized_inputs.length ?? 0} 条输入；输入命中、路径补全和后续预测只属于本次匹配运行。</span>
+            <strong>
+              {isMultiFlowSplit
+                ? "检测到多攻击流分流 · 候选需分别复核"
+                : `${backendAnalysis?.algorithm_version ?? "AttackFlow Matcher"} · 候选排序可重放`}
+            </strong>
+            <span>
+              {isMultiFlowSplit
+                ? `当前没有单条候选解释全部 ${coveredConcreteInputs.size} 条具体输入；不同候选分别覆盖不同线索，分值不可跨候选相加。`
+                : `已规范化 ${backendAnalysis?.normalized_inputs.length ?? 0} 条输入；输入命中、路径补全和后续预测只属于本次匹配运行。`}
+            </span>
           </div>
           <ShieldCheck size={18} />
         </section>
@@ -239,24 +265,22 @@ export function AttackPathReviewView({
         <div className="activity-review-layout">
           <nav className="activity-cluster-index" aria-label="攻击活动候选">
             <header><strong>攻击活动</strong><span>{clusters.length} 个匹配结果</span></header>
-            <div>
-              {clusters.map((cluster, index) => (
-                <button
-                  type="button"
-                  key={cluster.id}
-                  className={cluster.id === selectedCluster.id ? "is-selected" : ""}
-                  aria-pressed={cluster.id === selectedCluster.id}
-                  onClick={() => {
-                    setSelectedActivityId(cluster.id);
-                    setSelectedCandidateId(cluster.candidates[0]?.id ?? "");
-                  }}
-                >
-                  <span>{String(index + 1).padStart(2, "0")}</span>
-                  <strong>{cluster.title}</strong>
-                  <small>{Math.round(cluster.confidence * 100)} · {cluster.sourceCount} 个来源</small>
-                </button>
-              ))}
-            </div>
+            {clusters.map((cluster, index) => (
+              <button
+                type="button"
+                key={cluster.id}
+                className={cluster.id === selectedCluster.id ? "is-selected" : ""}
+                aria-pressed={cluster.id === selectedCluster.id}
+                onClick={() => {
+                  setSelectedActivityId(cluster.id);
+                  setSelectedCandidateId(cluster.candidates[0]?.id ?? "");
+                }}
+              >
+                <span>{String(index + 1).padStart(2, "0")}</span>
+                <strong>{cluster.title}</strong>
+                <small>{Math.round(cluster.confidence * 100)} · {cluster.sourceCount} 个来源</small>
+              </button>
+            ))}
           </nav>
 
           <section className="activity-path-composer">
@@ -268,14 +292,19 @@ export function AttackPathReviewView({
               {selectedCluster.candidates.map((candidate) => {
                 const counts = candidateCounts(candidate);
                 return (
-                  <article className="activity-branch" key={candidate.id}>
+                  <article
+                    className={`activity-branch is-${candidate.disposition} ${
+                      candidate.id === selected.id ? "is-selected" : ""
+                    }`}
+                    key={candidate.id}
+                  >
                     <button
                       type="button"
                       className="activity-branch-select"
                       aria-pressed={candidate.id === selected.id}
                       onClick={() => setSelectedCandidateId(candidate.id)}
                     >
-                      <span>{candidate.id === selected.id ? <Check size={13} /> : <CircleDashed size={13} />}</span>
+                      <span className="branch-select-mark">{candidate.id === selected.id ? <Check size={13} /> : <CircleDashed size={13} />}</span>
                       <span><small>{dispositionLabels[candidate.disposition]}</small><strong>{candidate.title}</strong><em>{candidate.summary}</em></span>
                       <b>{Math.round(candidate.confidence * 100)}</b>
                     </button>
@@ -315,7 +344,12 @@ export function AttackPathReviewView({
                       value={step.label}
                       onChange={(event) => replaceSteps(selected.steps.map((item) => item.id === step.id ? { ...item, label: event.target.value } : item))}
                     />
-                    <small>{stateLabels[step.analysisState]} · {Math.round(step.confidence * 100)}%</small>
+                    <small
+                      className={`path-editor-status is-${step.analysisState}`}
+                    >
+                      <span>{stateLabels[step.analysisState]}</span>
+                      <b>{Math.round(step.confidence * 100)}%</b>
+                    </small>
                   </div>
                   <div className="path-editor-actions">
                     <button type="button" aria-label={`上移${step.label}`} disabled={index === 0} onClick={() => {

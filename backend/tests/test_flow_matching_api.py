@@ -8,8 +8,8 @@ from argus_backend.api import create_app
 
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
-APT28_FLOW_ID = "PATH-ANNOCTR-APT28-ZEBROCY-2020"
-LAZARUS_FLOW_ID = "PATH-ANNOCTR-LAZARUS-REDBANC-2018"
+APT28_FLOW_ID = "PATH-PUB-FDAFAED20AD7"
+LAZARUS_FLOW_ID = "PATH-PUB-B3EC8FED3164"
 
 
 def make_client(tmp_path: Path) -> TestClient:
@@ -36,9 +36,9 @@ def test_partial_clues_match_a_flow_and_overlay_mainline_progress(
     response = match(
         client,
         [
-            {"value": "打开 ZIPX 诱饵", "kind": "behavior"},
-            {"value": "Zebrocy Delphi", "kind": "malware"},
-            {"value": "创建计划任务", "kind": "behavior"},
+            {"value": "Drop Zebrocy malware executable", "kind": "behavior"},
+            {"value": "Course 5 – 16 October 2020.exe", "kind": "file"},
+            {"value": "Create scheduled task for persistence", "kind": "behavior"},
         ],
     )
 
@@ -49,47 +49,44 @@ def test_partial_clues_match_a_flow_and_overlay_mainline_progress(
     assert len(run["knowledge_snapshot"]) == 64
     assert run["normalized_inputs"] == [
         {
-            "value": "打开 ZIPX 诱饵",
+            "value": "Drop Zebrocy malware executable",
             "kind": "behavior",
-            "normalized_value": "打开zipx诱饵",
+            "normalized_value": "dropzebrocymalwareexecutable",
         },
         {
-            "value": "Zebrocy Delphi",
-            "kind": "malware",
-            "normalized_value": "zebrocydelphi",
+            "value": "Course 5 – 16 October 2020.exe",
+            "kind": "file",
+            "normalized_value": "course516october2020exe",
         },
         {
-            "value": "创建计划任务",
+            "value": "Create scheduled task for persistence",
             "kind": "behavior",
-            "normalized_value": "创建计划任务",
+            "normalized_value": "createscheduledtaskforpersistence",
         },
     ]
     candidate = run["candidates"][0]
     assert candidate["flow_id"] == APT28_FLOW_ID
     assert candidate["unmatched_inputs"] == []
-    assert candidate["mainline_frontier_action_id"] == f"{APT28_FLOW_ID}-N-05"
-    assert candidate["mainline_frontier_index"] == 4
+    assert candidate["mainline_frontier_action_id"] == f"{APT28_FLOW_ID}-A003"
+    assert candidate["mainline_frontier_index"] == 2
     assert [item["match_kind"] for item in candidate["matches"]] == [
         "behavior",
         "context",
         "behavior",
     ]
     assert [item["action_id"] for item in candidate["matches"]] == [
-        f"{APT28_FLOW_ID}-N-01",
-        f"{APT28_FLOW_ID}-N-03",
-        f"{APT28_FLOW_ID}-N-05",
+        f"{APT28_FLOW_ID}-A001",
+        f"{APT28_FLOW_ID}-A001",
+        f"{APT28_FLOW_ID}-A003",
     ]
     assert [item["state"] for item in candidate["action_states"]] == [
         "input_hit",
         "reconstructed",
         "input_hit",
-        "reconstructed",
-        "input_hit",
-        "predicted",
         "predicted",
     ]
     context_match = candidate["matches"][1]
-    assert context_match["matched_value"] == "Zebrocy Delphi"
+    assert context_match["matched_value"] == "Course 5 – 16 October 2020.exe"
     assert "Context" in context_match["explanation"]
     assert "直接观测到行为" not in context_match["explanation"]
 
@@ -107,11 +104,8 @@ def test_context_hit_at_the_end_reconstructs_the_known_prefix(
     assert response.status_code == 200
     candidate = response.json()["candidates"][0]
     assert candidate["flow_id"] == APT28_FLOW_ID
-    assert candidate["mainline_frontier_index"] == 6
+    assert candidate["mainline_frontier_index"] == 3
     assert [item["state"] for item in candidate["action_states"]] == [
-        "reconstructed",
-        "reconstructed",
-        "reconstructed",
         "reconstructed",
         "reconstructed",
         "reconstructed",
@@ -132,7 +126,7 @@ def test_attack_annotation_is_supporting_only_and_scores_below_context(
         client,
         [
             {
-                "value": "Course 5 – 16 October 2020.zipx",
+                "value": "Course 5 – 16 October 2020.exe",
                 "kind": "file",
             },
             {"value": "T1053.005", "kind": "attack"},
@@ -150,7 +144,7 @@ def test_attack_annotation_is_supporting_only_and_scores_below_context(
     assert candidate["matches"][0]["confidence"] > candidate["matches"][1][
         "confidence"
     ]
-    assert candidate["mainline_frontier_action_id"] == f"{APT28_FLOW_ID}-N-01"
+    assert candidate["mainline_frontier_action_id"] == f"{APT28_FLOW_ID}-A001"
 
 
 def test_returns_multiple_candidates_with_deterministic_tie_breaking(
@@ -161,20 +155,26 @@ def test_returns_multiple_candidates_with_deterministic_tie_breaking(
         connection.execute(
             "UPDATE activity_path_nodes SET label = ? WHERE id IN (?, ?)",
             (
-                "收集主机信息",
-                f"{APT28_FLOW_ID}-N-06",
-                f"{LAZARUS_FLOW_ID}-N-07",
+                "Collect host information for tie test",
+                f"{APT28_FLOW_ID}-A002",
+                f"{LAZARUS_FLOW_ID}-A002",
             ),
         )
 
-    first = match(client, [{"value": "收集主机信息", "kind": "behavior"}])
-    second = match(client, [{"value": "收集主机信息", "kind": "behavior"}])
+    first = match(
+        client,
+        [{"value": "Collect host information for tie test", "kind": "behavior"}],
+    )
+    second = match(
+        client,
+        [{"value": "Collect host information for tie test", "kind": "behavior"}],
+    )
 
     assert first.status_code == 200
     assert second.status_code == 200
-    assert [item["flow_id"] for item in first.json()["candidates"]] == [
-        APT28_FLOW_ID,
+    assert [item["flow_id"] for item in first.json()["candidates"][:2]] == [
         LAZARUS_FLOW_ID,
+        APT28_FLOW_ID,
     ]
     assert [
         (item["flow_id"], item["score"])
@@ -199,7 +199,7 @@ def test_unrelated_inputs_return_no_candidate_instead_of_forcing_a_flow(
     assert response.json()["candidates"] == []
 
 
-def test_non_mainline_context_hit_does_not_predict_every_branch(
+def test_context_hit_on_mainline_predicts_only_the_known_downstream(
     tmp_path: Path,
 ) -> None:
     client = make_client(tmp_path)
@@ -212,18 +212,15 @@ def test_non_mainline_context_hit_does_not_predict_every_branch(
     assert response.status_code == 200
     candidate = response.json()["candidates"][0]
     assert candidate["flow_id"] == LAZARUS_FLOW_ID
-    assert candidate["mainline_frontier_action_id"] is None
+    assert candidate["mainline_frontier_action_id"] == f"{LAZARUS_FLOW_ID}-A001"
     states = {item["action_id"]: item["state"] for item in candidate["action_states"]}
-    assert states[f"{LAZARUS_FLOW_ID}-N-04"] == "input_hit"
+    assert states[f"{LAZARUS_FLOW_ID}-A001"] == "input_hit"
     assert all(
-        states[action_id] == "reference"
+        states[action_id] == "predicted"
         for action_id in [
-            f"{LAZARUS_FLOW_ID}-N-01",
-            f"{LAZARUS_FLOW_ID}-N-02",
-            f"{LAZARUS_FLOW_ID}-N-03",
-            f"{LAZARUS_FLOW_ID}-N-05",
-            f"{LAZARUS_FLOW_ID}-N-06",
-            f"{LAZARUS_FLOW_ID}-N-07",
+            f"{LAZARUS_FLOW_ID}-A002",
+            f"{LAZARUS_FLOW_ID}-A003",
+            f"{LAZARUS_FLOW_ID}-A004",
         ]
     )
 

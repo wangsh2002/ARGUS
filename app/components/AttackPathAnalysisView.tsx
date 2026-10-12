@@ -49,10 +49,15 @@ import type {
 } from "../types";
 import { NetworkGraph } from "../NetworkGraph";
 import {
+  compactHighCardinalityIocs,
+  iocCollectionMembers,
+} from "../ioc-graph-projection";
+import {
   deriveGraphBackbone,
   GraphSwimlaneProjection,
   initialExplorationIds,
 } from "./GraphDensityPrototype";
+import { AnnotatedSourcePanel } from "./AnnotatedSourcePanel";
 import { SourceViewer, StatusBadge } from "./Primitives";
 
 function uniqueById<T extends { id: string }>(items: T[]) {
@@ -152,6 +157,16 @@ function evidenceGapFor(value: string) {
 function actionContextRoleLabel(role: string) {
   return (
     {
+      uses: "使用",
+      targets: "攻击目标",
+      "communicates-with": "通信",
+      exploits: "利用漏洞",
+      "downloads-from": "从此下载",
+      "drops-on": "落地至",
+      "runs-on": "运行于",
+      modifies: "修改",
+      creates: "创建",
+      other: "关联",
       uses_tool: "使用工具",
       executes_file: "执行文件",
       drops_file: "落地文件",
@@ -247,7 +262,43 @@ function historicalPathGraph(
     ...new Set(path.contextLinks.map((link) => link.entity_id)),
   ];
   const contextNodes: GraphNode[] = contextEntityIds.flatMap((entityId) => {
-    const entity = entityById.get(entityId);
+    const contextLink = path.contextLinks.find(
+      (link) => link.entity_id === entityId,
+    );
+    const contextType = String(contextLink?.properties.context_type ?? "other");
+    const contextName = String(
+      contextLink?.properties.context_name ?? entityId,
+    );
+    const fallbackEntityType =
+      contextType === "vulnerability"
+        ? "CVE"
+        : ["malware", "tool"].includes(contextType)
+          ? "恶意软件/工具"
+          : ["asset", "account"].includes(contextType)
+            ? "资产"
+            : "IOC/基础设施";
+    const entity =
+      entityById.get(entityId) ??
+      (contextLink
+        ? {
+            id: entityId,
+            entity_type: fallbackEntityType,
+            canonical_key: `path-context:${path.id}:${entityId}`,
+            label: contextName,
+            normalized_value: contextName.toLocaleLowerCase(),
+            description: "",
+            first_seen: contextLink.first_seen,
+            last_seen: contextLink.last_seen,
+            source_count: path.contextEvidence.filter(
+              (item) => item.entity_id === entityId,
+            ).length,
+            properties: {
+              confidence: contextLink.confidence,
+              context_type: contextType,
+              runtime_source: true,
+            },
+          }
+        : undefined);
     return entity
       ? [
           {
@@ -295,13 +346,16 @@ function historicalPathGraph(
         .flat()
         .filter((id): id is string => Boolean(id))
     : contextEntityIds.slice(0, 4);
-  return {
-    nodes: [...actionNodes, ...contextNodes],
-    edges: [...dependencyEdges, ...contextEdges],
-    rootIds: [
+  const compactGraph = compactHighCardinalityIocs(
+    [...actionNodes, ...contextNodes],
+    [...dependencyEdges, ...contextEdges],
+    [
       ...(projection?.root_action_refs ?? actionNodes.slice(0, 1).map((node) => node.id)),
       ...keyContextIds,
     ],
+  );
+  return {
+    ...compactGraph,
     preferredPathIds:
       projection?.mainline_action_refs ??
       actionNodes.map((node) => node.id),
@@ -840,6 +894,8 @@ export function AttackPathAnalysisView({
   backLabel: string;
   onBack: () => void;
 }) {
+  const confirmedFlowView =
+    selectedPath?.presentationMode === "confirmed-flow";
   const historicalPath = useMemo(
     () =>
       selectedPath?.historicalPathId
@@ -1098,16 +1154,41 @@ export function AttackPathAnalysisView({
     "排查狩猎",
   ]);
   const [attributionOpen, setAttributionOpen] = useState(false);
+  const [expandedSourceFlowId, setExpandedSourceFlowId] = useState<string>();
   const [selectedAttributionPath, setSelectedAttributionPath] =
     useState<AttributionEvidencePath>();
   const analysisGraphRef = useRef<HTMLDivElement>(null);
+  const annotatedSourceRef = useRef<HTMLDivElement>(null);
 
   const selectedNode =
     graph.nodes.find((node) => node.id === selectedId) ?? graph.nodes[0];
   const selectedEntity = selectedNode?.entity;
+  const selectedIocMembers = useMemo(
+    () => iocCollectionMembers(selectedNode),
+    [selectedNode],
+  );
+  const selectedIocKindCounts = useMemo(
+    () =>
+      [...selectedIocMembers.reduce((counts, member) => {
+        counts.set(
+          member.observableKind,
+          (counts.get(member.observableKind) ?? 0) + 1,
+        );
+        return counts;
+      }, new Map<string, number>())].sort((left, right) => right[1] - left[1]),
+    [selectedIocMembers],
+  );
   const selectedEdges = graph.edges.filter(
     (edge) => edge.source === selectedNode?.id || edge.target === selectedNode?.id,
   );
+  const selectedContextLink = historicalPath?.contextLinks.find(
+    (link) => link.entity_id === selectedNode?.id,
+  );
+  const selectedSourceActionId =
+    selectedNode?.type === "攻击步骤"
+      ? selectedNode.id
+      : selectedContextLink?.action_node_id;
+  const selectedSourceEntityId = selectedContextLink?.entity_id;
   const observedBackboneIds = useMemo(
     () =>
       new Set(
@@ -1303,19 +1384,30 @@ export function AttackPathAnalysisView({
     [data, historicalPath],
   );
   const citations = useMemo(
-    () =>
-      uniqueSources([
-        ...historicalCitations,
+    () => {
+      if (historicalPath) return uniqueSources(historicalCitations);
+      return uniqueSources([
         ...citationsForCase(data, analysisInput.investigation),
         ...analysisInput.entities.flatMap((entity) =>
           citationsForEntity(data, entity.id),
         ),
-      ]),
-    [analysisInput.entities, analysisInput.investigation, data, historicalCitations],
+      ]);
+    },
+    [
+      analysisInput.entities,
+      analysisInput.investigation,
+      data,
+      historicalCitations,
+      historicalPath,
+    ],
   );
   const selectedCitations = historicalPath
     ? uniqueSources(
-        citationsForHistoricalPath(data, historicalPath, selectedNode?.id),
+        selectedIocMembers.length
+          ? selectedIocMembers.flatMap((member) =>
+              citationsForHistoricalPath(data, historicalPath, member.id),
+            )
+          : citationsForHistoricalPath(data, historicalPath, selectedNode?.id),
       ).slice(0, 5)
     : selectedEntity
       ? uniqueSources(citationsForEntity(data, selectedEntity.id)).slice(0, 5)
@@ -1415,7 +1507,9 @@ export function AttackPathAnalysisView({
       : "";
     return state === "reconstructed" || state === "predicted";
   });
-  const selectedEvidenceClass = selectedEntity
+  const selectedEvidenceClass = selectedIocMembers.length
+    ? "来源确认"
+    : selectedEntity
     ? evidenceClassLabel(propString(selectedEntity, "evidence_class"))
     : "待验证";
   const selectedEvidenceKey = selectedEntity
@@ -1424,10 +1518,16 @@ export function AttackPathAnalysisView({
   const selectedAnalysisKey = selectedEntity
     ? propString(selectedEntity, "analysis_state")
     : "";
-  const selectedAnalysisLabel = analysisStateLabel(selectedAnalysisKey);
+  const selectedAnalysisLabel = selectedIocMembers.length
+    ? "证据集合"
+    : confirmedFlowView && selectedAnalysisKey === "observed"
+      ? "已确认"
+      : analysisStateLabel(selectedAnalysisKey);
   const selectedVerification =
     selectedEntity && propString(selectedEntity, "verification_needed");
-  const selectedVerdictTitle =
+  const selectedVerdictTitle = selectedIocMembers.length
+    ? "为什么合并显示"
+    :
     {
       reconstructed: "为什么补全这一步",
       predicted: "为什么预测这一步",
@@ -1462,7 +1562,9 @@ export function AttackPathAnalysisView({
     }) ?? advice[0];
   const comprehensiveAdvice = advice[0]
     ? `优先执行“${advice[0].title}”：${advice[0].recommendation} 对无法回到来源的关系保留为待验证，不自动升级为已发生事实、封禁或组织归因结论。`
-    : "当前路径尚未命中可执行响应规则。请先核验输入命中与来源证据，再由分析员制定处置动作。";
+    : confirmedFlowView
+      ? "当前已发布路径尚未关联可执行响应规则。请结合来源证据，由分析员制定处置动作。"
+      : "当前路径尚未命中可执行响应规则。请先核验输入命中与来源证据，再由分析员制定处置动作。";
   const responseGroupOrder = [
     "立即遏制",
     "排查狩猎",
@@ -1538,6 +1640,18 @@ export function AttackPathAnalysisView({
         setPanelTab("verdict");
       }
       return next;
+    });
+  };
+
+  const locateSelectedInSource = () => {
+    setExpandedSourceFlowId(historicalPath?.id);
+    window.requestAnimationFrame(() => {
+      const reduceMotion =
+        window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
+      annotatedSourceRef.current?.scrollIntoView({
+        behavior: reduceMotion ? "auto" : "smooth",
+        block: "start",
+      });
     });
   };
 
@@ -1644,41 +1758,63 @@ export function AttackPathAnalysisView({
 
         <section className="analysis-value-strip" aria-label="系统研判结论">
           <div className="analysis-value-summary">
-            <span>系统研判</span>
+            <span>{confirmedFlowView ? "已发布攻击过程" : "系统研判"}</span>
             <strong>
-              已确认推进至：{lastConfirmedStage?.label || "待确认阶段"}
+              {confirmedFlowView
+                ? `完整主干：${backbone.length} 个已确认步骤`
+                : `已确认推进至：${lastConfirmedStage?.label || "待确认阶段"}`}
             </strong>
             <p>
-              基于 {observedStepCount} 个输入命中，补全 {reconstructedStepCount}{" "}
-              个缺失步骤并展示 {predictedStepCount} 个历史后续步骤。完整路径不是输入原文的复述。
+              {confirmedFlowView
+                ? "当前直接展示数据库中已确定的 AttackFlow，主干、分支、上下文和来源证据均来自该条已发布路径。"
+                : `基于 ${observedStepCount} 个输入命中，补全 ${reconstructedStepCount} 个缺失步骤并展示 ${predictedStepCount} 个历史后续步骤。完整路径不是输入原文的复述。`}
             </p>
           </div>
           <div className="analysis-value-metrics" aria-label="路径研判统计">
             <div className="analysis-value-metric">
-              <span>输入命中</span>
+              <span>{confirmedFlowView ? "已确认步骤" : "输入命中"}</span>
               <strong>{observedStepCount}</strong>
-              <small>来自输入信号</small>
+              <small>{confirmedFlowView ? "已发布主干" : "来自输入信号"}</small>
             </div>
-            <button
-              type="button"
-              className={gapFocus ? "is-active" : ""}
-              aria-pressed={gapFocus}
-              onClick={toggleGapFocus}
-            >
-              <span>补全步骤</span>
-              <strong>{reconstructedStepCount}</strong>
-              <small>点击定位缺口</small>
-            </button>
-            <button
-              type="button"
-              className={gapFocus ? "is-active" : ""}
-              aria-pressed={gapFocus}
-              onClick={toggleGapFocus}
-            >
-              <span>后续预测</span>
-              <strong>{predictedStepCount}</strong>
-              <small>点击定位缺口</small>
-            </button>
+            {confirmedFlowView ? (
+              <>
+                <div className="analysis-value-metric">
+                  <span>过程关系</span>
+                  <strong>{Math.max(backbone.length - 1, 0)}</strong>
+                  <small>主干顺序关系</small>
+                </div>
+                <div className="analysis-value-metric">
+                  <span>来源报告</span>
+                  <strong>
+                    {new Set(citations.map((item) => item.reportId)).size}
+                  </strong>
+                  <small>可回溯证据</small>
+                </div>
+              </>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  className={gapFocus ? "is-active" : ""}
+                  aria-pressed={gapFocus}
+                  onClick={toggleGapFocus}
+                >
+                  <span>补全步骤</span>
+                  <strong>{reconstructedStepCount}</strong>
+                  <small>点击定位缺口</small>
+                </button>
+                <button
+                  type="button"
+                  className={gapFocus ? "is-active" : ""}
+                  aria-pressed={gapFocus}
+                  onClick={toggleGapFocus}
+                >
+                  <span>后续预测</span>
+                  <strong>{predictedStepCount}</strong>
+                  <small>点击定位缺口</small>
+                </button>
+              </>
+            )}
           </div>
           <div className="analysis-next-action">
             <span>首要动作 · {advice[0]?.priority || "P0"}</span>
@@ -1694,9 +1830,15 @@ export function AttackPathAnalysisView({
               <span>点击阶段可同步定位图谱与右侧研判面板</span>
             </div>
             <div className="stage-rail-legend" aria-label="研判状态图例">
-              <span className="is-observed">输入命中</span>
-              <span className="is-reconstructed">路径补全</span>
-              <span className="is-predicted">后续预测</span>
+              {confirmedFlowView ? (
+                <span className="is-observed">已确认步骤</span>
+              ) : (
+                <>
+                  <span className="is-observed">输入命中</span>
+                  <span className="is-reconstructed">路径补全</span>
+                  <span className="is-predicted">后续预测</span>
+                </>
+              )}
             </div>
           </header>
           <div className="stage-rail-track">
@@ -1708,7 +1850,9 @@ export function AttackPathAnalysisView({
                 ? propString(node.entity, "analysis_state")
                 : "";
               const concealed =
-                graphMode === "original" && analysisKey !== "observed";
+                !confirmedFlowView &&
+                graphMode === "original" &&
+                analysisKey !== "observed";
               const displayLabel = concealed
                 ? analysisKey === "predicted"
                   ? "未知后续"
@@ -1736,7 +1880,7 @@ export function AttackPathAnalysisView({
                   <small>
                     {concealed
                       ? "输入中未出现"
-                      : `${analysisStateLabel(analysisKey)} · ${Math.round(
+                      : `${confirmedFlowView ? "已确认" : analysisStateLabel(analysisKey)} · ${Math.round(
                           (node.confidence ?? 0) * 100,
                         )}%`}
                   </small>
@@ -1746,13 +1890,30 @@ export function AttackPathAnalysisView({
           </div>
         </section>
 
+        {historicalPath && (
+          <div ref={annotatedSourceRef} className="annotated-source-anchor">
+            <AnnotatedSourcePanel
+              flowId={historicalPath.id}
+              selectedActionId={selectedSourceActionId}
+              selectedEntityId={selectedSourceEntityId}
+              selectedLabel={selectedNode?.label}
+              expanded={expandedSourceFlowId === historicalPath.id}
+              onExpandedChange={(expanded) =>
+                setExpandedSourceFlowId(expanded ? historicalPath.id : undefined)
+              }
+            />
+          </div>
+        )}
+
         <section className="analysis-graph-layout">
           <div className="analysis-graph-panel" ref={analysisGraphRef}>
             <header>
               <div>
                 <h2>关联知识图谱</h2>
                 <p>
-                  {graphMode === "original"
+                  {confirmedFlowView
+                    ? "主路径横向固定，真实上下文和已发布分支按关系展开。"
+                    : graphMode === "original"
                     ? "仅显示本次输入直接命中的信号与对象。"
                     : "主路径横向固定，补全、预测和候选分支按真实关系展开。"}
                 </p>
@@ -1763,29 +1924,35 @@ export function AttackPathAnalysisView({
                   role="group"
                   aria-label="图谱展示模式"
                 >
-                  <button
-                    type="button"
-                    className={graphMode === "original" ? "is-active" : ""}
-                    aria-pressed={graphMode === "original"}
-                    onClick={() => {
-                      setGraphMode("original");
-                      setGapFocus(false);
-                      const observedSelection = backbone.find((node) =>
-                        observedBackboneIds.has(node.id),
-                      );
-                      if (observedSelection) setSelectedId(observedSelection.id);
-                    }}
-                  >
-                    原始线索 {observedStepCount}
-                  </button>
-                  <button
-                    type="button"
-                    className={graphMode === "augmented" ? "is-active" : ""}
-                    aria-pressed={graphMode === "augmented"}
-                    onClick={() => setGraphMode("augmented")}
-                  >
-                    补全研判 {backbone.length}
-                  </button>
+                  {confirmedFlowView ? (
+                    <span>完整攻击过程 {backbone.length}</span>
+                  ) : (
+                    <>
+                      <button
+                        type="button"
+                        className={graphMode === "original" ? "is-active" : ""}
+                        aria-pressed={graphMode === "original"}
+                        onClick={() => {
+                          setGraphMode("original");
+                          setGapFocus(false);
+                          const observedSelection = backbone.find((node) =>
+                            observedBackboneIds.has(node.id),
+                          );
+                          if (observedSelection) setSelectedId(observedSelection.id);
+                        }}
+                      >
+                        原始线索 {observedStepCount}
+                      </button>
+                      <button
+                        type="button"
+                        className={graphMode === "augmented" ? "is-active" : ""}
+                        aria-pressed={graphMode === "augmented"}
+                        onClick={() => setGraphMode("augmented")}
+                      >
+                        补全研判 {backbone.length}
+                      </button>
+                    </>
+                  )}
                 </div>
                 <div className="analysis-graph-counts">
                   <span>{visibleNodes.length} 节点</span>
@@ -1838,9 +2005,20 @@ export function AttackPathAnalysisView({
                   <span>当前研判节点</span>
                   <h2>{selectedNode?.label || "请选择图谱节点"}</h2>
                 </div>
-                {selectedNode && (
-                  <StatusBadge status={selectedNode.status ?? "positive"} />
-                )}
+                <div className="investigation-panel-heading-actions">
+                  {historicalPath && selectedNode && (
+                    <button
+                      type="button"
+                      className="source-locate-button"
+                      onClick={locateSelectedInSource}
+                    >
+                      <BookOpen size={13} /> 定位原文
+                    </button>
+                  )}
+                  {selectedNode && (
+                    <StatusBadge status={selectedNode.status ?? "positive"} />
+                  )}
+                </div>
               </header>
 
               <div className="investigation-verdict-bar">
@@ -1861,8 +2039,10 @@ export function AttackPathAnalysisView({
                   </strong>
                 </div>
                 <div>
-                  <span>直接关系</span>
-                  <strong>{selectedEdges.length}</strong>
+                  <span>{selectedIocMembers.length ? "包含 IOC" : "直接关系"}</span>
+                  <strong>
+                    {selectedIocMembers.length || selectedEdges.length}
+                  </strong>
                 </div>
               </div>
 
@@ -1898,7 +2078,9 @@ export function AttackPathAnalysisView({
                       <div>
                         <strong>{selectedVerdictTitle}</strong>
                         <p>
-                          {(selectedEntity
+                          {selectedIocMembers.length
+                            ? selectedNode?.description
+                            : (selectedEntity
                             ? propString(selectedEntity, "match_reason")
                             : "") ||
                             selectedEntity?.description ||
@@ -1906,6 +2088,33 @@ export function AttackPathAnalysisView({
                         </p>
                       </div>
                     </div>
+                    {selectedIocMembers.length ? (
+                      <div className="ioc-collection-detail">
+                        <div className="ioc-kind-summary" aria-label="IOC 类型统计">
+                          <span>
+                            原始提取角色{" "}
+                            <b>{String(selectedNode?.properties?.collection_role ?? "关联")}</b>
+                          </span>
+                          {selectedIocKindCounts.map(([kind, count]) => (
+                            <span key={kind}>
+                              {kind} <b>{count}</b>
+                            </span>
+                          ))}
+                        </div>
+                        <div className="ioc-member-list">
+                          {selectedIocMembers.map((member) => (
+                            <div key={member.id}>
+                              <span>{member.observableKind}</span>
+                              <strong title={member.label}>{member.label}</strong>
+                              <small>
+                                {Math.round(member.confidence * 100)}% · {member.evidenceCount} 条来源证据
+                              </small>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ) : (
+                    <>
                     <div className="evidence-gap-note">
                       <AlertTriangle size={14} />
                       <div>
@@ -2046,6 +2255,8 @@ export function AttackPathAnalysisView({
                         </div>
                       )}
                     </div>
+                    </>
+                    )}
                   </div>
                 )}
 
@@ -2093,6 +2304,18 @@ export function AttackPathAnalysisView({
                         <span>{selectedNode?.type}</span>
                       </div>
                     </div>
+                    {selectedIocMembers.length ? (
+                      <div className="ioc-member-list is-raw">
+                        {selectedIocMembers.map((member) => (
+                          <div key={member.id}>
+                            <span>{member.observableKind}</span>
+                            <strong title={member.label}>{member.label}</strong>
+                            <small>{member.id}</small>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                    <>
                     <dl>
                       {selectedEntity?.first_seen && (
                         <div>
@@ -2119,6 +2342,8 @@ export function AttackPathAnalysisView({
                         </div>
                       ))}
                     </div>
+                    </>
+                    )}
                   </div>
                 )}
 

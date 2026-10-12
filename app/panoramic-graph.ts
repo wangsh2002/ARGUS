@@ -24,7 +24,21 @@ async function requestJson<T>(url: string): Promise<T> {
 
 
 export function requestPanoramicGraphIndex() {
-  return requestJson<PanoramicGraphIndex>("/api/graph/nodes");
+  return requestJson<PanoramicGraphIndex>("/api/graph/nodes").then((index) => {
+    const evidenceNodeCount = Math.max(
+      index.evidence_node_count ?? index.node_count - index.nodes.length,
+      0,
+    );
+    const nodes = index.nodes.filter(
+      (node) => node.kind !== "attack-flow" && node.kind !== "source",
+    );
+    return {
+      ...index,
+      nodes,
+      node_count: nodes.length,
+      evidence_node_count: evidenceNodeCount,
+    };
+  });
 }
 
 
@@ -73,12 +87,44 @@ function edgeCategory(type: string, aggregate: boolean) {
   return "association";
 }
 
+function graphEdgeLabel(type: string, label: string) {
+  const normalized = label.trim().toLocaleLowerCase();
+  return ({
+    uses: "使用",
+    "communicates-with": "通信",
+    "downloads-from": "下载自",
+    "drops-on": "投放至",
+    exploits: "利用",
+    enables: "促成",
+    leads_to: "推进至",
+    precedes: "先于",
+    on_failure: "失败分支",
+    on_success: "成功分支",
+    "reported-actor": "报告归因",
+  } as Record<string, string>)[normalized] ??
+    ({
+      leads_to: "推进至",
+      precedes: "先于",
+      enables: "促成",
+      on_failure: "失败分支",
+      on_success: "成功分支",
+    } as Record<string, string>)[type] ??
+    label;
+}
+
 
 export function adaptPanoramicNeighborhood(
   neighborhood: PanoramicGraphNeighborhood,
 ): { nodes: GraphNode[]; edges: GraphEdge[] } {
   const nodeById = new Map(neighborhood.nodes.map((node) => [node.id, node]));
-  const nodes = neighborhood.nodes.map<GraphNode>((node) => ({
+  const visibleNodes = neighborhood.nodes.filter(
+    (node) =>
+      node.kind !== "attack-flow" &&
+      node.kind !== "source" &&
+      node.kind !== "evidence",
+  );
+  const visibleNodeIds = new Set(visibleNodes.map((node) => node.id));
+  const nodes = visibleNodes.map<GraphNode>((node) => ({
     id: node.id,
     label: node.label,
     type: node.type,
@@ -87,38 +133,70 @@ export function adaptPanoramicNeighborhood(
     description: node.description,
     properties: node.properties,
     historicalPathId:
-      node.kind === "attack-flow"
-        ? node.id
-        : node.kind === "action" && typeof node.properties.flow_id === "string"
-          ? node.properties.flow_id
-          : undefined,
+      node.kind === "action" && typeof node.properties.flow_id === "string"
+        ? node.properties.flow_id
+        : undefined,
   }));
-  const edges = neighborhood.edges.map<GraphEdge>((edge) => {
-    const evidence = edge.evidence_ids.flatMap((evidenceId) => {
-      const evidence = nodeById.get(evidenceId);
-      if (!evidence) return [];
+  const edges = neighborhood.edges
+    .filter(
+      (edge) =>
+        visibleNodeIds.has(edge.source_id) &&
+        visibleNodeIds.has(edge.target_id) &&
+        !["contains-action", "supported-by-source", "excerpt-of"].includes(
+          edge.type,
+        ),
+    )
+    .map<GraphEdge>((edge) => {
+    const evidence = edge.evidence?.length
+      ? edge.evidence.map((item) => {
+          const sourceSpan = nodeById.get(item.source_span_id);
+          return {
+            id: item.id,
+            relationship_id: edge.id,
+            report_id: item.source_id,
+            source_ref: item.source_id,
+            excerpt: item.quote,
+            location: item.locator,
+            confidence: item.confidence,
+            report_title: item.title,
+            publisher: item.publisher,
+            report_date:
+              typeof sourceSpan?.properties.published_at === "string"
+                ? sourceSpan.properties.published_at
+                : "",
+            canonical_url: item.canonical_url || undefined,
+          };
+        })
+      : edge.evidence_ids.flatMap((evidenceId) => {
+      const evidenceNode = nodeById.get(evidenceId);
+      if (!evidenceNode) return [];
       const sourceId =
-        typeof evidence.properties.source_id === "string"
-          ? evidence.properties.source_id
+        typeof evidenceNode.properties.source_id === "string"
+          ? evidenceNode.properties.source_id
           : undefined;
-      const source = sourceId ? nodeById.get(sourceId) : undefined;
       return [{
-        id: evidence.id,
+        id: evidenceNode.id,
         relationship_id: edge.id,
         report_id: sourceId ?? "",
         source_ref: sourceId ?? "",
-        excerpt: evidence.description,
-        location: evidence.label.replace(/^证据\s*·\s*/, ""),
-        confidence: evidence.confidence,
-        report_title: source?.label ?? "来源报告",
-        publisher: source?.description ?? "",
+        excerpt: evidenceNode.description,
+        location: evidenceNode.label.replace(/^证据\s*·\s*/, ""),
+        confidence: evidenceNode.confidence,
+        report_title:
+          typeof evidenceNode.properties.source_title === "string"
+            ? evidenceNode.properties.source_title
+            : "来源报告",
+        publisher:
+          typeof evidenceNode.properties.publisher === "string"
+            ? evidenceNode.properties.publisher
+            : "",
         report_date:
-          typeof source?.properties.published_at === "string"
-            ? source.properties.published_at
+          typeof evidenceNode.properties.published_at === "string"
+            ? evidenceNode.properties.published_at
             : "",
         canonical_url:
-          typeof source?.properties.canonical_url === "string"
-            ? source.properties.canonical_url
+          typeof evidenceNode.properties.canonical_url === "string"
+            ? evidenceNode.properties.canonical_url
             : undefined,
       }];
     });
@@ -126,7 +204,7 @@ export function adaptPanoramicNeighborhood(
       id: edge.id,
       source: edge.source_id,
       target: edge.target_id,
-      label: edge.label,
+      label: graphEdgeLabel(edge.type, edge.label),
       category: edgeCategory(edge.type, edge.aggregate),
       status: edge.aggregate ? "partial" : "positive",
       confidence: edge.confidence,
@@ -139,6 +217,6 @@ export function adaptPanoramicNeighborhood(
           }
         : undefined,
     };
-  });
+    });
   return { nodes, edges };
 }

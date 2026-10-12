@@ -132,6 +132,11 @@ function pathPartMatchScore(entity: Entity, part: string) {
 
 type SearchKnowledge = Pick<Snapshot, "entities" | "aliases" | "reports">;
 
+export function exactReportMatch(reports: Report[], query: string) {
+  const normalizedQuery = normalize(query);
+  return reports.find((report) => normalize(report.title) === normalizedQuery);
+}
+
 function matchCoherentPathEntities(data: SearchKnowledge, parts: string[]) {
   const candidatesByPart = parts.map((part) =>
     data.entities
@@ -226,14 +231,22 @@ export function searchSnapshot(data: SearchKnowledge, query: string): SearchResu
 
   const reports = data.reports
     .map((report) => {
+      const title = normalize(report.title);
       const haystack = normalize(
         `${report.title} ${report.source} ${report.extracted_text} ${report.assessment}`,
       );
-      let score = haystack.includes(q) && q.length >= 3 ? 60 : 0;
+      let score =
+        title === q
+          ? 100
+          : title.includes(q) && q.length >= 3
+            ? 84
+            : haystack.includes(q) && q.length >= 3
+              ? 60
+              : 0;
       entities.slice(0, 10).forEach(({ entity }) => {
         if (haystack.includes(normalize(entity.label))) score += 5;
       });
-      return { report, score: Math.min(99, score) };
+      return { report, score: Math.min(100, score) };
     })
     .filter((item) => item.score > 0)
     .sort((a, b) => b.score - a.score);
@@ -1020,11 +1033,14 @@ export function adviceForCase(
     (rule) =>
       !rule.match_event && stepTypes.has(rule.match_entity_type),
   );
+  const defaultRules = data.responseRules.filter(
+    (rule) => !rule.match_event && rule.match_entity_type === "*",
+  );
   const base = eventRules.length
     ? eventRules
-    : matchingRules.length
-      ? matchingRules
-      : data.responseRules.filter((rule) => !rule.match_event).slice(0, 4);
+    : matchingRules.length || defaultRules.length
+      ? [...matchingRules, ...defaultRules]
+      : data.responseRules.filter((rule) => !rule.match_event).slice(0, 8);
   return base.slice(0, 8).map((rule, index) => ({
     id: rule.id,
     group: groups.includes(rule.group_label as AdviceItem["group"])
@@ -1043,7 +1059,11 @@ export function adviceForCase(
     rationale: rule.rationale,
     sourceUrl: rule.source_url || undefined,
     stepIds: activeSteps
-      .filter((step) => step.type === rule.match_entity_type)
+      .filter(
+        (step) =>
+          rule.match_entity_type === "*" ||
+          step.type === rule.match_entity_type,
+      )
       .map((step) => step.id),
   }));
 }

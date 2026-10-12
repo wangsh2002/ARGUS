@@ -6,11 +6,23 @@ import {
 } from "./actor-knowledge";
 import {
   adaptAttackFlowToPathCandidate,
+  asConfirmedFlowCandidate,
   requestAttackFlow,
   requestAttackFlows,
 } from "./attack-flow";
-import { searchSnapshot } from "./argus-domain";
-import { requestFlowMatchAnalysis } from "./backend-path";
+import {
+  exactReportMatch,
+  historicalPathCandidate,
+  propString,
+  searchSnapshot,
+} from "./argus-domain";
+import {
+  normalizedFlowSourceRef,
+} from "./search-recommendations";
+import {
+  requestFlowMatchAnalysis,
+  scopeFlowMatchAnalysisBySource,
+} from "./backend-path";
 import { ArgusShell } from "./components/ArgusShell";
 import {
   ActorDirectoryView,
@@ -21,7 +33,6 @@ import { AttackPathReviewView } from "./components/AttackPathReviewView";
 import { GPTView } from "./components/GPTView";
 import { IntelView } from "./components/IntelView";
 import { KnowledgeIngestionView } from "./components/KnowledgeIngestionView";
-import { PathFragmentReviewCenter } from "./components/PathFragmentReviewCenter";
 import {
   FullGraphView,
   ReportAnalysisView,
@@ -91,7 +102,6 @@ const pageLabels: Record<AppPage, string> = {
   "path-review": "攻击链候选",
   path: "攻击路径研判",
   ingest: "情报入库",
-  "fragment-review": "路径复核",
   report: "历史研判报告",
   gpt: "ARGUS GPT",
   graph: "情报图谱",
@@ -280,7 +290,15 @@ export function ArgusApp({ fixture }: { fixture?: Snapshot }) {
 
   const resetToPage = (nextPage: AppPage) => {
     setNavigation((current) => ({
-      current: { ...current.current, page: nextPage },
+      current:
+        nextPage === "search"
+          ? {
+              page: "search",
+              query: "",
+              submittedQuery: "",
+              mode: "intel",
+            }
+          : { ...current.current, page: nextPage },
       history: [],
     }));
   };
@@ -305,15 +323,21 @@ export function ArgusApp({ fixture }: { fixture?: Snapshot }) {
     navigation.history.at(-1)?.page ?? "search";
   const backLabel = `返回${pageLabels[previousPage]}`;
 
-  const startFlowMatchAnalysis = (input: string) => {
+  const startFlowMatchAnalysis = (
+    input: string,
+    allowedSourceRef?: string,
+  ) => {
     void requestFlowMatchAnalysis(input)
       .then((analysis) => {
+        const scopedAnalysis = allowedSourceRef
+          ? scopeFlowMatchAnalysisBySource(analysis, allowedSourceRef)
+          : analysis;
         setFlowStatus("ready");
         setFlows((current) => [
           ...current.filter(
-            (flow) => !analysis.flows.some((item) => item.id === flow.id),
+            (flow) => !scopedAnalysis.flows.some((item) => item.id === flow.id),
           ),
-          ...analysis.flows,
+          ...scopedAnalysis.flows,
         ]);
         setNavigation((current) => {
           if (current.current.submittedQuery !== input) return current;
@@ -321,7 +345,7 @@ export function ArgusApp({ fixture }: { fixture?: Snapshot }) {
             ...current,
             current: {
               ...current.current,
-              pathAnalysis: analysis,
+              pathAnalysis: scopedAnalysis,
               pathAnalysisStatus: "ready",
               pathAnalysisError: undefined,
             },
@@ -350,6 +374,7 @@ export function ArgusApp({ fixture }: { fixture?: Snapshot }) {
     input: string,
     patch: Partial<Omit<PageState, "page">> = {},
     runBackend = true,
+    allowedSourceRef?: string,
   ) => {
     openPage("path-review", {
       ...patch,
@@ -361,7 +386,7 @@ export function ArgusApp({ fixture }: { fixture?: Snapshot }) {
       pathAnalysisStatus: runBackend ? "loading" : "idle",
       pathAnalysisError: undefined,
     });
-    if (runBackend) startFlowMatchAnalysis(input);
+    if (runBackend) startFlowMatchAnalysis(input, allowedSourceRef);
   };
 
   const submit = (forcedMode?: SearchMode) => {
@@ -379,7 +404,17 @@ export function ArgusApp({ fixture }: { fixture?: Snapshot }) {
     if (!catalog) return;
     const result = searchSnapshot(catalog, submittedQuery);
     const entity = result.entities[0]?.entity;
+    const entityScore = result.entities[0]?.score ?? 0;
+    const reportResult = result.reports[0];
     const normalizedQuery = submittedQuery.toLocaleLowerCase();
+    const exactReport = exactReportMatch(catalog.reports, submittedQuery);
+    if (
+      exactReport ||
+      (reportResult && reportResult.score > entityScore)
+    ) {
+      openReport(exactReport ?? reportResult.report);
+      return;
+    }
     const flowHit = flows.find((flow) =>
       [
         flow.title,
@@ -439,7 +474,7 @@ export function ArgusApp({ fixture }: { fixture?: Snapshot }) {
       void openPublishedFlow(flowHit.id);
       return;
     }
-    const report = result.reports[0]?.report;
+    const report = reportResult?.report;
     if (report) {
       openReport(report);
       return;
@@ -504,8 +539,12 @@ export function ArgusApp({ fixture }: { fixture?: Snapshot }) {
   };
 
   const openHistoricalAnalysis = (report: Report) => {
-    const reportInput = report.extracted_text.trim() || report.title;
-    openPathReview(reportInput, { selectedReport: report });
+    const reportFlow = flows.find((flow) =>
+      flow.sources.some(
+        (source) => normalizedFlowSourceRef(source.id) === report.source_ref,
+      ),
+    );
+    if (reportFlow) void openPublishedFlow(reportFlow.id);
   };
 
   const openSelectedPath = (candidate: PathCandidate) => {
@@ -589,34 +628,67 @@ export function ArgusApp({ fixture }: { fixture?: Snapshot }) {
       flow,
     ]);
     openPage("path", {
-      selectedPath: adaptAttackFlowToPathCandidate(flow),
+      selectedPath: asConfirmedFlowCandidate(
+        adaptAttackFlowToPathCandidate(flow),
+      ),
       query: flow.title,
       submittedQuery: flow.title,
     });
   };
 
-  const startPathFromGraph = (
-    candidates: PathCandidate[],
-    contextLabel: string,
-  ) => {
-    if (candidates.length === 1) {
-      openSelectedPath(candidates[0]);
-      return;
-    }
-    if (candidates.length > 1) {
-      const candidateQuery = candidates
-        .map((candidate) => candidate.title)
-        .join("；");
-      openPathReview(
-        candidateQuery || contextLabel,
-        {},
-        false,
-      );
-    }
+  const openConfirmedPath = (candidate: PathCandidate) => {
+    const confirmedCandidate = asConfirmedFlowCandidate(candidate);
+    openPage("path", {
+      selectedPath: confirmedCandidate,
+      query: candidate.title,
+      submittedQuery: candidate.title,
+    });
+    if (!candidate.historicalPathId) return;
+    const previousPath = pathWorkspace?.historicalPaths.find(
+      (path) => path.id === candidate.historicalPathId,
+    );
+    void requestAttackFlow(candidate.historicalPathId)
+      .then((flow) => {
+        const runtimeCandidate = asConfirmedFlowCandidate(
+          adaptAttackFlowToPathCandidate(flow, previousPath),
+        );
+        setFlows((current) => [
+          ...current.filter((item) => item.id !== flow.id),
+          flow,
+        ]);
+        setNavigation((current) => {
+          if (
+            current.current.selectedPath?.historicalPathId !== flow.id ||
+            current.current.selectedPath?.presentationMode !== "confirmed-flow"
+          ) {
+            return current;
+          }
+          return {
+            ...current,
+            current: {
+              ...current.current,
+              selectedPath: runtimeCandidate,
+              query: flow.title,
+              submittedQuery: flow.title,
+            },
+          };
+        });
+      })
+      .catch(() => undefined);
   };
 
-  const startPathFromActor = (pathQuery: string) => {
-    openPathReview(pathQuery);
+  const startPathFromActor = (activity: Entity) => {
+    const flowId = propString(activity, "flow_id");
+    if (flowId) {
+      void openPublishedFlow(flowId);
+      return;
+    }
+    const historicalPath = pathWorkspace?.historicalPaths.find(
+      (path) => path.id === activity.id || path.name === activity.label,
+    );
+    if (historicalPath) {
+      openConfirmedPath(historicalPathCandidate(historicalPath));
+    }
   };
 
   const refreshRuntimeKnowledge = async () => {
@@ -630,8 +702,12 @@ export function ArgusApp({ fixture }: { fixture?: Snapshot }) {
   return (
     <ArgusShell
       page={page}
-      query={query}
-      onQuery={(value) => updateCurrent({ query: value })}
+      query={
+        selectedReport && (page === "path-review" || page === "path")
+          ? selectedReport.title
+          : query
+      }
+      onQuery={(value) => updateCurrent({ query: value, selectedReport: undefined })}
       onSearch={() => submit("intel")}
       onNavigate={navigate}
     >
@@ -650,6 +726,7 @@ export function ArgusApp({ fixture }: { fixture?: Snapshot }) {
       {page === "search" && catalog && (
         <SearchView
           data={catalog}
+          attackFlows={flows}
           query={query}
           mode={mode}
           onQuery={(value) => updateCurrent({ query: value })}
@@ -676,7 +753,7 @@ export function ArgusApp({ fixture }: { fixture?: Snapshot }) {
           backLabel={backLabel}
           onBack={goBack}
           onOpenGraph={openEntityGraph}
-          onOpenPath={openSelectedPath}
+          onOpenPath={openConfirmedPath}
         />
       )}
       {page === "intel" && activeEntityStatus !== "loading" && !selectedEntityId && (
@@ -756,9 +833,21 @@ export function ArgusApp({ fixture }: { fixture?: Snapshot }) {
       {page === "report" && (
         <ReportAnalysisView
           report={selectedReport}
+          attackFlows={
+            selectedReport
+              ? flows.filter((flow) =>
+                  flow.sources.some(
+                    (source) =>
+                      normalizedFlowSourceRef(source.id) ===
+                      selectedReport.source_ref,
+                  ),
+                )
+              : []
+          }
           backLabel={backLabel}
           onBack={goBack}
           onOpenAnalysis={openHistoricalAnalysis}
+          onOpenFlow={(flowId) => void openPublishedFlow(flowId)}
         />
       )}
       {page === "ingest" && (
@@ -768,7 +857,6 @@ export function ArgusApp({ fixture }: { fixture?: Snapshot }) {
           onKnowledgeChanged={refreshRuntimeKnowledge}
         />
       )}
-      {page === "fragment-review" && <PathFragmentReviewCenter />}
       {page === "gpt" && (
         <GPTView
           initialPrompt={mode === "gpt" ? query : ""}
@@ -787,7 +875,7 @@ export function ArgusApp({ fixture }: { fixture?: Snapshot }) {
             previousPage !== "actor"
           }
           onBack={goBack}
-          onStartPath={startPathFromGraph}
+          onStartPath={openConfirmedPath}
           onOpenActor={openActor}
         />
       )}

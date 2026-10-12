@@ -45,6 +45,10 @@ export default defineConfig(async () => {
 
   return {
     server: {
+      headers: {
+        "Cache-Control": "no-store",
+        Vary: "Origin, Accept, Sec-Fetch-Dest",
+      },
       watch: {
         ...(isCodexSeatbeltSandbox
           ? { useFsEvents: false, usePolling: true }

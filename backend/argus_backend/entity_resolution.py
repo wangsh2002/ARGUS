@@ -103,8 +103,8 @@ def canonicalize_observation(value: str, kind: str) -> CanonicalEntity | None:
     if normalized_kind in {"vulnerability"}:
         return None
 
-    # Named software is safe to use for exact lookup, but a new global software
-    # entity still requires an external identifier or analyst review.
+    # Named software uses deterministic exact-name identity. Alias and fuzzy
+    # merging remain separate review concerns.
     if normalized_kind in {"malware", "tool"} and _looks_like_name(refanged):
         normalized_name = _normalize_name(refanged)
         if normalized_name:
@@ -113,7 +113,6 @@ def canonicalize_observation(value: str, kind: str) -> CanonicalEntity | None:
                 "software-name",
                 normalized_name,
                 refanged,
-                auto_create=False,
             )
 
     return None

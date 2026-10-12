@@ -21,11 +21,14 @@ import type {
   KnowledgeIngestionBatchResult,
   KnowledgeIngestionResult,
 } from "../types";
-import featuredIngestionCase from "../../data/examples/featured_ingestion_case.json";
-import reviewedAttackFlowCase from "../../data/examples/reviewed_attack_flow_candidate.json";
 
-
-const demoSource = featuredIngestionCase.source;
+const emptySource = {
+  title: "",
+  publisher: "",
+  canonical_url: "",
+  published_at: "",
+  content: "",
+};
 
 
 async function ingestionRequest(body: unknown) {
@@ -65,7 +68,7 @@ export function KnowledgeIngestionView({
   onOpenPublishedFlow: (flowId: string) => Promise<void>;
   onKnowledgeChanged: () => Promise<void>;
 }) {
-  const [source, setSource] = useState(demoSource);
+  const [source, setSource] = useState(emptySource);
   const [attackFlowCandidate, setAttackFlowCandidate] = useState<
     NonNullable<KnowledgeIngestionResult["attack_flow_candidate"]>
   >();
@@ -281,26 +284,6 @@ export function KnowledgeIngestionView({
               <FileText size={18} />
               <span>01 · 来源材料</span>
             </div>
-            <button type="button" onClick={() => {
-              setSource(demoSource);
-              setAttackFlowCandidate(undefined);
-              setBatchResult(undefined);
-              setResult(undefined);
-            }}>
-              载入完整复核案例
-            </button>
-            <button type="button" onClick={() => {
-              setSource(reviewedAttackFlowCase.source);
-              setAttackFlowCandidate(
-                reviewedAttackFlowCase.attack_flow_candidate as NonNullable<
-                  KnowledgeIngestionResult["attack_flow_candidate"]
-                >,
-              );
-              setBatchResult(undefined);
-              setResult(undefined);
-            }}>
-              载入 AttackFlow 发布案例
-            </button>
           </header>
           <div className="ingestion-source-fields">
             <label>

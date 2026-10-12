@@ -12,11 +12,6 @@ MIGRATION_PATH = (
     / "019_remove_legacy_fake_seed_data.sql"
 )
 FAKE_REPORT_ID = "RPT-CORE-DEMO-INPUT-23397"
-RETAINED_FLOW_IDS = [
-    "PATH-ANNOCTR-APT28-ZEBROCY-2020",
-    "PATH-ANNOCTR-APT29-DNC-2015",
-    "PATH-ANNOCTR-LAZARUS-REDBANC-2018",
-]
 
 
 def insert_entity(
@@ -58,6 +53,12 @@ def test_migration_removes_only_legacy_fake_seed_data(tmp_path: Path) -> None:
         baseline_foreign_key_violations = connection.execute(
             "PRAGMA foreign_key_check"
         ).fetchall()
+        baseline_flow_ids = [
+            row[0]
+            for row in connection.execute(
+                "SELECT id FROM activity_paths ORDER BY id"
+            )
+        ]
         connection.execute("DELETE FROM schema_migrations WHERE version = 19")
 
         insert_entity(
@@ -155,7 +156,7 @@ def test_migration_removes_only_legacy_fake_seed_data(tmp_path: Path) -> None:
                 "SELECT id FROM activity_paths ORDER BY id"
             )
         ]
-        assert flow_ids == RETAINED_FLOW_IDS
+        assert flow_ids == baseline_flow_ids
         assert (
             connection.execute("PRAGMA foreign_key_check").fetchall()
             == baseline_foreign_key_violations

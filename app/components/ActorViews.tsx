@@ -45,6 +45,7 @@ type ActorSummary = {
   entity: Entity;
   aliases: EntityAlias[];
   activities: Entity[];
+  actions: Entity[];
   techniques: Entity[];
   tools: Entity[];
   iocs: Entity[];
@@ -53,12 +54,14 @@ type ActorSummary = {
   relationships: Relationship[];
   latestActivity: string | null;
   reportCount: number;
+  publicSourceCount: number;
+  totalSourceCount: number;
 };
 
 const statusLabels: Record<string, string> = {
   verified: "已核验公开组织",
   "agent-assisted-reviewed": "分析员辅助复核",
-  "curator-confirmed": "人工确认",
+  "curator-confirmed": "已确认",
   internal_cluster: "内部待归并活动簇",
   partial: "部分核验",
 };
@@ -75,12 +78,6 @@ function actorEntity(data: ActorKnowledgeSlice, actor: Actor) {
   return data.entities.find((entity) => entity.id === actor.id);
 }
 
-function otherEntityId(relationship: Relationship, id: string) {
-  return relationship.source_entity_id === id
-    ? relationship.target_entity_id
-    : relationship.source_entity_id;
-}
-
 function uniqueEntities(entities: Array<Entity | undefined>) {
   const index = new Map<string, Entity>();
   entities.forEach((entity) => {
@@ -93,6 +90,18 @@ function dateValue(entity: Entity) {
   return entity.last_seen || entity.first_seen || "";
 }
 
+function propertyNumber(actor: Actor, key: string) {
+  const value = actor.properties[key];
+  return typeof value === "number" ? value : 0;
+}
+
+function propertyStrings(actor: Actor, key: string) {
+  const value = actor.properties[key];
+  return Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === "string")
+    : [];
+}
+
 function buildActorSummary(data: ActorKnowledgeSlice, actor: Actor): ActorSummary | null {
   const entity = actorEntity(data, actor);
   if (!entity) return null;
@@ -101,6 +110,9 @@ function buildActorSummary(data: ActorKnowledgeSlice, actor: Actor): ActorSummar
   const activities = contextEntities
     .filter((item) => item.entity_type === "历史事件")
     .sort((left, right) => dateValue(right).localeCompare(dateValue(left)));
+  const actions = contextEntities.filter(
+    (item) => item.entity_type === "攻击步骤",
+  );
   const entitiesByType = (type: string) =>
     uniqueEntities(
       contextEntities.filter((item) => item.entity_type === type),
@@ -123,6 +135,7 @@ function buildActorSummary(data: ActorKnowledgeSlice, actor: Actor): ActorSummar
     entity,
     aliases: data.aliases.filter((alias) => alias.entity_id === actor.id),
     activities,
+    actions,
     techniques: entitiesByType("ATT&CK 技术"),
     tools: entitiesByType("恶意软件/工具"),
     iocs: entitiesByType("IOC/基础设施"),
@@ -131,6 +144,10 @@ function buildActorSummary(data: ActorKnowledgeSlice, actor: Actor): ActorSummar
     relationships: context.relationships,
     latestActivity,
     reportCount: new Set(evidence.map((item) => item.report_id)).size,
+    publicSourceCount: propertyNumber(actor, "baseline_source_count"),
+    totalSourceCount:
+      propertyNumber(actor, "baseline_source_count") +
+      new Set(evidence.map((item) => item.report_id)).size,
   };
 
   const hasProfileKnowledge =
@@ -179,7 +196,16 @@ function ActorSyncControl({ sync }: { sync: ActorKnowledgeSync }) {
 function buildActorSummaries(data: ActorKnowledgeSlice) {
   return data.actors
     .map((actor) => buildActorSummary(data, actor))
-    .filter((summary): summary is ActorSummary => Boolean(summary));
+    .filter((summary): summary is ActorSummary => Boolean(summary))
+    .sort(
+      (left, right) =>
+        right.reportCount - left.reportCount ||
+        right.publicSourceCount - left.publicSourceCount ||
+        right.activities.length - left.activities.length ||
+        right.techniques.length + right.tools.length + right.iocs.length -
+          (left.techniques.length + left.tools.length + left.iocs.length) ||
+        left.actor.label.localeCompare(right.actor.label),
+    );
 }
 
 function compactAliasList(summary: ActorSummary, limit = 3) {
@@ -201,9 +227,48 @@ function activityRelationship(
 }
 
 function relatedActivities(summary: ActorSummary, entityId: string) {
-  return summary.activities.filter((activity) =>
-    Boolean(activityRelationship(summary, activity.id, entityId)),
+  const relatedFlowIds = new Set(
+    summary.actions
+      .filter((action) =>
+        summary.relationships.some(
+          (relationship) =>
+            (relationship.source_entity_id === action.id &&
+              relationship.target_entity_id === entityId) ||
+            (relationship.target_entity_id === action.id &&
+              relationship.source_entity_id === entityId),
+        ),
+      )
+      .map((action) => propString(action, "flow_id"))
+      .filter(Boolean),
   );
+  return summary.activities.filter(
+    (activity) =>
+      Boolean(activityRelationship(summary, activity.id, entityId)) ||
+      relatedFlowIds.has(propString(activity, "flow_id")),
+  );
+}
+
+function actionRelationships(summary: ActorSummary, entityId: string) {
+  const actionIds = new Set(summary.actions.map((action) => action.id));
+  return summary.relationships.filter(
+    (relationship) =>
+      (actionIds.has(relationship.source_entity_id) &&
+        relationship.target_entity_id === entityId) ||
+      (actionIds.has(relationship.target_entity_id) &&
+        relationship.source_entity_id === entityId),
+  );
+}
+
+function orderedTechniques(summary: ActorSummary) {
+  return [...summary.techniques].sort((left, right) => {
+    const activityDifference =
+      relatedActivities(summary, right.id).length -
+      relatedActivities(summary, left.id).length;
+    return (
+      activityDifference ||
+      left.label.localeCompare(right.label, undefined, { numeric: true })
+    );
+  });
 }
 
 function evidenceForRelationship(
@@ -214,6 +279,43 @@ function evidenceForRelationship(
   return summary.evidence.filter(
     (evidence) => evidence.relationship_id === relationship.id,
   );
+}
+
+function actorRelationship(summary: ActorSummary, entityId: string) {
+  return summary.relationships.find(
+    (relationship) =>
+      (relationship.source_entity_id === summary.actor.id &&
+        relationship.target_entity_id === entityId) ||
+      (relationship.target_entity_id === summary.actor.id &&
+        relationship.source_entity_id === entityId),
+  );
+}
+
+function isPublicBaseline(relationship?: Relationship) {
+  return relationship?.properties.source_scope === "public-baseline";
+}
+
+function relationshipSourceUrls(relationship?: Relationship) {
+  const value = relationship?.properties.source_urls;
+  return Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === "string")
+    : [];
+}
+
+function sourceHost(url: string) {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    return "公开情报来源";
+  }
+}
+
+function aliasSourceLabel(alias: EntityAlias) {
+  if (alias.source.includes("mitre-attack")) return "MITRE ATT&CK";
+  if (alias.source.includes("misp-galaxy")) return "MISP Galaxy";
+  if (alias.source.includes("attack-flow")) return "本库报告";
+  if (alias.source.includes("identity-resolution")) return "规范身份归并";
+  return alias.source || "本库记录";
 }
 
 export function ActorDirectoryView({
@@ -323,7 +425,7 @@ export function ActorDirectoryView({
           <div>
             <dt>ATT&amp;CK 技术</dt>
             <dd>{totalTechniques}</dd>
-            <small>由历史活动派生</small>
+            <small>公开基线与本库观测</small>
           </div>
           <div>
             <dt>支撑报告</dt>
@@ -331,7 +433,7 @@ export function ActorDirectoryView({
             <small>具备关系级证据</small>
           </div>
         </dl>
-        <div className="actor-sector-overview">
+        {sectors.length > 0 && <div className="actor-sector-overview">
           <div>
             <strong>主要目标行业</strong>
             <small>点击标签筛选目录</small>
@@ -349,7 +451,7 @@ export function ActorDirectoryView({
               </button>
             ))}
           </div>
-        </div>
+        </div>}
       </section>
 
       <section className="actor-directory-controls" aria-label="目录筛选">
@@ -502,8 +604,8 @@ function ActorDirectorySection({
                 <dd>{summary.tools.length}</dd>
               </div>
               <div>
-                <dt>来源报告</dt>
-                <dd>{summary.reportCount}</dd>
+                <dt>情报来源</dt>
+                <dd>{summary.totalSourceCount}</dd>
               </div>
             </dl>
             <div className="actor-card-footer">
@@ -533,7 +635,7 @@ export function ActorProfileView({
   data: ActorKnowledgeSlice;
   actorId?: string;
   onOpenGraph: (entity: Entity) => void;
-  onOpenPath: (query: string) => void;
+  onOpenPath: (activity: Entity) => void;
   sync: ActorKnowledgeSync;
 }) {
   const summary = useMemo(() => {
@@ -568,7 +670,11 @@ export function ActorProfileView({
       label: "关联资产",
       count: summary.tools.length + summary.iocs.length + summary.cves.length,
     },
-    { id: "evidence", label: "来源与证据", count: summary.reportCount },
+    {
+      id: "evidence",
+      label: "来源与证据",
+      count: summary.totalSourceCount,
+    },
   ];
 
   return (
@@ -587,7 +693,7 @@ export function ActorProfileView({
             <button
               type="button"
               className="primary-button"
-              onClick={() => onOpenPath(summary.activities[0].label)}
+              onClick={() => onOpenPath(summary.activities[0])}
             >
               <GitBranch size={16} /> 查看代表性路径
             </button>
@@ -682,9 +788,13 @@ function ActorOverview({
   onOpenTab,
 }: {
   summary: ActorSummary;
-  onOpenPath: (query: string) => void;
+  onOpenPath: (activity: Entity) => void;
   onOpenTab: (tab: ActorProfileTab) => void;
 }) {
+  const [aliasesExpanded, setAliasesExpanded] = useState(false);
+  const visibleAliases = aliasesExpanded
+    ? summary.aliases
+    : summary.aliases.slice(0, 12);
   return (
     <div className="actor-profile-content actor-overview">
       <section className="actor-attribution-summary">
@@ -702,6 +812,38 @@ function ActorOverview({
         </aside>
       </section>
 
+      {summary.aliases.length > 0 && (
+        <section className="actor-profile-section actor-alias-catalog">
+          <header>
+            <div>
+              <h2>组织命名与别名</h2>
+              <p>所有名称均指向当前规范组织身份，并保留映射来源与置信度。</p>
+            </div>
+            <span>{summary.aliases.length} 个已收录别名</span>
+          </header>
+          <div>
+            {visibleAliases.map((alias) => (
+              <article key={alias.id}>
+                <strong>{alias.alias}</strong>
+                <span>{aliasSourceLabel(alias)}</span>
+                <small>{Math.round(alias.confidence * 100)}%</small>
+              </article>
+            ))}
+          </div>
+          {summary.aliases.length > 12 && (
+            <button
+              type="button"
+              className="actor-expand-button"
+              onClick={() => setAliasesExpanded((value) => !value)}
+            >
+              {aliasesExpanded
+                ? "收起别名"
+                : `展开全部 ${summary.aliases.length} 个别名`}
+            </button>
+          )}
+        </section>
+      )}
+
       <div className="actor-overview-grid">
         <section className="actor-profile-section actor-behavior-profile">
           <header>
@@ -716,9 +858,13 @@ function ActorOverview({
                 <Target size={15} /> 主要目标行业
               </span>
               <div>
-                {summary.actor.target_sectors.map((item) => (
-                  <strong key={item}>{item}</strong>
-                ))}
+                {summary.actor.target_sectors.length ? (
+                  summary.actor.target_sectors.map((item) => (
+                    <strong key={item}>{item}</strong>
+                  ))
+                ) : (
+                  <small>公开来源暂未提供结构化行业信息</small>
+                )}
               </div>
             </div>
             <div>
@@ -726,9 +872,13 @@ function ActorOverview({
                 <Crosshair size={15} /> 主要行动动机
               </span>
               <div>
-                {summary.actor.motivations.map((item) => (
-                  <strong key={item}>{item}</strong>
-                ))}
+                {summary.actor.motivations.length ? (
+                  summary.actor.motivations.map((item) => (
+                    <strong key={item}>{item}</strong>
+                  ))
+                ) : (
+                  <small>公开来源暂未提供结构化动机信息</small>
+                )}
               </div>
             </div>
           </div>
@@ -738,7 +888,7 @@ function ActorOverview({
           <header>
             <div>
               <h2>能力摘要</h2>
-              <p>技术通过组织关联历史活动派生，不作为直接归因断言。</p>
+              <p>公开已知能力与本库报告观测分层汇总，不自动构成单次归因。</p>
             </div>
             <button type="button" onClick={() => onOpenTab("techniques")}>
               查看全部 <ArrowRight size={14} />
@@ -758,12 +908,12 @@ function ActorOverview({
               <dd>{summary.tools.length}</dd>
             </div>
             <div>
-              <dt>关系级证据</dt>
-              <dd>{summary.evidence.length}</dd>
+              <dt>公开画像来源</dt>
+              <dd>{summary.publicSourceCount}</dd>
             </div>
           </dl>
           <div className="actor-technique-preview">
-            {summary.techniques.slice(0, 4).map((technique) => (
+            {orderedTechniques(summary).slice(0, 4).map((technique) => (
               <span key={technique.id}>
                 <strong>{technique.label}</strong>
                   <small>
@@ -787,12 +937,13 @@ function ActorOverview({
             查看全部 <ArrowRight size={14} />
           </button>
         </header>
-        <div>
-          {summary.activities.slice(0, 4).map((activity) => (
+        {summary.activities.length ? (
+          <div>
+            {summary.activities.slice(0, 4).map((activity) => (
             <button
               type="button"
               key={activity.id}
-              onClick={() => onOpenPath(activity.label)}
+              onClick={() => onOpenPath(activity)}
             >
               <span className="actor-activity-date">
                 <CalendarDays size={15} />
@@ -822,8 +973,13 @@ function ActorOverview({
                 </span>
               </span>
             </button>
-          ))}
-        </div>
+            ))}
+          </div>
+        ) : (
+          <p className="actor-section-empty">
+            当前公开画像已建立，但本库报告尚未形成可复核的攻击活动路径。
+          </p>
+        )}
       </section>
     </div>
   );
@@ -834,7 +990,7 @@ function ActorActivities({
   onOpenPath,
 }: {
   summary: ActorSummary;
-  onOpenPath: (query: string) => void;
+  onOpenPath: (activity: Entity) => void;
 }) {
   return (
     <div className="actor-profile-content">
@@ -853,15 +1009,16 @@ function ActorActivities({
                 relationship.source_entity_id === activity.id ||
                 relationship.target_entity_id === activity.id,
             );
-            const linkedIds = new Set(
-              linked.map((relationship) =>
-                otherEntityId(relationship, activity.id),
+            const techniques = summary.techniques.filter((item) =>
+              relatedActivities(summary, item.id).some(
+                (related) => related.id === activity.id,
               ),
             );
-            const techniques = summary.techniques.filter((item) =>
-              linkedIds.has(item.id),
+            const tools = summary.tools.filter((item) =>
+              relatedActivities(summary, item.id).some(
+                (related) => related.id === activity.id,
+              ),
             );
-            const tools = summary.tools.filter((item) => linkedIds.has(item.id));
             const evidenceCount = summary.evidence.filter((item) =>
               linked.some(
                 (relationship) => relationship.id === item.relationship_id,
@@ -906,7 +1063,7 @@ function ActorActivities({
                       <span key={item.id}>{item.label}</span>
                     ))}
                   </div>
-                  <button type="button" onClick={() => onOpenPath(activity.label)}>
+                  <button type="button" onClick={() => onOpenPath(activity)}>
                     打开攻击路径 <ArrowRight size={14} />
                   </button>
                 </div>
@@ -920,32 +1077,43 @@ function ActorActivities({
 }
 
 function ActorTechniques({ summary }: { summary: ActorSummary }) {
+  const [expanded, setExpanded] = useState(false);
+  const techniques = orderedTechniques(summary);
+  const visibleTechniques = expanded
+    ? techniques
+    : techniques.slice(0, 12);
   return (
     <div className="actor-profile-content">
       <section className="actor-profile-section actor-technique-list">
         <header>
           <div>
-            <h2>历史活动关联技战术</h2>
-            <p>每项技术都保留活动上下文，不把 ATT&amp;CK 标签自动连成攻击链。</p>
+            <h2>组织技战术画像</h2>
+            <p>区分 ATT&amp;CK 公开记录与本库报告观测，不把技术标签自动连成攻击链。</p>
           </div>
           <span>{summary.techniques.length} 项技术</span>
         </header>
         <div className="actor-technique-grid">
-          {summary.techniques.map((technique) => {
+          {visibleTechniques.map((technique) => {
             const activities = relatedActivities(summary, technique.id);
-            const relationship = activities[0]
-              ? activityRelationship(
-                  summary,
-                  activities[0].id,
-                  technique.id,
-                )
-              : undefined;
-            const evidence = evidenceForRelationship(summary, relationship);
+            const localRelationships = actionRelationships(
+              summary,
+              technique.id,
+            );
+            const baselineRelationship = actorRelationship(summary, technique.id);
+            const evidence = localRelationships.flatMap((relationship) =>
+              evidenceForRelationship(summary, relationship),
+            );
+            const sourceUrl = relationshipSourceUrls(baselineRelationship).at(-1);
             return (
               <article key={technique.id}>
                 <div className="actor-technique-heading">
                   <span>{technique.label}</span>
-                  <ShieldCheck size={17} />
+                  <span className="actor-source-badges">
+                    {isPublicBaseline(baselineRelationship) && (
+                      <small>ATT&amp;CK 公开记录</small>
+                    )}
+                    {activities.length > 0 && <small>本库已观测</small>}
+                  </span>
                 </div>
                 <strong>
                   {displayText(
@@ -972,11 +1140,27 @@ function ActorTechniques({ summary }: { summary: ActorSummary }) {
                   {activities.slice(0, 3).map((activity) => (
                     <span key={activity.id}>{activity.label}</span>
                   ))}
+                  {sourceUrl && (
+                    <a href={sourceUrl} target="_blank" rel="noreferrer">
+                      查看公开来源 <ExternalLink size={12} />
+                    </a>
+                  )}
                 </div>
               </article>
             );
           })}
         </div>
+        {summary.techniques.length > 12 && (
+          <button
+            type="button"
+            className="actor-expand-button"
+            onClick={() => setExpanded((value) => !value)}
+          >
+            {expanded
+              ? "收起技战术"
+              : `展开全部 ${summary.techniques.length} 项技战术`}
+          </button>
+        )}
       </section>
     </div>
   );
@@ -1018,9 +1202,14 @@ function ActorAssets({ summary }: { summary: ActorSummary }) {
             <div>
               {entities.map((entity) => {
                 const activities = relatedActivities(summary, entity.id);
+                const baselineRelationship = actorRelationship(summary, entity.id);
                 return (
                   <article key={entity.id}>
-                    <span>{entity.entity_type}</span>
+                    <span>
+                      {entity.entity_type}
+                      {isPublicBaseline(baselineRelationship) &&
+                        " · ATT&CK 公开记录"}
+                    </span>
                     <strong>{entity.label}</strong>
                     <p>
                       {displayText(
@@ -1030,8 +1219,10 @@ function ActorAssets({ summary }: { summary: ActorSummary }) {
                     </p>
                     <small>
                       {activities.length
-                        ? `关联 ${activities.length} 个历史活动`
-                        : `${entity.source_count} 个来源`}
+                        ? `本库关联 ${activities.length} 个历史活动`
+                        : isPublicBaseline(baselineRelationship)
+                          ? "公开画像已知使用"
+                          : `${entity.source_count} 个来源`}
                     </small>
                   </article>
                 );
@@ -1062,17 +1253,45 @@ function ActorEvidence({
   );
   const entities = new Map(data.entities.map((entity) => [entity.id, entity]));
   const evidence = summary.evidence.slice(0, 20);
+  const publicSources = propertyStrings(
+    summary.actor,
+    "baseline_source_urls",
+  );
   return (
     <div className="actor-profile-content">
+      {publicSources.length > 0 && (
+        <section className="actor-profile-section actor-public-sources">
+          <header>
+            <div>
+              <h2>公开画像来源</h2>
+              <p>组织身份、别名与公开能力基线的可追溯来源。</p>
+            </div>
+            <span>{publicSources.length} 个公开来源</span>
+          </header>
+          <div>
+            {publicSources.map((url) => (
+              <a href={url} target="_blank" rel="noreferrer" key={url}>
+                <BookOpen size={15} />
+                <span>
+                  <strong>{sourceHost(url)}</strong>
+                  <small>{url}</small>
+                </span>
+                <ExternalLink size={13} />
+              </a>
+            ))}
+          </div>
+        </section>
+      )}
       <section className="actor-profile-section actor-evidence-ledger">
         <header>
           <div>
             <h2>判断与证据账本</h2>
             <p>展示关系判断、原文位置和来源报告，便于逐项复核。</p>
           </div>
-          <span>{summary.reportCount} 份支撑报告</span>
+          <span>{summary.reportCount} 份本库支撑报告</span>
         </header>
-        <div className="actor-evidence-table" role="table">
+        {evidence.length ? (
+          <div className="actor-evidence-table" role="table">
           <div role="row" className="actor-evidence-table-head">
             <span role="columnheader">判断关系</span>
             <span role="columnheader">原文证据</span>
@@ -1140,7 +1359,12 @@ function ActorEvidence({
               </article>
             );
           })}
-        </div>
+          </div>
+        ) : (
+          <p className="actor-section-empty">
+            当前没有本库关系级证据；上方公开来源仍可用于核验组织画像。
+          </p>
+        )}
       </section>
     </div>
   );

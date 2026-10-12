@@ -267,7 +267,7 @@ export type AttackFlowEvidence = {
 
 export type AttackFlowContext = {
   id: string;
-  entity_id: string;
+  entity_id: string | null;
   type: AttackFlowContextType;
   name: string;
   role: AttackFlowContextRole;
@@ -315,6 +315,38 @@ export type AttackFlow = {
     evidence: AttackFlowEvidence[];
   }>;
   mainline: string[];
+};
+
+export type AttackFlowSourceAnnotationKind =
+  | "attack-process"
+  | "ioc"
+  | "software"
+  | "vulnerability"
+  | "asset"
+  | "actor";
+
+export type AttackFlowSourceAnnotation = {
+  id: string;
+  kind: AttackFlowSourceAnnotationKind;
+  label: string;
+  start_offset: number;
+  end_offset: number;
+  quote: string;
+  confidence: number;
+  action_ids: string[];
+  entity_id: string | null;
+  evidence_ids: string[];
+};
+
+export type AttackFlowSourceDocumentView = {
+  id: string;
+  title: string;
+  publisher: string;
+  canonical_url: string;
+  published_at: string;
+  mime_type: string;
+  content: string;
+  annotations: AttackFlowSourceAnnotation[];
 };
 
 export type ActorKnowledgeSlice = {
@@ -435,6 +467,7 @@ export type PanoramicGraphIndexNode = PanoramicGraphNode & {
 export type PanoramicGraphIndex = {
   nodes: PanoramicGraphIndexNode[];
   node_count: number;
+  evidence_node_count?: number;
   atomic_edge_count: number;
   aggregate_edge_count: number;
   knowledge_version: string;
@@ -453,6 +486,17 @@ export type PanoramicGraphNeighborhood = {
     confidence: number;
     aggregate: boolean;
     evidence_ids: string[];
+    evidence?: Array<{
+      id: string;
+      source_span_id: string;
+      source_id: string;
+      title: string;
+      publisher: string;
+      canonical_url: string;
+      locator: string;
+      quote: string;
+      confidence: number;
+    }>;
     explanation: {
       node_ids: string[];
       edge_ids: string[];
@@ -472,7 +516,6 @@ export type AppPage =
   | "path-review"
   | "path"
   | "ingest"
-  | "fragment-review"
   | "report"
   | "gpt"
   | "graph";
@@ -558,6 +601,7 @@ export type PathCandidateLink = {
 
 export type PathCandidate = {
   id: string;
+  presentationMode?: "query-match" | "confirmed-flow";
   activityId?: string;
   historicalPathId?: string;
   title: string;

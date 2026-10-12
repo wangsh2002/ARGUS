@@ -7,6 +7,7 @@ import type {
   PathCandidateLink,
   PathCandidateStep,
 } from "./types";
+import { normalizedFlowSourceRef } from "./search-recommendations";
 
 
 function flowConfidence(value: AttackFlow["actions"][number]["confidence"]) {
@@ -64,6 +65,29 @@ export async function requestFlowMatchAnalysis(
 }
 
 
+export function scopeFlowMatchAnalysisBySource(
+  analysis: BackendFlowMatchAnalysis,
+  sourceRef: string,
+): BackendFlowMatchAnalysis {
+  const allowedFlowIds = new Set(
+    analysis.flows
+      .filter((flow) =>
+        flow.sources.some(
+          (source) => normalizedFlowSourceRef(source.id) === sourceRef,
+        ),
+      )
+      .map((flow) => flow.id),
+  );
+  return {
+    ...analysis,
+    candidates: analysis.candidates.filter((candidate) =>
+      allowedFlowIds.has(candidate.flow_id),
+    ),
+    flows: analysis.flows.filter((flow) => allowedFlowIds.has(flow.id)),
+  };
+}
+
+
 export function adaptBackendFlowMatches(
   analysis: BackendFlowMatchAnalysis,
 ): AttackActivityCluster[] {
@@ -99,7 +123,9 @@ export function adaptBackendFlowMatches(
       return {
         id: stepIdByAction.get(action.id) as string,
         pathNodeId: action.id,
-        contextEntityIds: action.contexts.map((context) => context.entity_id),
+        contextEntityIds: action.contexts.flatMap((context) =>
+          context.entity_id ? [context.entity_id] : [],
+        ),
         label: action.name,
         description: action.description,
         phase: action.phase,

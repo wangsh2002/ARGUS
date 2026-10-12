@@ -86,44 +86,53 @@ def test_runtime_catalog_does_not_present_interactive_queries_as_reports(
     assert all(report["source"] != "ARGUS interactive input" for report in reports)
 
 
-def test_reads_a_curated_activity_as_an_explicit_attack_flow(
+def test_reads_a_published_activity_as_an_explicit_attack_flow(
     tmp_path: Path,
 ) -> None:
     client = make_client(tmp_path)
-    flow_id = "PATH-ANNOCTR-APT28-ZEBROCY-2020"
+    listed = client.get("/v1/attack-flows").json()
+    flow_id = listed[0]["id"]
 
     response = client.get(f"/v1/attack-flows/{flow_id}")
 
     assert response.status_code == 200
     flow = response.json()
     assert flow["schema_version"] == "1.0"
-    assert flow["mainline"] == [
-        f"{flow_id}-N-{index:02d}" for index in range(1, 8)
-    ]
-    assert [action["id"] for action in flow["actions"]] == flow["mainline"]
-    assert flow["actions"][0]["name"] == "打开 ZIPX 诱饵"
+    assert len(flow["mainline"]) >= 2
+    assert set(flow["mainline"]) <= {
+        action["id"] for action in flow["actions"]
+    }
     assert all(action["evidence"] for action in flow["actions"])
     assert all(relation["evidence"] for relation in flow["relations"])
 
 
-def test_lists_only_the_three_retained_curated_attack_flows(
+def test_lists_the_current_published_attack_flow_corpus(
     tmp_path: Path,
 ) -> None:
     flows = make_client(tmp_path).get("/v1/attack-flows").json()
 
-    assert [flow["id"] for flow in flows] == [
-        "PATH-ANNOCTR-APT28-ZEBROCY-2020",
-        "PATH-ANNOCTR-APT29-DNC-2015",
-        "PATH-ANNOCTR-LAZARUS-REDBANC-2018",
-    ]
+    assert len(flows) >= 40
+    assert len({flow["id"] for flow in flows}) == len(flows)
     assert all(flow["mainline"] for flow in flows)
+    assert all(flow["sources"] for flow in flows)
+    assert all(
+        source["id"].startswith("SRC-DOC-")
+        for flow in flows
+        for source in flow["sources"]
+    )
+    assert all(
+        len({source["id"] for source in flow["sources"]})
+        == len(flow["sources"])
+        for flow in flows
+    )
 
 
 def test_attack_flow_read_requires_explicit_mainline_and_evidence(
     tmp_path: Path,
 ) -> None:
     client = make_client(tmp_path)
-    flow_id = "PATH-ANNOCTR-APT28-ZEBROCY-2020"
+    flow = client.get("/v1/attack-flows").json()[0]
+    flow_id = flow["id"]
     with sqlite3.connect(tmp_path / "argus_cti.db") as connection:
         connection.execute(
             "DELETE FROM analysis_projections WHERE path_id = ?",
@@ -132,10 +141,119 @@ def test_attack_flow_read_requires_explicit_mainline_and_evidence(
     assert client.get(f"/v1/attack-flows/{flow_id}").status_code == 422
 
     client = make_client(tmp_path / "evidence")
-    action_id = f"{flow_id}-N-01"
+    action_id = flow["mainline"][0]
     with sqlite3.connect(tmp_path / "evidence" / "argus_cti.db") as connection:
         connection.execute(
             "DELETE FROM path_evidence_links WHERE node_id = ?",
             (action_id,),
         )
     assert client.get(f"/v1/attack-flows/{flow_id}").status_code == 422
+
+
+def test_reads_full_source_documents_with_evidence_backed_annotations(
+    tmp_path: Path,
+) -> None:
+    client = make_client(tmp_path)
+    with sqlite3.connect(tmp_path / "argus_cti.db") as connection:
+        flow_id = connection.execute(
+            """
+            SELECT DISTINCT path_id
+            FROM action_context_links
+            ORDER BY path_id
+            LIMIT 1
+            """
+        ).fetchone()[0]
+
+    response = client.get(f"/v1/attack-flows/{flow_id}/source-documents")
+
+    assert response.status_code == 200
+    documents = response.json()
+    assert documents
+    assert all(document["content"] for document in documents)
+    annotations = [
+        annotation
+        for document in documents
+        for annotation in document["annotations"]
+    ]
+    assert annotations
+    assert "attack-process" in {annotation["kind"] for annotation in annotations}
+    assert {annotation["kind"] for annotation in annotations} & {
+        "ioc",
+        "software",
+        "vulnerability",
+        "asset",
+    }
+    for document in documents:
+        for annotation in document["annotations"]:
+            assert 0 <= annotation["start_offset"] < annotation["end_offset"]
+            assert annotation["end_offset"] <= len(document["content"])
+            assert document["content"][
+                annotation["start_offset"] : annotation["end_offset"]
+            ].strip()
+
+
+def test_source_documents_include_unlinked_report_entity_mentions(
+    tmp_path: Path,
+) -> None:
+    client = make_client(tmp_path)
+    database = tmp_path / "argus_cti.db"
+    with sqlite3.connect(database) as connection:
+        flow_id, source_id = connection.execute(
+            """
+            SELECT path_id, source_document_id
+            FROM flow_source_supports
+            ORDER BY path_id
+            LIMIT 1
+            """
+        ).fetchone()
+        span_id, span_text = connection.execute(
+            """
+            SELECT id, text FROM source_spans
+            WHERE source_document_id = ? AND length(text) > 8
+            ORDER BY start_offset
+            LIMIT 1
+            """,
+            (source_id,),
+        ).fetchone()
+        marker = span_text.strip().split()[0]
+        connection.execute(
+            """
+            INSERT INTO entities (
+              id, entity_type, canonical_key, label, normalized_value,
+              source_count, created_at, updated_at
+            ) VALUES ('ENT-REPORT-ONLY', '恶意软件/工具', 'tool:report-only',
+                      ?, 'report-only', 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+            """,
+            (marker,),
+        )
+        connection.execute(
+            """
+            INSERT INTO entity_mentions (
+              id, entity_id, source_document_id, source_span_id, ingestion_id,
+              original_value, canonical_value, value_type, confidence
+            ) VALUES ('EMN-REPORT-ONLY', 'ENT-REPORT-ONLY', ?, ?,
+                      'TEST-REPORT-MENTION', ?, 'report-only', 'tool', 0.9)
+            """,
+            (source_id, span_id, marker),
+        )
+        connection.commit()
+
+    response = client.get(f"/v1/attack-flows/{flow_id}/source-documents")
+
+    assert response.status_code == 200
+    annotation = next(
+        item
+        for document in response.json()
+        for item in document["annotations"]
+        if item["id"] == "ANN-EMN-REPORT-ONLY"
+    )
+    assert annotation["label"] == marker
+    assert annotation["action_ids"] == []
+
+
+def test_source_annotation_route_rejects_unknown_attack_flow(tmp_path: Path) -> None:
+    response = make_client(tmp_path).get(
+        "/v1/attack-flows/PATH-UNKNOWN/source-documents"
+    )
+
+    assert response.status_code == 404

@@ -1,0 +1,141 @@
+{
+  "schema_version": 1,
+  "groups": [
+    {
+      "remove_titles": ["Guccifer 2.0 DNC document access and posting"],
+      "source_document_id": "SRC-DOC-6545ca85f848820a",
+      "candidates": [
+        {
+          "title": "Cozy Bear monitoring of DNC communications",
+          "description": "Cozy Bear gained access to the DNC environment and monitored internal email and chat communications.",
+          "actions": [
+            {"id": "A1", "name": "Gain access to DNC environment", "description": "Obtain access to the DNC network.", "phase": "initial-access", "confidence": "high", "technique_ids": [], "contexts": [{"id": "C1", "type": "asset", "name": "DNC environment", "role": "targets", "confidence": "high", "evidence": [{"quote": "One group, which CrowdStrike had dubbed Cozy Bear, had gained access last summer and was monitoring the DNC’s email and chat communications"}]}], "evidence": [{"quote": "One group, which CrowdStrike had dubbed Cozy Bear, had gained access last summer and was monitoring the DNC’s email and chat communications"}]},
+            {"id": "A2", "name": "Monitor email and chat communications", "description": "Monitor internal DNC communications after gaining access.", "phase": "collection", "confidence": "high", "technique_ids": [], "contexts": [{"id": "C2", "type": "asset", "name": "DNC email and chat communications", "role": "targets", "confidence": "high", "evidence": [{"quote": "monitoring the DNC’s email and chat communications"}]}], "evidence": [{"quote": "monitoring the DNC’s email and chat communications"}]}
+          ],
+          "relations": [{"id": "R1", "source_action_id": "A1", "target_action_id": "A2", "type": "precedes", "condition": null, "confidence": "high", "evidence": [{"quote": "had gained access last summer and was monitoring the DNC’s email and chat communications"}]}],
+          "mainline": ["A1", "A2"],
+          "reported_actors": [{"id": "ACTOR1", "reported_name": "Cozy Bear", "confidence": "high", "evidence": [{"quote": "CrowdStrike had dubbed Cozy Bear"}]}]
+        },
+        {
+          "title": "Fancy Bear intrusion targeting DNC research files",
+          "description": "Fancy Bear broke into the DNC network and targeted opposition research files.",
+          "actions": [
+            {"id": "A1", "name": "Break into DNC network", "description": "Compromise the DNC network.", "phase": "initial-access", "confidence": "high", "technique_ids": [], "contexts": [{"id": "C1", "type": "asset", "name": "DNC network", "role": "targets", "confidence": "high", "evidence": [{"quote": "Fancy Bear, broke into the network in late April and targeted the opposition research files"}]}], "evidence": [{"quote": "Fancy Bear, broke into the network in late April and targeted the opposition research files"}]},
+            {"id": "A2", "name": "Target opposition research files", "description": "Access DNC opposition research files.", "phase": "collection", "confidence": "high", "technique_ids": [], "contexts": [{"id": "C2", "type": "file", "name": "DNC opposition research files", "role": "targets", "confidence": "high", "evidence": [{"quote": "targeted the opposition research files"}]}], "evidence": [{"quote": "targeted the opposition research files"}]}
+          ],
+          "relations": [{"id": "R1", "source_action_id": "A1", "target_action_id": "A2", "type": "precedes", "condition": null, "confidence": "high", "evidence": [{"quote": "broke into the network in late April and targeted the opposition research files"}]}],
+          "mainline": ["A1", "A2"],
+          "reported_actors": [{"id": "ACTOR1", "reported_name": "Fancy Bear", "confidence": "high", "evidence": [{"quote": "the firm had named Fancy Bear"}]}]
+        }
+      ]
+    },
+    {
+      "remove_titles": ["DNC email theft and leak via Wikileaks"],
+      "source_document_id": "SRC-DOC-ef1ff0551db8027b",
+      "candidates": [{
+        "title": "DNC email theft followed by Wikileaks publication",
+        "description": "Emails stolen from DNC officers were subsequently published by Wikileaks.",
+        "actions": [
+          {"id": "A1", "name": "Steal DNC officer emails", "description": "Obtain email messages from Democratic National Committee officers.", "phase": "collection", "confidence": "high", "technique_ids": [], "contexts": [{"id": "C1", "type": "asset", "name": "DNC officer emails", "role": "targets", "confidence": "high", "evidence": [{"quote": "emails stolen from officers of the Democratic National Committee"}]}], "evidence": [{"quote": "emails stolen from officers of the Democratic National Committee"}]},
+          {"id": "A2", "name": "Publish stolen emails through Wikileaks", "description": "Release the stolen DNC emails publicly.", "phase": "exfiltration", "confidence": "high", "technique_ids": [], "contexts": [{"id": "C2", "type": "infrastructure", "name": "Wikileaks", "role": "uses", "confidence": "high", "evidence": [{"quote": "Wikileaks published about 20,000 emails stolen from officers of the Democratic National Committee"}]}], "evidence": [{"quote": "Wikileaks published about 20,000 emails stolen from officers of the Democratic National Committee"}]}
+        ],
+        "relations": [{"id": "R1", "source_action_id": "A1", "target_action_id": "A2", "type": "precedes", "condition": null, "confidence": "high", "evidence": [{"quote": "Wikileaks published about 20,000 emails stolen from officers of the Democratic National Committee"}]}],
+        "mainline": ["A1", "A2"],
+        "reported_actors": [{"id": "ACTOR1", "reported_name": "APT28 and APT29", "confidence": "medium", "evidence": [{"quote": "Groups like APT28 (already mentioned) and APT29 were identified as possible culprits."}]}]
+      }]
+    },
+    {
+      "remove_titles": ["Transparent Tribe COVID-19 lure campaign targeting Indian government"],
+      "source_document_id": "SRC-DOC-a4e4eae69d46f92d",
+      "candidates": [{
+        "title": "Transparent Tribe PeppyRAT multi-stage infection chain",
+        "description": "A weaponized IMG shortcut launches VBS, executes PeppyRAT, profiles the host, persists in the startup folder and retrieves a second-stage DLL.",
+        "actions": [
+          {"id": "A1", "name": "Launch VBS from IMG shortcut", "description": "Start the infection from a shortcut disguised as the decoy PDF.", "phase": "execution", "confidence": "high", "technique_ids": ["T1059.005"], "contexts": [{"id": "C1", "type": "file", "name": "Covid_Letter.img", "role": "uses", "confidence": "high", "evidence": [{"quote": "the IMG file contains a shortcut with the same name as the PDF document"}]}, {"id": "C2", "type": "file", "name": "doc.vbs", "role": "uses", "confidence": "high", "evidence": [{"quote": "launching a Visual Basic script called doc.vbs"}]}], "evidence": [{"quote": "the IMG file contains a shortcut with the same name as the PDF document, which will be in charge of starting the infection by launching a Visual Basic script called doc.vbs"}]},
+          {"id": "A2", "name": "Execute decoy PDF and PeppyRAT", "description": "Display the decoy while executing the PeppyRAT Windows binary.", "phase": "execution", "confidence": "high", "technique_ids": [], "contexts": [{"id": "C3", "type": "malware", "name": "PeppyRAT", "role": "uses", "confidence": "high", "evidence": [{"quote": "identify it as a Python/PeppyRAT"}]}, {"id": "C4", "type": "file", "name": "ServiceHub.MsDetouredHost.exe", "role": "uses", "confidence": "high", "evidence": [{"quote": "ServiceHub.MsDetouredHost.exe"}]}], "evidence": [{"quote": "The infection chain continues executing both the decoy PDF document and a Windows PE (ServiceHub.MsDetouredHost.exe – 68d73d596a7103e517967f7f4e22cecb)"}]},
+          {"id": "A3", "name": "Drop embedded Python runtime into TEMP", "description": "Prepare the embedded Python execution environment.", "phase": "execution", "confidence": "high", "technique_ids": ["T1059.006"], "contexts": [{"id": "C5", "type": "file", "name": "Python27.dll", "role": "uses", "confidence": "high", "evidence": [{"quote": "Python functions contained in the Python27.dll library"}]}], "evidence": [{"quote": "dropping all python compiled objects and dynamic-link libraries required into %TEMP% directory"}]},
+          {"id": "A4", "name": "Enumerate processes and report to C2", "description": "Collect the running-process list and send it to command and control.", "phase": "discovery", "confidence": "high", "technique_ids": ["T1057", "T1041"], "contexts": [{"id": "C6", "type": "infrastructure", "name": "Transparent Tribe C2 server", "role": "communicates-with", "confidence": "high", "evidence": [{"quote": "notifying the command-and-control server through an HTTP POST request"}]}], "evidence": [{"quote": "obtaining the list of running processes and notifying the command-and-control server through an HTTP POST request"}]},
+          {"id": "A5", "name": "Create startup-folder persistence", "description": "Drop a PE into the current user's startup folder.", "phase": "persistence", "confidence": "high", "technique_ids": ["T1547.001"], "contexts": [{"id": "C7", "type": "file", "name": "devenv.defender.scr", "role": "creates", "confidence": "high", "evidence": [{"quote": "devenv.defender.scr"}]}], "evidence": [{"quote": "*simplify* function drops a new Windows PE file into the current user startup folder: (%APPDATA%\\Microsoft\\Windows\\Start Menu\\Programs\\Startup\\devenv.defender.scr)"}]},
+          {"id": "A6", "name": "Receive next-stage DLL from C2", "description": "Wait for and retrieve the next infection module.", "phase": "command-and-control", "confidence": "high", "technique_ids": ["T1105"], "contexts": [{"id": "C8", "type": "file", "name": "mscontainer.dll", "role": "uses", "confidence": "high", "evidence": [{"quote": "a DLL file named mscontainer.dll"}]}], "evidence": [{"quote": "waiting to receive a new infection module from the C2C, which is a DLL file named mscontainer.dll"}]}
+        ],
+        "relations": [
+          {"id": "R1", "source_action_id": "A1", "target_action_id": "A2", "type": "precedes", "condition": null, "confidence": "high", "evidence": [{"quote": "The infection chain continues executing both the decoy PDF document and a Windows PE"}]},
+          {"id": "R2", "source_action_id": "A2", "target_action_id": "A3", "type": "precedes", "condition": null, "confidence": "high", "evidence": [{"quote": "dropping all python compiled objects and dynamic-link libraries required into %TEMP% directory, it makes this python command execution technique possible"}]},
+          {"id": "R3", "source_action_id": "A3", "target_action_id": "A4", "type": "precedes", "condition": null, "confidence": "high", "evidence": [{"quote": "Once the threat gets its environment all set, it builds and loads into memory a Python script that will be in charge of obtaining the list of running processes and notifying the command-and-control server through an HTTP POST request"}]},
+          {"id": "R4", "source_action_id": "A4", "target_action_id": "A5", "type": "precedes", "condition": null, "confidence": "medium", "evidence": [{"quote": "Finally, as a persistence mechanism, *simplify* function drops a new Windows PE file into the current user startup folder"}]},
+          {"id": "R5", "source_action_id": "A5", "target_action_id": "A6", "type": "precedes", "condition": null, "confidence": "high", "evidence": [{"quote": "This later artifact has been developed in .NET framework and its purpose is very simple: waiting to receive a new infection module from the C2C, which is a DLL file named mscontainer.dll"}]}
+        ],
+        "mainline": ["A1", "A2", "A3", "A4", "A5", "A6"],
+        "reported_actors": [{"id": "ACTOR1", "reported_name": "Transparent Tribe", "confidence": "medium", "evidence": [{"quote": "this infection campaign seems to be related to the threat group Transparent Tribe"}]}]
+      }]
+    },
+    {
+      "remove_titles": ["BlackSoul Campaign Attack Flow"],
+      "source_document_id": "SRC-DOC-19b90430a170dbab",
+      "candidates": [{
+        "title": "ReconHellcat BlackSoul spearphishing and C2 chain",
+        "description": "A NIST-themed CAB delivers a loader that retrieves BlackSoul, collects browser data and returns it to a Cloudflare-hosted C2.",
+        "actions": [
+          {"id": "A1", "name": "Deliver NIST-themed CAB by spearphishing", "description": "Use a NIST-themed archive as the initial lure.", "phase": "initial-access", "confidence": "medium", "technique_ids": ["T1566"], "contexts": [{"id": "C1", "type": "file", "name": "1-10-20-hb44_final CAB archive", "role": "uses", "confidence": "high", "evidence": [{"quote": "1-10-20-hb44\\_final"}]}], "evidence": [{"quote": "likely originated with a spear phishing email"}]},
+          {"id": "A2", "name": "Execute obfuscated ReconHellcat loader", "description": "Run the first-stage malicious loader.", "phase": "execution", "confidence": "high", "technique_ids": [], "contexts": [{"id": "C2", "type": "malware", "name": "Loader.ReconHellcat", "role": "uses", "confidence": "high", "evidence": [{"quote": "Loader.ReconHellcat"}]}], "evidence": [{"quote": "1-10-20-hb44\\_final.exe is a malicious loader"}]},
+          {"id": "A3", "name": "Connect loader to Cloudflare-hosted C2", "description": "Establish command-and-control connectivity through Cloudflare Workers.", "phase": "command-and-control", "confidence": "high", "technique_ids": [], "contexts": [{"id": "C3", "type": "infrastructure", "name": "Cloudflare Workers C2", "role": "communicates-with", "confidence": "high", "evidence": [{"quote": "the loader utilizes C2 infrastructure hosted on the Cloudflare Workers service"}]}], "evidence": [{"quote": "the loader utilizes C2 infrastructure hosted on the Cloudflare Workers service"}]},
+          {"id": "A4", "name": "Download BlackSoul RAT and support DLL", "description": "Retrieve the BlackSoul executable and blacksoulLib DLL.", "phase": "command-and-control", "confidence": "high", "technique_ids": ["T1105"], "contexts": [{"id": "C4", "type": "malware", "name": "BlackSoul", "role": "uses", "confidence": "high", "evidence": [{"quote": "an executable named *blacksoul*"}]}, {"id": "C5", "type": "file", "name": "blacksoulLib", "role": "uses", "confidence": "high", "evidence": [{"quote": "a Dynamic-Link Library (DLL) named *blacksoulLib*"}]}], "evidence": [{"quote": "Following a successful C2 connection, the loader retrieves two files: (1) an executable named *blacksoul*, and (2) a Dynamic-Link Library (DLL) named *blacksoulLib*"}]},
+          {"id": "A5", "name": "Collect browser data with blacksoulLib", "description": "Search the victim for Firefox, Chrome and Opera data.", "phase": "collection", "confidence": "high", "technique_ids": ["T1555.003"], "contexts": [{"id": "C6", "type": "asset", "name": "Firefox, Chrome and Opera data", "role": "targets", "confidence": "high", "evidence": [{"quote": "Searching the victim’s machine for Firefox, Chrome, and Opera data"}]}], "evidence": [{"quote": "Searching the victim’s machine for Firefox, Chrome, and Opera data"}]},
+          {"id": "A6", "name": "Return collected data to C2", "description": "Use BlackSoul to call back with data gathered by the support DLL.", "phase": "exfiltration", "confidence": "high", "technique_ids": ["T1041"], "contexts": [{"id": "C7", "type": "infrastructure", "name": "Strapi C2 server", "role": "communicates-with", "confidence": "high", "evidence": [{"quote": "call back to the C2 over the RESTful Strapi protocol"}]}], "evidence": [{"quote": "BlackSoul uses information gathered by blacksoulLib to call back to the C2 over the RESTful Strapi protocol and JSON based data encoding"}]}
+        ],
+        "relations": [
+          {"id": "R1", "source_action_id": "A1", "target_action_id": "A2", "type": "precedes", "condition": null, "confidence": "medium", "evidence": [{"quote": "1-10-20-hb44\\_final.exe is a malicious loader"}]},
+          {"id": "R2", "source_action_id": "A2", "target_action_id": "A3", "type": "precedes", "condition": null, "confidence": "high", "evidence": [{"quote": "Another similarity is that the loader utilizes C2 infrastructure hosted on the Cloudflare Workers service"}]},
+          {"id": "R3", "source_action_id": "A3", "target_action_id": "A4", "type": "precedes", "condition": null, "confidence": "high", "evidence": [{"quote": "Following a successful C2 connection, the loader retrieves two files"}]},
+          {"id": "R4", "source_action_id": "A4", "target_action_id": "A5", "type": "precedes", "condition": null, "confidence": "high", "evidence": [{"quote": "The file is a DLL with a single export, Init(), which is called by BlackSoul"}]},
+          {"id": "R5", "source_action_id": "A5", "target_action_id": "A6", "type": "precedes", "condition": null, "confidence": "high", "evidence": [{"quote": "BlackSoul uses information gathered by blacksoulLib to call back to the C2"}]}
+        ],
+        "mainline": ["A1", "A2", "A3", "A4", "A5", "A6"],
+        "reported_actors": [{"id": "ACTOR1", "reported_name": "ReconHellcat", "confidence": "high", "evidence": [{"quote": "we have high confidence attributing this attack to ReconHellcat"}]}]
+      }]
+    },
+    {
+      "remove_titles": ["Winnti sample targeting German chemical company"],
+      "source_document_id": "SRC-DOC-f35eb1fc7314de99",
+      "candidates": [{
+        "title": "Winnti DNS tunneling command-and-control chain",
+        "description": "The Winnti DLL loads an embedded iodine implementation, encodes data into generated DNS subdomains and tunnels traffic through DNS for C2.",
+        "actions": [
+          {"id": "A1", "name": "Load iodine-enabled Winnti DLL in memory", "description": "Execute the Winnti DLL containing the embedded iodine implementation.", "phase": "execution", "confidence": "high", "technique_ids": [], "contexts": [{"id": "C1", "type": "malware", "name": "Winnti", "role": "uses", "confidence": "high", "evidence": [{"quote": "Winnti sample"}]}, {"id": "C2", "type": "tool", "name": "iodine", "role": "uses", "confidence": "high", "evidence": [{"quote": "The iodine DNS tunneling solution is embedded in the DLL"}]}], "evidence": [{"quote": "The iodine DNS tunneling solution is embedded in the DLL that is initially loaded and executed in memory"}]},
+          {"id": "A2", "name": "Encode data into generated DNS subdomains", "description": "Generate base128-encoded subdomains under the configured FQDN.", "phase": "command-and-control", "confidence": "high", "technique_ids": [], "contexts": [{"id": "C3", "type": "domain", "name": "mooo.com dynamic DNS zone", "role": "uses", "confidence": "high", "evidence": [{"quote": "Winnti/PlugX C2 hostnames hosted in the mooo[.]com zone"}]}], "evidence": [{"quote": "the malware generates subdomains with base128 encoding, and append them to FQDN"}]},
+          {"id": "A3", "name": "Tunnel C2 traffic through DNS", "description": "Use the custom iodine implementation as a DNS tunneling communication channel.", "phase": "command-and-control", "confidence": "high", "technique_ids": ["T1572"], "contexts": [{"id": "C4", "type": "infrastructure", "name": "Winnti DNS tunnel", "role": "communicates-with", "confidence": "high", "evidence": [{"quote": "DNS Tunneling communication channel through a custom implementation of the [iodine source code]"}]}], "evidence": [{"quote": "The technique relies on a DNS Tunneling communication channel through a custom implementation of the [iodine source code]"}]}
+        ],
+        "relations": [
+          {"id": "R1", "source_action_id": "A1", "target_action_id": "A2", "type": "precedes", "condition": null, "confidence": "high", "evidence": [{"quote": "The iodine DNS tunneling solution is embedded in the DLL that is initially loaded and executed in memory"}]},
+          {"id": "R2", "source_action_id": "A2", "target_action_id": "A3", "type": "precedes", "condition": null, "confidence": "high", "evidence": [{"quote": "The DNS Tunneling technique adopted by the malware through the use of iodine"}]}
+        ],
+        "mainline": ["A1", "A2", "A3"],
+        "reported_actors": [{"id": "ACTOR1", "reported_name": "Winnti Group", "confidence": "high", "evidence": [{"quote": "The Winnti Group (also known as APT41, BARIUM, and Blackfly)"}]}]
+      }]
+    },
+    {
+      "remove_titles": ["DarkSide RaaS using MoreneHost/Yalishanda for C2"],
+      "source_document_id": "SRC-DOC-ad26813c8c8809cd",
+      "candidates": [{
+        "title": "DarkSide PowerShell delivery through bulletproof hosting",
+        "description": "A delivery website on MoreneHost/Yalishanda infrastructure drops a custom PowerShell script used for remote commands and data exfiltration.",
+        "actions": [
+          {"id": "A1", "name": "Host script delivery site on BPH infrastructure", "description": "Place the delivery website in a bulletproof-hosting IP range.", "phase": "command-and-control", "confidence": "high", "technique_ids": [], "contexts": [{"id": "C1", "type": "infrastructure", "name": "MoreneHost and Yalishanda IP range", "role": "uses", "confidence": "high", "evidence": [{"quote": "an IP range that has been used by two prominent BPH providers, MoreneHost and Yalishanda"}]}], "evidence": [{"quote": "The website used to drop that script is hosted in an IP range that has been used by two prominent BPH providers, MoreneHost and Yalishanda"}]},
+          {"id": "A2", "name": "Drop custom PowerShell script from website", "description": "Deliver the operator's custom script from the hosted website.", "phase": "execution", "confidence": "high", "technique_ids": ["T1059.001"], "contexts": [{"id": "C2", "type": "tool", "name": "custom PowerShell script", "role": "uses", "confidence": "high", "evidence": [{"quote": "uses a custom PowerShell script"}]}], "evidence": [{"quote": "The website used to drop that script"}]},
+          {"id": "A3", "name": "Run remote commands and exfiltrate system data", "description": "Use the script to execute C2 commands and remove information from the compromised host.", "phase": "exfiltration", "confidence": "high", "technique_ids": ["T1059.001", "T1041"], "contexts": [{"id": "C3", "type": "infrastructure", "name": "DarkSide remote C2 server", "role": "communicates-with", "confidence": "high", "evidence": [{"quote": "run commands from a remote command and control (C2) server"}]}], "evidence": [{"quote": "uses a custom PowerShell script that could exfiltrate data about a compromised system and run commands from a remote command and control (C2) server"}]}
+        ],
+        "relations": [
+          {"id": "R1", "source_action_id": "A1", "target_action_id": "A2", "type": "precedes", "condition": null, "confidence": "high", "evidence": [{"quote": "The website used to drop that script is hosted in an IP range"}]},
+          {"id": "R2", "source_action_id": "A2", "target_action_id": "A3", "type": "precedes", "condition": null, "confidence": "high", "evidence": [{"quote": "uses a custom PowerShell script that could exfiltrate data about a compromised system and run commands from a remote command and control (C2) server"}]}
+        ],
+        "mainline": ["A1", "A2", "A3"],
+        "reported_actors": [{"id": "ACTOR1", "reported_name": "DarkSide", "confidence": "high", "evidence": [{"quote": "One of the newest ransomware gangs in the cybercriminal underground"}]}]
+      }]
+    },
+    {
+      "remove_titles": ["NEMTY/NEFILIM ransomware blogs on BPH services", "Maze blog hosted on Yalishanda backend"],
+      "source_document_id": "SRC-DOC-ad26813c8c8809cd",
+      "candidates": []
+    }
+  ]
+}

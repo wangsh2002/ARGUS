@@ -79,6 +79,11 @@ function actionRoleLabel(role: string) {
       "delivers-to": "投递至",
       "downloads-from": "从其下载",
       "executes-file": "执行文件",
+      uses: "行为使用",
+      "communicates-with": "与其通信",
+      exploits: "利用",
+      enables: "促成",
+      "drops-on": "投放至",
     }[role] ?? role.replaceAll("-", " ")
   );
 }
@@ -243,12 +248,9 @@ export function IntelView({
       };
     });
   const contextRelatedIds = new Set(
-    contextPathMatches.flatMap(({ path, actionIds }) =>
+    contextPathMatches.flatMap(({ path }) =>
       path.contextLinks
-        .filter(
-          (link) =>
-            actionIds.has(link.action_node_id) && link.entity_id !== entity.id,
-        )
+        .filter((link) => link.entity_id !== entity.id)
         .map((link) => link.entity_id),
     ),
   );
@@ -266,8 +268,8 @@ export function IntelView({
       );
       return path.contextLinks.flatMap((link) => {
         if (
-          !actionIds.has(link.action_node_id) ||
-          link.entity_id === entity.id
+          link.entity_id === entity.id ||
+          !actionIds.has(link.action_node_id)
         ) {
           return [];
         }
@@ -290,6 +292,26 @@ export function IntelView({
       });
     },
   );
+  const rankedContextRelations = [...new Map(
+    contextRelations.map((item) => [
+      `${item.other.id}:${item.action}:${item.relation}`,
+      item,
+    ]),
+  ).values()].sort((left, right) => {
+    const typePriority = (item: (typeof contextRelations)[number]) =>
+      ({
+        "恶意软件/工具": 5,
+        CVE: 4,
+        "攻击组织": 3,
+        "ATT&CK 技术": 2,
+        "IOC/基础设施": 1,
+      })[item.other.entity_type] ?? 0;
+    return (
+      typePriority(right) - typePriority(left) ||
+      right.evidenceCount - left.evidenceCount ||
+      left.other.label.localeCompare(right.other.label)
+    );
+  });
   const historyItems = [
     ...reports.map((report) => ({
       id: report.id,
@@ -461,15 +483,15 @@ export function IntelView({
             <div className="ioc-related-context">
               <div className="ioc-related-heading">
                 <div>
-                  <h3>直接关联情报</h3>
-                  <p>优先显示与当前实体处于同一行为步骤的恶意软件、技术和文件。</p>
+                  <h3>同步骤关联情报</h3>
+                  <p>仅显示与当前实体出现在同一攻击步骤中的工具、漏洞、组织与 IOC。</p>
                 </div>
                 <button type="button" onClick={() => onOpenGraph(entity)}>
                   查看完整关系 <ArrowRight size={14} />
                 </button>
               </div>
               <div className="ioc-context-list">
-                {contextRelations.slice(0, 6).map((item) => (
+                {rankedContextRelations.slice(0, 6).map((item) => (
                   <button
                     type="button"
                     key={item.id}
@@ -489,7 +511,7 @@ export function IntelView({
                     <b>{Math.round(item.confidence * 100)}%</b>
                   </button>
                 ))}
-                {!contextRelations.length &&
+                {!rankedContextRelations.length &&
                   relationHighlights.map(({ edge, outbound, other }) => (
                     <button
                       type="button"
@@ -510,7 +532,7 @@ export function IntelView({
                       <b>{Math.round(edge.confidence * 100)}%</b>
                     </button>
                   ))}
-                {!contextRelations.length && !relationHighlights.length && (
+                {!rankedContextRelations.length && !relationHighlights.length && (
                   <p className="ioc-inline-empty">
                     当前没有可验证的一跳关联，系统不会用弱相关实体填充结果。
                   </p>
@@ -778,10 +800,10 @@ export function IntelView({
           <section className="intel-main-panel">
           <div className="section-tabs" role="tablist" aria-label="情报详情">
             {[
-              ["overview", "情报概览", relatedEdges.length],
+              ["overview", "情报概览", aggregatedRelatedCount],
               ["evidence", "来源证据", citations.length],
-              ["history", "历史报告", reports.length],
-              ["chains", "关联攻击链", chainEdges.length],
+              ["history", "历史报告", historyItems.length],
+              ["chains", "关联攻击链", contextPathMatches.length + chainEdges.length],
             ].map(([id, label, count]) => (
               <button
                 type="button"
@@ -816,8 +838,8 @@ export function IntelView({
                 </article>
                 <article>
                   <Link2 size={17} />
-                  <span>直接关系</span>
-                  <strong>{relatedEdges.length}</strong>
+                  <span>关联实体</span>
+                  <strong>{aggregatedRelatedCount}</strong>
                 </article>
               </div>
               <div className="entity-table">
@@ -826,7 +848,9 @@ export function IntelView({
                     <span className="eyebrow">RELATED ENTITIES</span>
                     <h2>相关情报实体</h2>
                   </div>
-                  <span>{new Set(relatedIds).size - 1} 个节点</span>
+                  <span>
+                    优先展示 {Math.min(10, aggregatedRelatedCount)} / {aggregatedRelatedCount} 个
+                  </span>
                 </header>
                 {relatedEdges.slice(0, 10).map((edge) => {
                   const otherId =
@@ -853,6 +877,24 @@ export function IntelView({
                     </button>
                   );
                 })}
+                {!relatedEdges.length &&
+                  rankedContextRelations.slice(0, 10).map((item) => (
+                    <button
+                      type="button"
+                      key={item.id}
+                      onClick={() => setSelectedEntity(item.other)}
+                    >
+                      <span className="relation-direction">CTX</span>
+                      <span>
+                        <strong>{item.other.label}</strong>
+                        <small>{item.other.entity_type}</small>
+                      </span>
+                      <span className="relation-label">
+                        {item.action} · {item.relation}
+                      </span>
+                      <Confidence value={item.confidence} />
+                    </button>
+                  ))}
               </div>
             </div>
           )}
@@ -879,19 +921,19 @@ export function IntelView({
 
           {tab === "history" && (
             <div className="intel-tab-content report-cards">
-              {reports.map((report) => (
+              {historyItems.map((report) => (
                 <article key={report.id}>
                   <FileText size={18} />
                   <div>
                     <h3>{report.title}</h3>
-                    <p>{report.assessment}</p>
+                    <p>{report.summary}</p>
                     <span>
-                      {report.source} · {formatDate(report.report_date)} ·{" "}
+                      {report.publisher} · {formatDate(report.date)} ·{" "}
                       {report.reliability}
                     </span>
                   </div>
-                  {report.external_url && (
-                    <a href={report.external_url} target="_blank" rel="noreferrer">
+                  {report.url && (
+                    <a href={report.url} target="_blank" rel="noreferrer">
                       <ExternalLink size={15} />
                     </a>
                   )}
@@ -908,7 +950,57 @@ export function IntelView({
                   <h2>该实体在攻击链中的位置</h2>
                 </div>
               </header>
-              {chainEdges.length ? (
+              {contextPathMatches.length ? (
+                <div className="ioc-chain-list">
+                  {contextPathMatches.map(({ path, localNodes, focusId }) => (
+                    <article key={path.id}>
+                      <header>
+                        <div>
+                          <span>
+                            {String(path.metadata.actor ?? "未知组织")} ·{" "}
+                            {path.victim_scope || "目标范围见报告"}
+                          </span>
+                          <h3>{path.name}</h3>
+                          <p>{path.description}</p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => onOpenPath(historicalPathCandidate(path))}
+                        >
+                          查看完整攻击路径 <ArrowRight size={14} />
+                        </button>
+                      </header>
+                      <div className="ioc-local-path">
+                        {localNodes.map((node, index) => (
+                          <div key={String(node.id)} className="ioc-local-step-wrap">
+                            <div
+                              className={
+                                String(node.id) === focusId
+                                  ? "ioc-local-step is-focus"
+                                  : "ioc-local-step"
+                              }
+                            >
+                              <span>{String(node.phase ?? "攻击行为")}</span>
+                              <strong>{String(node.label ?? "未命名行为")}</strong>
+                            </div>
+                            {index < localNodes.length - 1 && (
+                              <ArrowRight size={17} />
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                      <footer>
+                        <span>
+                          <GitBranch size={14} />
+                          主干 {path.projection?.mainline_action_refs.length ?? path.nodes.length} 步
+                        </span>
+                        <span>{path.edges.length} 条过程依赖</span>
+                        <span>{Math.round(path.confidence * 100)}% 路径置信度</span>
+                      </footer>
+                    </article>
+                  ))}
+                </div>
+              ) : chainEdges.length ? (
                 chainEdges.map((edge) => {
                   const sourceEntity = data.entities.find(
                     (item) => item.id === edge.source_entity_id,

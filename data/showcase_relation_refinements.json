@@ -1,0 +1,81 @@
+{
+  "schema_version": 1,
+  "flows": [
+    {
+      "title": "APT28 Zebrocy NATO-themed campaign targeting Azerbaijan government body",
+      "relations": [
+        { "source": "Drop Zebrocy malware executable", "target": "Copy malware to AppData with padding", "type": "causes" },
+        { "source": "Copy malware to AppData with padding", "target": "Create scheduled task for persistence", "type": "precedes" },
+        { "source": "Create scheduled task for persistence", "target": "Capture screenshots for collection", "type": "leads_to" },
+        { "source": "Capture screenshots for collection", "target": "Exfiltrate data via HTTP POST", "type": "precedes" }
+      ]
+    },
+    {
+      "title": "ReconHellcat BlackSoul spearphishing and C2 chain",
+      "relations": [
+        { "source": "Deliver NIST-themed CAB by spearphishing", "target": "Execute obfuscated ReconHellcat loader", "type": "precedes" },
+        { "source": "Execute obfuscated ReconHellcat loader", "target": "Connect loader to Cloudflare-hosted C2", "type": "causes" },
+        { "source": "Connect loader to Cloudflare-hosted C2", "target": "Download BlackSoul RAT and support DLL", "type": "on_success" },
+        { "source": "Download BlackSoul RAT and support DLL", "target": "Collect browser data with blacksoulLib", "type": "enables" },
+        { "source": "Collect browser data with blacksoulLib", "target": "Return collected data to C2", "type": "causes" }
+      ]
+    },
+    {
+      "title": "TA505 September 2021 Low-Volume Campaigns",
+      "relations": [
+        { "source": "Send phishing emails with Excel attachment", "target": "Enable macros in Excel attachment", "type": "precedes" },
+        { "source": "Enable macros in Excel attachment", "target": "Download MSI file", "type": "enables" },
+        { "source": "Download MSI file", "target": "Execute MirrorBlast loader", "type": "causes" },
+        { "source": "Execute MirrorBlast loader", "target": "Download Rebol script stagers", "type": "causes" },
+        { "source": "Send phishing emails with multiple entry vectors", "target": "Download Excel file via entry vector", "type": "leads_to" },
+        { "source": "Download Excel file via entry vector", "target": "Enable macros in downloaded Excel file", "type": "precedes" },
+        { "source": "Enable macros in downloaded Excel file", "target": "Download MSI file via macros", "type": "causes" },
+        { "source": "Download MSI file via macros", "target": "Execute KiXtart loader", "type": "causes" },
+        { "source": "Execute KiXtart loader", "target": "Receive command from C&C to download MSI", "type": "enables" },
+        { "source": "Receive command from C&C to download MSI", "target": "Download second MSI file", "type": "causes" },
+        { "source": "Download second MSI file", "target": "Execute MirrorBlast from second MSI", "type": "causes" },
+        { "source": "Execute MirrorBlast from second MSI", "target": "Download Rebol script stagers", "type": "causes" },
+        { "source": "Download Rebol script stagers", "target": "Drop ReflectiveGnome", "type": "causes" },
+        { "source": "Drop ReflectiveGnome", "target": "Download shellcode", "type": "causes" },
+        { "source": "Download shellcode", "target": "Drop and detonate FlawedGrace", "type": "causes" }
+      ]
+    },
+    {
+      "title": "PowerRatankba delivery via fake job application targeting Pakistani financial service provider employee",
+      "relations": [
+        { "source": "Deliver dropper via fake job application", "target": "Execute dropper on victim system", "type": "precedes" },
+        { "source": "Execute dropper on victim system", "target": "Communicate with C2 server", "type": "causes" },
+        { "source": "Communicate with C2 server", "target": "Drop PowerShell script", "type": "on_success" }
+      ]
+    },
+    {
+      "title": "TA800 BazaLoader and Cobalt Strike Campaigns",
+      "relations": [
+        { "source": "Distribute emails with malicious link", "target": "Download BazaLoader backdoor", "type": "leads_to" },
+        { "source": "Download BazaLoader backdoor", "target": "Download Cobalt Strike", "type": "causes" }
+      ]
+    },
+    {
+      "title": "Ave Maria campaign using COVID-19 health advisory lures",
+      "relations": [
+        { "source": "Send COVID-19 themed emails", "target": "Exploit Equation Editor vulnerabilities", "type": "precedes" },
+        { "source": "Exploit Equation Editor vulnerabilities", "target": "Install Ave Maria trojan", "type": "leads_to" },
+        { "source": "Install Ave Maria trojan", "target": "Communicate with C2 over port 5200", "type": "enables" }
+      ]
+    },
+    {
+      "title": "Formbook campaign using COVID-19 employment status lures",
+      "relations": [
+        { "source": "Send phishing emails", "target": "Attach malicious ZIP file", "type": "precedes" },
+        { "source": "Attach malicious ZIP file", "target": "Install Formbook malware", "type": "causes" }
+      ]
+    },
+    {
+      "title": "RustyBuer COVID-19 Themed Campaign",
+      "relations": [
+        { "source": "Send COVID-19 themed emails", "target": "Enable macros in Excel attachment", "type": "precedes" },
+        { "source": "Enable macros in Excel attachment", "target": "Download and execute RustyBuer", "type": "on_success" }
+      ]
+    }
+  ]
+}

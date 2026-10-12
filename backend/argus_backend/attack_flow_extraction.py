@@ -19,11 +19,13 @@ from .models import (
 )
 
 
-PROMPT_VERSION = "attack-flow-extraction/1.2"
-SEGMENTATION_PROMPT_VERSION = "attack-flow-activity-segmentation/1.1"
+PROMPT_VERSION = "attack-flow-extraction/1.5"
+SEGMENTATION_PROMPT_VERSION = "attack-flow-activity-segmentation/1.2"
+SEGMENTATION_RESCUE_PROMPT_VERSION = "attack-flow-activity-segmentation-rescue/1.1"
 CONSOLIDATION_PROMPT_VERSION = "attack-flow-activity-consolidation/1.0"
 VARIANT_PROMPT_VERSION = "attack-flow-variant-inventory/1.0"
-RELATION_PROMPT_VERSION = "attack-flow-relation-extraction/1.0"
+RELATION_PROMPT_VERSION = "attack-flow-relation-extraction/1.1"
+ACTION_SCOPE_PROMPT_VERSION = "attack-flow-action-scope/1.0"
 ALLOWED_RELATIONS = {
     "precedes",
     "leads_to",
@@ -140,6 +142,49 @@ class AttackFlowLanguageModel(Protocol):
         ...
 
 
+def _empty_segmentation_rescue_prompt(
+    report: dict[str, Any],
+    source_text: str,
+) -> dict[str, Any]:
+    return {
+        "task": (
+            "首次活动分段返回空。复核原文是否遗漏了由至少两个具体攻击者动作"
+            "构成的短攻击过程；若有，返回对应范围，否则保持空列表。"
+        ),
+        "report": report,
+        "numbered_source": _numbered_source(source_text),
+        "rules": [
+            "获得访问、执行、监控、收集、通信等高层动作也可以构成具体过程。",
+            (
+                "报告引用第三方对已发生入侵的明确描述时，这些动作仍是来源支持的"
+                "攻击事实；归因不确定只影响 Actor，不否定活动存在。"
+            ),
+            "至少需要两个有原文支持的攻击者动作，单一行为不构成攻击活动。",
+            (
+                "动作必须推进针对系统、账户、数据或网络的攻击，或操作投递、"
+                "恶意软件、C2、外传和勒索基础设施。"
+            ),
+            (
+                "招募、交易纠纷、宣传、论坛规则、组织停运、赔付和执法响应"
+                "属于组织或生态事件，不能组成攻击活动。"
+            ),
+            "纯归因、能力说明、生态概述、未来预测和事后响应保持空列表。",
+            "只返回原文范围，不抽取 Action、Relation 或 ATT&CK 技术。",
+            "只输出 JSON。",
+        ],
+        "output_schema": {
+            "activities": [
+                {
+                    "title": "来源内可区分的短攻击活动名称",
+                    "actor_anchor": "原文明确攻击者；未知时留空",
+                    "line_ranges": [{"start_line": 1, "end_line": 2}],
+                    "reason": "至少两个具体攻击者动作及其过程依据",
+                }
+            ]
+        },
+    }
+
+
 @dataclass(frozen=True)
 class AttackFlowExtractionResult:
     candidates: list[AttackFlowDraft]
@@ -184,6 +229,15 @@ class DeepSeekAttackFlowExtractor:
                         "纯 IOC 表、检测规则、产品能力、生态概述、假设示例、"
                         "未来预测和纯归因讨论不形成攻击活动。"
                     ),
+                    (
+                        "活动中的 Action 必须推进网络攻击或数字勒索过程，例如作用于"
+                        "目标系统、账户、数据、网络，或操作投递、恶意软件、C2、"
+                        "外传和勒索基础设施。"
+                    ),
+                    (
+                        "招募、交易纠纷、宣传、论坛规则、组织停运、赔付和执法响应"
+                        "属于组织或生态事件，不作为攻击活动 Action。"
+                    ),
                     "不同活动的 line_ranges 不得重叠；没有具体攻击活动时输出空列表。",
                     "只输出 JSON。",
                 ],
@@ -191,6 +245,7 @@ class DeepSeekAttackFlowExtractor:
                     "activities": [
                         {
                             "title": "来源内可区分的活动名称",
+                            "actor_anchor": "原文明确攻击者；未知时留空",
                             "line_ranges": [
                                 {"start_line": 1, "end_line": 20},
                                 {"start_line": 40, "end_line": 60},
@@ -206,7 +261,31 @@ class DeepSeekAttackFlowExtractor:
                 "不抽取攻击图，不补造活动，只输出 JSON。"
             ),
         )
-        activity_slices = _validated_activity_slices(segmentation, source_text)
+        initial_activity_slices = _validated_activity_slices(
+            segmentation,
+            source_text,
+        )
+        rescue_performed = not initial_activity_slices
+        rescue_attempts = 0
+        rescued_activity_slices: list[dict[str, Any]] = []
+        if rescue_performed:
+            for _ in range(2):
+                rescue_attempts += 1
+                rescue_segmentation = self._request_json(
+                    _empty_segmentation_rescue_prompt(report, source_text),
+                    max_tokens=5000,
+                    system_message=(
+                        "你是威胁情报短攻击片段复核器。"
+                        "只恢复原文明确支持的遗漏活动，不补造步骤，只输出 JSON。"
+                    ),
+                )
+                rescued_activity_slices = _validated_activity_slices(
+                    rescue_segmentation,
+                    source_text,
+                )
+                if rescued_activity_slices:
+                    break
+        activity_slices = initial_activity_slices or rescued_activity_slices
         consolidation: dict[str, Any] = {"groups": []}
         if len(activity_slices) > 1:
             consolidation = self._request_json(
@@ -239,6 +318,7 @@ class DeepSeekAttackFlowExtractor:
         aggregate: dict[str, Any] = {
             "candidates": [],
             "unassigned_evidence": [],
+            "_scope_rejections": [],
             "_segmentation": {
                 "prompt_version": SEGMENTATION_PROMPT_VERSION,
                 "initial_segments": [
@@ -247,7 +327,23 @@ class DeepSeekAttackFlowExtractor:
                         "title": activity["title"],
                         "line_ranges": activity["line_ranges"],
                     }
+                    for activity in initial_activity_slices
+                ],
+                "rescue_performed": rescue_performed,
+                "rescue_attempts": rescue_attempts,
+                "rescue_prompt_version": (
+                    SEGMENTATION_RESCUE_PROMPT_VERSION
+                    if rescue_performed
+                    else None
+                ),
+                "rescued_segments": [
+                    {
+                        "id": activity["id"],
+                        "title": activity["title"],
+                        "line_ranges": activity["line_ranges"],
+                    }
                     for activity in activity_slices
+                    if rescue_performed
                 ],
                 "consolidation_prompt_version": CONSOLIDATION_PROMPT_VERSION,
                 "activities": [
@@ -316,6 +412,23 @@ class DeepSeekAttackFlowExtractor:
                 if not isinstance(candidate, dict):
                     aggregate["candidates"].append(candidate)
                     continue
+                raw_scope_review = self._request_json(
+                    _action_scope_prompt(
+                        report,
+                        activity["title"],
+                        candidate,
+                    ),
+                    max_tokens=4000,
+                    system_message=(
+                        "你是保守的网络攻击行为边界复核器。"
+                        "只判断给定 Action，不增加事实，只输出 JSON。"
+                    ),
+                )
+                candidate, scope_rejections = _apply_action_scope_review(
+                    candidate,
+                    raw_scope_review,
+                )
+                aggregate["_scope_rejections"].extend(scope_rejections)
                 candidate_actions = candidate.get("actions", [])
                 if (
                     isinstance(candidate_actions, list)
@@ -335,9 +448,14 @@ class DeepSeekAttackFlowExtractor:
                             "只使用给定 Action 和逐字原文证据，只输出 JSON。"
                         ),
                     )
-                    candidate["relations"] = _merge_raw_relations(
-                        candidate.get("relations", []),
-                        raw_relations.get("relations", []),
+                    discovered_relations = raw_relations.get("relations", [])
+                    candidate["relations"] = (
+                        _relations_with_same_actor(
+                            discovered_relations,
+                            candidate_actions,
+                        )
+                        if isinstance(discovered_relations, list)
+                        else []
                     )
                 candidate["_verified_variant_plan"] = variant_plan
                 aggregate["candidates"].append(candidate)
@@ -422,35 +540,58 @@ class DeepSeekAttackFlowExtractor:
         system_message: str,
     ) -> dict[str, Any]:
         started = perf_counter()
-        with httpx.Client(trust_env=False) as client:
-            response = client.post(
-                f"{self.base_url.rstrip('/')}/chat/completions",
-                headers={
-                    "Authorization": f"Bearer {self.api_key}",
-                    "Content-Type": "application/json",
-                },
-                json={
-                    "model": self.model,
-                    "temperature": 0,
-                    "thinking": {"type": "disabled"},
-                    "max_tokens": max_tokens,
-                    "response_format": {"type": "json_object"},
-                    "messages": [
-                        {"role": "system", "content": system_message},
-                        {
-                            "role": "user",
-                            "content": json.dumps(prompt, ensure_ascii=False),
-                        },
-                    ],
-                },
-                timeout=self.timeout_seconds,
-            )
-        response.raise_for_status()
-        raw = json.loads(
-            _strip_json_fence(response.json()["choices"][0]["message"]["content"])
-        )
+        request_prompt = prompt
+        raw: dict[str, Any] | None = None
+        for attempt in range(1, 3):
+            with httpx.Client(trust_env=False) as client:
+                response = client.post(
+                    f"{self.base_url.rstrip('/')}/chat/completions",
+                    headers={
+                        "Authorization": f"Bearer {self.api_key}",
+                        "Content-Type": "application/json",
+                    },
+                    json={
+                        "model": self.model,
+                        "temperature": 0,
+                        "thinking": {"type": "disabled"},
+                        "max_tokens": max_tokens,
+                        "response_format": {"type": "json_object"},
+                        "messages": [
+                            {"role": "system", "content": system_message},
+                            {
+                                "role": "user",
+                                "content": json.dumps(
+                                    request_prompt,
+                                    ensure_ascii=False,
+                                ),
+                            },
+                        ],
+                    },
+                    timeout=self.timeout_seconds,
+                )
+            response.raise_for_status()
+            try:
+                raw = json.loads(
+                    _strip_json_fence(
+                        response.json()["choices"][0]["message"]["content"]
+                    )
+                )
+                break
+            except json.JSONDecodeError:
+                if attempt == 2:
+                    raise
+                request_prompt = {
+                    **prompt,
+                    "response_retry": (
+                        "上一次响应不是完整 JSON。缩短描述和证据，只保留满足"
+                        "规范的最小事实集合，并确保 JSON 完整闭合。"
+                    ),
+                }
+        if raw is None:
+            raise RuntimeError("Model did not return JSON")
         raw["_request_meta"] = {
             "elapsed_seconds": round(perf_counter() - started, 3),
+            "attempts": attempt,
         }
         return raw
 
@@ -485,6 +626,8 @@ def _activity_extraction_prompt(
                     "基础设施只能放在 Action.contexts。"
                 ),
                 "每个 Action、Context、Relation 和 reported Actor 都必须带原文 exact quote。",
+                "单个候选最多 20 个 Action，每个 Action 最多 8 个 Context。",
+                "每项事实只保留一个最直接的 evidence quote；unassigned_evidence 最多 20 条。",
                 "quote 必须从 numbered_source 的原文部分逐字复制，不得改写、翻译或拼接。",
                 (
                     "quote 只复制一个 L 行中的连续原文，不包含 L 编号；"
@@ -522,6 +665,16 @@ def _activity_extraction_prompt(
                     "通用能力、生态概述、未来预测、假设示例和纯历史归因"
                     "不是来源内的具体攻击活动。"
                 ),
+                (
+                    "Action 必须推进针对目标系统、账户、数据或网络的攻击，或操作"
+                    "投递、恶意软件、C2、外传和勒索基础设施。招募、商业交易、"
+                    "内部纠纷、宣传、论坛规则、组织停运、赔付和执法响应只能作为"
+                    "上下文或 unassigned_evidence，不能成为 Action。"
+                ),
+                (
+                    "每个候选 Action 都先输出 scope=attack|organization。"
+                    "只有 attack 可以保留；organization 用于显式标记并排除组织运营事件。"
+                ),
                 "只输出 JSON。",
         ],
         "output_schema": {
@@ -534,6 +687,7 @@ def _activity_extraction_prompt(
                                 "id": "A1",
                                 "name": "简短动宾名称",
                                 "description": "完整事实描述",
+                                "scope": "attack|organization",
                                 "phase": "可留空",
                                 "confidence": "high|medium|low",
                                 "technique_ids": [],
@@ -585,6 +739,59 @@ def _activity_extraction_prompt(
     }
 
 
+def _action_scope_prompt(
+    report: dict[str, Any],
+    activity_title: str,
+    candidate: dict[str, Any],
+) -> dict[str, Any]:
+    actions = candidate.get("actions", [])
+    if not isinstance(actions, list):
+        actions = []
+    return {
+        "task": (
+            "逐项复核候选 Action 是否直接推进网络攻击或数字勒索过程，"
+            "并标记执行该动作的原文攻击者锚点。"
+        ),
+        "report": report,
+        "activity_title": activity_title,
+        "actions": [
+            {
+                "id": action.get("id"),
+                "name": action.get("name"),
+                "description": action.get("description"),
+                "actor_anchor": action.get("actor_anchor", ""),
+                "evidence": action.get("evidence", []),
+            }
+            for action in actions
+            if isinstance(action, dict)
+        ],
+        "rules": [
+            (
+                "keep：动作本身作用于目标系统、账户、数据或网络，或直接操作"
+                "投递、恶意软件、C2、外传、加密和勒索执行。"
+            ),
+            (
+                "exclude：招募、销售、购买、折扣、广告、内部纠纷、品牌更名、"
+                "论坛规则、组织停运、赔付、宣传和执法响应，即使上下文涉及恶意软件。"
+            ),
+            "判断动作本身，不因同段出现攻击术语就把组织或商业行为标成 keep。",
+            "每个输入 Action 必须输出一次；不增加、合并或改写 Action。",
+            "actor_anchor 使用原文明确执行该动作的攻击者名称；未知时留空。",
+            "只输出 JSON。",
+        ],
+        "output_schema": {
+            "actions": [
+                {
+                    "id": "A1",
+                    "decision": "keep|exclude",
+                    "actor_anchor": "原文攻击者；未知时留空",
+                    "reason_category": "technical-attack|commercial-operation|organization-operation|public-response|uncertain",
+                }
+            ]
+        },
+    }
+
+
 def _activity_consolidation_prompt(
     report: dict[str, Any],
     activity_slices: list[dict[str, Any]],
@@ -599,6 +806,7 @@ def _activity_consolidation_prompt(
             {
                 "id": activity["id"],
                 "title": activity["title"],
+                "actor_anchor": activity["actor_anchor"],
                 "line_ranges": activity["line_ranges"],
                 "numbered_source": activity["numbered_source"],
             }
@@ -613,6 +821,7 @@ def _activity_consolidation_prompt(
                 "仅仅使用同一攻击者、同一恶意软件、同一工具、"
                 "同一报告或相似关键词，不足以归并。"
             ),
+            "actor_anchor 明确不同的片段不得归并。",
             "不同时间波次、不同受害群体或彼此独立的感染链保持分开。",
             "每个归并组至少包含两个 segment_id。",
             "evidence quote 必须从 numbered_source 原文逐字复制。",
@@ -707,9 +916,10 @@ def _relation_extraction_prompt(
             for action in actions
             if isinstance(action, dict)
         ],
-        "existing_relations": candidate.get("relations", []),
+        "model_proposed_relations": candidate.get("relations", []),
         "rules": [
             "只能连接给定的 Action id，不得生成新 Action。",
+            "独立复核全部关系；model_proposed_relations 只是待验证建议，不能直接保留。",
             (
                 "关系只能使用 precedes、leads_to、enables、causes、"
                 "on_success、on_failure。"
@@ -723,6 +933,11 @@ def _relation_extraction_prompt(
                 "如果它们各自进入同一载荷或后继，应保留两条汇入边。"
             ),
             "不得因为 Action 在文中相邻或输出顺序相邻就补边。",
+            (
+                "Relation 必须推进针对系统、账户、数据或网络的攻击过程，或推进"
+                "投递、恶意软件、C2、外传和勒索。招募、销售、广告、内部纠纷、"
+                "论坛规则、组织停运和执法响应之间的先后关系不得输出。"
+            ),
             (
                 "relation quote 必须是同一行内能支持两个端点关系的"
                 "连续原文，必须逐字复制。"
@@ -818,6 +1033,7 @@ def _validated_activity_slices(
                 "id": f"S{len(validated) + 1}",
                 "title": str(item.get("title", "")).strip()
                 or f"攻击活动 {index}",
+                "actor_anchor": str(item.get("actor_anchor", "")).strip(),
                 "start_line": min(ordered_line_ids),
                 "end_line": max(ordered_line_ids),
                 "line_ranges": sorted(
@@ -880,6 +1096,13 @@ def _validated_activity_groups(
             or not exact_quotes
         ):
             continue
+        actor_anchors = {
+            activity["actor_anchor"].casefold()
+            for activity in activity_slices
+            if activity["id"] in segment_ids and activity["actor_anchor"]
+        }
+        if len(actor_anchors) > 1:
+            continue
         groups.append(
             {
                 "segment_ids": segment_ids,
@@ -898,6 +1121,9 @@ def _validated_activity_groups(
             if inner["id"] not in claimed_ids
             and inner["id"] != outer["id"]
             and _activity_brackets(outer, inner)
+            and bool(outer["actor_anchor"])
+            and outer["actor_anchor"].casefold()
+            == inner["actor_anchor"].casefold()
             and _activity_title_similarity(outer["title"], inner["title"])
             >= 0.7
         ]
@@ -1187,6 +1413,97 @@ def _merge_raw_relations(existing: Any, discovered: Any) -> list[Any]:
     return merged
 
 
+def _apply_action_scope_review(
+    candidate: dict[str, Any],
+    raw_review: dict[str, Any],
+) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+    reviewed = dict(candidate)
+    actions = candidate.get("actions", [])
+    if not isinstance(actions, list):
+        return reviewed, []
+
+    raw_records = raw_review.get("actions", [])
+    if not isinstance(raw_records, list):
+        raw_records = []
+    records = {
+        str(record.get("id", "")).strip(): record
+        for record in raw_records
+        if isinstance(record, dict) and str(record.get("id", "")).strip()
+    }
+    kept_actions = []
+    rejections = []
+    for action in actions:
+        if not isinstance(action, dict):
+            kept_actions.append(action)
+            continue
+        action_id = str(action.get("id", "")).strip()
+        record = records.get(action_id, {})
+        reviewed_action = dict(action)
+        actor_anchor = str(record.get("actor_anchor", "")).strip()
+        if actor_anchor:
+            reviewed_action["actor_anchor"] = actor_anchor
+        if record.get("decision") == "exclude":
+            rejections.append(
+                {
+                    "action": reviewed_action,
+                    "reason_category": str(
+                        record.get("reason_category", "uncertain")
+                    ).strip(),
+                }
+            )
+            continue
+        kept_actions.append(reviewed_action)
+
+    kept_ids = {
+        str(action.get("id", "")).strip()
+        for action in kept_actions
+        if isinstance(action, dict)
+    }
+    reviewed["actions"] = kept_actions
+    relations = candidate.get("relations", [])
+    reviewed["relations"] = [
+        relation
+        for relation in relations
+        if isinstance(relation, dict)
+        and str(relation.get("source_action_id", "")).strip() in kept_ids
+        and str(relation.get("target_action_id", "")).strip() in kept_ids
+    ] if isinstance(relations, list) else []
+    mainline = candidate.get("mainline")
+    if isinstance(mainline, list):
+        reviewed["mainline"] = [
+            action_id for action_id in mainline if action_id in kept_ids
+        ]
+    return reviewed, rejections
+
+
+def _relations_with_same_actor(
+    relations: list[Any],
+    actions: list[Any],
+) -> list[Any]:
+    actor_by_id = {
+        str(action.get("id", "")).strip(): str(
+            action.get("actor_anchor", "")
+        ).strip().casefold()
+        for action in actions
+        if isinstance(action, dict)
+    }
+    filtered = []
+    for relation in relations:
+        if not isinstance(relation, dict):
+            filtered.append(relation)
+            continue
+        source_actor = actor_by_id.get(
+            str(relation.get("source_action_id", "")).strip(), ""
+        )
+        target_actor = actor_by_id.get(
+            str(relation.get("target_action_id", "")).strip(), ""
+        )
+        if source_actor and target_actor and source_actor != target_actor:
+            continue
+        filtered.append(relation)
+    return filtered
+
+
 def _best_variant_candidate(
     raw_candidates: list[Any],
     variant_plan: dict[str, Any],
@@ -1345,6 +1662,14 @@ def extract_attack_flow_candidates(
     review_fragments: list[dict[str, Any]] = []
     candidates: list[AttackFlowDraft] = []
 
+    for item in raw.get("_scope_rejections", []):
+        _reject(
+            rejected,
+            "action",
+            "action-outside-cyber-operation",
+            item,
+        )
+
     for item in raw.get("unassigned_evidence", []):
         quote = _quote_from(item)
         exact_quote = _resolve_exact_quote(quote, source_text)
@@ -1427,6 +1752,15 @@ def _sanitize_candidate(
         original_id = str(raw_action.get("id", "")).strip()
         if not original_id or original_id in action_id_map:
             _reject(rejected, "action", "missing-or-duplicate-local-id", raw_action)
+            continue
+        scope = str(raw_action.get("scope", "attack")).strip().casefold()
+        if scope == "organization":
+            _reject(
+                rejected,
+                "action",
+                "action-outside-cyber-operation",
+                raw_action,
+            )
             continue
         name = _normalize_action_name(
             str(raw_action.get("name", "")).strip()
@@ -1896,11 +2230,9 @@ def _is_concise_action_name(name: str) -> bool:
     words = name.split()
     if len(words) > 8:
         return False
-    return bool(
-        ENGLISH_ACTION_PATTERN.search(name)
-        or _has_english_action_verb(name)
-        or CHINESE_ACTION_PATTERN.search(name)
-    )
+    if re.search(r"[A-Za-z]", name):
+        return len(words) >= 2
+    return bool(re.search(r"[\u4e00-\u9fff]", name))
 
 
 def _normalize_action_name(name: str) -> str:
@@ -1911,6 +2243,8 @@ def _normalize_action_name(name: str) -> str:
         "execution": "Execute",
         "exfiltration": "Exfiltrate",
     }
+    if len(name.split()) != 2:
+        return name
     match = re.fullmatch(
         r"(.+?)\s+(communication|delivery|download|execution|exfiltration)",
         name,

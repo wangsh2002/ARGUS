@@ -189,6 +189,11 @@ function NodeButton({
   compact?: boolean;
   onSelect: (node: GraphNode) => void;
 }) {
+  const iocMemberCount =
+    node.type === "IOC 集合" &&
+    typeof node.properties?.member_count === "number"
+      ? node.properties.member_count
+      : 0;
   return (
     <button
       type="button"
@@ -199,8 +204,8 @@ function NodeButton({
       {relation && <em>{relation}</em>}
       <span>{node.label}</span>
       <small>
-        {node.type}
-        {node.confidence != null
+        {iocMemberCount ? `${node.type} · ${iocMemberCount} 个对象` : node.type}
+        {!iocMemberCount && node.confidence != null
           ? ` ${Math.round(node.confidence * 100)}%`
           : ""}
       </small>
@@ -262,6 +267,7 @@ const laneDefinitions = [
     label: "IOC 与基础设施",
     matches: (node: GraphNode) =>
       node.type === "IOC/基础设施" ||
+      node.type === "IOC 集合" ||
       node.type === "CVE" ||
       node.type === "资产" ||
       node.type === "身份",

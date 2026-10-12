@@ -33,6 +33,10 @@ class AttackFlowMatcher:
             for flow in self.flows
             if (candidate := self._candidate(flow, normalized_inputs)) is not None
         ]
+        if request.query_text and "→" in request.query_text:
+            candidates = [
+                candidate for candidate in candidates if not candidate.unmatched_inputs
+            ]
         candidates.sort(key=lambda item: (-item.score, item.flow_id))
         query_text = request.query_text or "；".join(
             item.value for item in normalized_inputs

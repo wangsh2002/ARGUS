@@ -72,27 +72,33 @@ export function adaptAttackFlowToHistoricalPath(
     return relation ? [relation.id] : [];
   });
   const contextLinks = flow.actions.flatMap((action) =>
-    action.contexts.map((context) => ({
-      id: context.id,
-      path_id: flow.id,
-      action_node_id: action.id,
-      entity_id: context.entity_id,
-      role: context.role,
-      direction: context.direction,
-      first_seen: null,
-      last_seen: null,
-      assertion_origin: "source-observed",
-      review_state: "agent-assisted-reviewed",
-      confidence: confidenceScore(context.confidence),
-      properties: { context_type: context.type, context_name: context.name },
-    })),
+    action.contexts.flatMap((context) =>
+      context.entity_id
+        ? [{
+            id: context.id,
+            path_id: flow.id,
+            action_node_id: action.id,
+            entity_id: context.entity_id,
+            role: context.role,
+            direction: context.direction,
+            first_seen: null,
+            last_seen: null,
+            assertion_origin: "source-observed",
+            review_state: "agent-assisted-reviewed",
+            confidence: confidenceScore(context.confidence),
+            properties: { context_type: context.type, context_name: context.name },
+          }]
+        : [],
+    ),
   );
   const keyContextByAction = Object.fromEntries(
     flow.actions
-      .filter((action) => action.contexts.length > 0)
+      .filter((action) => action.contexts.some((context) => context.entity_id))
       .map((action) => [
         action.id,
-        action.contexts.map((context) => context.entity_id),
+        action.contexts.flatMap((context) =>
+          context.entity_id ? [context.entity_id] : [],
+        ),
       ]),
   );
   const pathEvidence = [
@@ -111,7 +117,7 @@ export function adaptAttackFlowToHistoricalPath(
   ];
   const contextEvidence = flow.actions.flatMap((action) =>
     action.contexts.flatMap((context) =>
-      context.evidence.map((evidence) => ({
+      context.entity_id ? context.evidence.map((evidence) => ({
         id: evidence.id,
         path_id: flow.id,
         context_link_id: context.id,
@@ -128,7 +134,7 @@ export function adaptAttackFlowToHistoricalPath(
         report_title: evidence.title,
         publisher: evidence.publisher,
         canonical_url: evidence.canonical_url,
-      })),
+      })) : [],
     ),
   );
   return {
@@ -169,6 +175,7 @@ export function adaptAttackFlowToHistoricalPath(
       properties: {
         description: action.description,
         technique_ids: action.technique_ids,
+        reported_contexts: action.contexts,
         mainline_role: mainlineSet.has(action.id) ? "backbone" : "supporting",
       },
     })),
@@ -219,6 +226,28 @@ export function adaptAttackFlowToPathCandidate(
   previous?: Snapshot["historicalPaths"][number],
 ): PathCandidate {
   return historicalPathCandidate(adaptAttackFlowToHistoricalPath(flow, previous));
+}
+
+
+export function asConfirmedFlowCandidate(
+  candidate: PathCandidate,
+): PathCandidate {
+  return {
+    ...candidate,
+    presentationMode: "confirmed-flow",
+    reason: "直接展示数据库中已发布的 AttackFlow，无需再次执行相似度匹配。",
+    gap: "当前视图保留完整已发布主干、分支、上下文与来源证据。",
+    steps: candidate.steps.map((step) => ({
+      ...step,
+      analysisState: "observed",
+      matchKind: undefined,
+      matchReason: "已发布 AttackFlow 中的确认步骤。",
+    })),
+    links: candidate.links?.map((link) => ({
+      ...link,
+      reviewStatus: "observed",
+    })),
+  };
 }
 
 

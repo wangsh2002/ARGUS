@@ -31,7 +31,13 @@ import {
   requestPanoramicGraphIndex,
   requestPanoramicGraphNeighborhood,
 } from "../panoramic-graph";
+import { curatedGraphRoots, curatedHomeReports } from "../showcase-config";
+import {
+  compactHighCardinalityIocs,
+  iocCollectionMembers,
+} from "../ioc-graph-projection";
 import type {
+  AttackFlow,
   GraphEdge,
   GraphNode,
   PathCandidate,
@@ -41,16 +47,96 @@ import type {
 import { NetworkGraph } from "../NetworkGraph";
 import { EmptyState, StatusBadge } from "./Primitives";
 
+type GraphRootEntity = PathWorkspace["entities"][number];
+
+function graphLabelPriority(entity: GraphRootEntity) {
+  if (entity.entity_type !== "IOC/基础设施") {
+    return entity.label.length <= 48 ? 20 : 0;
+  }
+  if (/^(?:\d{1,3}\.){3}\d{1,3}$/.test(entity.label)) return 50;
+  if (/^[a-z0-9.-]+\.[a-z]{2,}$/i.test(entity.label)) return 45;
+  if (/^https?:\/\//i.test(entity.label)) return 35;
+  if (/^[a-f0-9]{48,}$/i.test(entity.label)) return -40;
+  return entity.label.length <= 48 ? 20 : 0;
+}
+
+function graphRecommendation(entity: GraphRootEntity, relationCount: number) {
+  const relationSummary = `${relationCount} 条直接关系`;
+  if (entity.entity_type === "IOC/基础设施") {
+    return `沿 ${relationSummary}追踪攻击步骤、工具与来源证据`;
+  }
+  if (entity.entity_type === "恶意软件/工具") {
+    return `沿 ${relationSummary}还原工具的使用过程与关联 IOC`;
+  }
+  if (entity.entity_type === "攻击组织") {
+    return `沿 ${relationSummary}查看关联工具、技战术与历史活动`;
+  }
+  if (entity.entity_type === "CVE") {
+    return `沿 ${relationSummary}核验漏洞利用步骤、受影响对象与证据`;
+  }
+  if (entity.entity_type === "ATT&CK 技术") {
+    return `沿 ${relationSummary}查看技术在攻击步骤和历史活动中的使用`;
+  }
+  return `沿 ${relationSummary}展开关联实体与来源证据`;
+}
+
+function graphEntryMeta(entity: GraphRootEntity, relationCount: number) {
+  if (entity.entity_type === "IOC/基础设施") {
+    return {
+      title: "从 IOC 追踪关联基础设施",
+      description: graphRecommendation(entity, relationCount),
+      icon: Fingerprint,
+    };
+  }
+  if (entity.entity_type === "恶意软件/工具") {
+    return {
+      title: "从工具还原攻击过程",
+      description: graphRecommendation(entity, relationCount),
+      icon: Bug,
+    };
+  }
+  if (entity.entity_type === "攻击组织") {
+    return {
+      title: "从组织查看技战术",
+      description: graphRecommendation(entity, relationCount),
+      icon: Users,
+    };
+  }
+  if (entity.entity_type === "CVE") {
+    return {
+      title: "从漏洞核验利用链路",
+      description: graphRecommendation(entity, relationCount),
+      icon: ShieldCheck,
+    };
+  }
+  if (entity.entity_type === "ATT&CK 技术") {
+    return {
+      title: "从技战术反查攻击行为",
+      description: graphRecommendation(entity, relationCount),
+      icon: Target,
+    };
+  }
+  return {
+    title: `从${entity.entity_type}展开关联`,
+    description: graphRecommendation(entity, relationCount),
+    icon: Activity,
+  };
+}
+
 export function ReportAnalysisView({
   report,
+  attackFlows,
   backLabel,
   onBack,
   onOpenAnalysis,
+  onOpenFlow,
 }: {
   report?: Report;
+  attackFlows: AttackFlow[];
   backLabel: string;
   onBack: () => void;
   onOpenAnalysis: (report: Report) => void;
+  onOpenFlow: (flowId: string) => void;
 }) {
   return (
     <main className="page-frame report-analysis-page">
@@ -62,23 +148,48 @@ export function ReportAnalysisView({
           <ShieldCheck size={15} /> 已完成研判
         </span>
       </div>
-      <ReportDetail report={report} onOpenAnalysis={onOpenAnalysis} />
+      <ReportDetail
+        report={report}
+        attackFlows={attackFlows}
+        onOpenAnalysis={onOpenAnalysis}
+        onOpenFlow={onOpenFlow}
+      />
     </main>
   );
 }
 
 function ReportDetail({
   report,
+  attackFlows,
   onOpenAnalysis,
+  onOpenFlow,
 }: {
   report?: Report;
+  attackFlows: AttackFlow[];
   onOpenAnalysis: (report: Report) => void;
+  onOpenFlow: (flowId: string) => void;
 }) {
   if (!report) {
     return (
       <EmptyState title="没有可展示的报告" description="当前情报快照尚未包含报告。" />
     );
   }
+  const curatedSummary = curatedHomeReports.find(
+    (candidate) => candidate.title === report.title,
+  )?.note;
+  const structuredSummary = [report.assessment, report.extraction_note].find(
+    (value) =>
+      Boolean(value) &&
+      !/AnnoCTR|expert annotation|candidate labels|selected because/i.test(value),
+  );
+  const previewSummary = reportPreviewLines(report.extracted_text).find(
+    (line) => line !== report.title && line.length >= 80,
+  );
+  const summary =
+    curatedSummary ||
+    structuredSummary ||
+    previewSummary ||
+    "当前报告已完成来源校验，可继续进入攻击路径与关联实体复核。";
   return (
     <section className="report-detail">
       <header>
@@ -95,7 +206,7 @@ function ReportDetail({
       </header>
       <div className="report-assessment">
         <span>研判摘要</span>
-        <p>{report.assessment || report.extraction_note || "当前报告暂无结构化摘要。"}</p>
+        <p>{summary}</p>
       </div>
       <div className="report-excerpt">
         <span>报告内容预览</span>
@@ -119,14 +230,40 @@ function ReportDetail({
           <dd>{report.source_ref || "未记录"}</dd>
         </div>
       </dl>
+      {attackFlows.length > 1 && (
+        <section className="report-flow-selector" aria-label="报告关联攻击流">
+          <div>
+            <span>已提取攻击流</span>
+            <p>该报告包含多条独立攻击过程，请选择要查看的链路。</p>
+          </div>
+          <div className="report-flow-selector-list">
+            {attackFlows.map((flow, index) => (
+              <button
+                type="button"
+                key={flow.id}
+                onClick={() => onOpenFlow(flow.id)}
+              >
+                <span>{String(index + 1).padStart(2, "0")}</span>
+                <strong>{flow.title}</strong>
+                <small>{flow.actions.length} 个已确认步骤</small>
+                <ArrowRight size={14} />
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
       <footer>
-        <button
-          type="button"
-          className="report-open-analysis"
-          onClick={() => onOpenAnalysis(report)}
-        >
-          进入完整研判 <ArrowRight size={14} />
-        </button>
+        {attackFlows.length <= 1 && (
+          <button
+            type="button"
+            className="report-open-analysis"
+            onClick={() => onOpenAnalysis(report)}
+            disabled={attackFlows.length === 0}
+          >
+            {attackFlows.length ? "进入攻击过程" : "暂无关联攻击流"}
+            <ArrowRight size={14} />
+          </button>
+        )}
         {report.external_url ? (
           <a href={report.external_url} target="_blank" rel="noreferrer">
             查看原始来源 <ExternalLink size={14} />
@@ -139,18 +276,82 @@ function ReportDetail({
   );
 }
 
-function ReportDocumentPreview({ text }: { text: string }) {
-  const lines = (text.slice(0, 900) || "未保存可展示的报告正文。")
+export function reportPreviewLines(text: string) {
+  const meaningful = (text || "未保存可展示的报告正文。")
     .split(/\n+/)
     .map((line) => line.trim())
+    .filter(
+      (line) =>
+        Boolean(line) &&
+        !/^```/.test(line) &&
+        !/^!\[/.test(line) &&
+        !/^Figure\s+\d+\s*:/i.test(line) &&
+        !/^(?:-{3,}|\*{3,}|_{3,})$/.test(line) &&
+        !/^\|?(?:\s*:?-{3,}:?\s*\|)+\s*$/.test(line) &&
+        !/<!--|-->|<!\[CDATA|\]\]>|<\/?(?:style|script)\b/i.test(line) &&
+        !/^\.?[#a-z][\w.#:[\]="' -]*\s*\{$/i.test(line) &&
+        !/^[a-z-]+\s*:\s*[^.;]{1,100};?$/i.test(line) &&
+        !/^[{}]|[{}]$/.test(line) &&
+        !/^\/\*|\*\/$/.test(line),
+    )
+    .map((line) =>
+      line
+        .replace(/^\|(.+)\|$/, (_, cells: string) =>
+          cells
+            .split("|")
+            .map((cell) => cell.trim())
+            .filter(Boolean)
+            .join(" · "),
+        )
+        .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
+        .replace(/<[^>]+>/g, " ")
+        .replace(/\*\*|__/g, "")
+        .replace(/\*([^*]+)\*/g, "$1")
+        .replace(/\\([\\`*_[\]{}()#+.!-])/g, "$1")
+        .replace(/\s+/g, " ")
+        .trim(),
+    )
     .filter(Boolean);
+  const preview: string[] = [];
+  let characters = 0;
+  for (const line of meaningful) {
+    if (preview.length >= 14 || characters >= 1600) break;
+    preview.push(line);
+    characters += line.length;
+  }
+  return preview;
+}
+
+function ReportDocumentPreview({ text }: { text: string }) {
+  const lines = reportPreviewLines(text);
   const sectionHeading = /^(?:[一二三四五六七八九十]+[、.]|材料说明|研判要求)/;
 
   return (
     <div className="report-document-preview">
       {lines.map((line, index) => {
+        const markdownHeading = line.match(/^(#{1,6})\s+(.+)$/);
+        if (markdownHeading) {
+          const [, marks, heading] = markdownHeading;
+          return marks.length <= 2 ? (
+            <h2 key={`${index}-${line}`}>{heading}</h2>
+          ) : (
+            <h3 key={`${index}-${line}`}>{heading}</h3>
+          );
+        }
+        const listItem = line.match(/^[-*+]\s+(.+)$/);
+        if (listItem) {
+          return (
+            <p className="report-document-list-item" key={`${index}-${line}`}>
+              <span aria-hidden="true">•</span>
+              {listItem[1]}
+            </p>
+          );
+        }
         if (index === 0 && line.length <= 72) {
           return <h2 key={`${index}-${line}`}>{line}</h2>;
+        }
+        if (/^[A-Z][A-Za-z\s/&-]{2,47}$/.test(line)) {
+          return <h3 key={`${index}-${line}`}>{line}</h3>;
         }
         if (sectionHeading.test(line) && line.length <= 72) {
           return <h3 key={`${index}-${line}`}>{line}</h3>;
@@ -178,7 +379,7 @@ export function FullGraphView({
   backLabel: string;
   showBack: boolean;
   onBack: () => void;
-  onStartPath: (candidates: PathCandidate[], contextLabel: string) => void;
+  onStartPath: (candidate: PathCandidate) => void;
   onOpenActor: (actorId: string) => void;
 }) {
   const [currentRootId, setCurrentRootId] = useState(rootId ?? "");
@@ -195,16 +396,6 @@ export function FullGraphView({
   const [searchOpen, setSearchOpen] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
-  const curatedRootLabels = useMemo(
-    () => [
-      "APT28",
-      "Jaguar Tooth",
-      "cdn-meeting-update.com",
-      "194.32.78.245",
-      "PowerRatankba",
-    ],
-    [],
-  );
   const [recentRootIds, setRecentRootIds] = useState<string[]>(() => {
     return rootId ? [rootId] : [];
   });
@@ -228,9 +419,46 @@ export function FullGraphView({
   const recentRoots = recentRootIds
     .map((id) => graphEntityMap.get(id))
     .filter((entity) => Boolean(entity));
-  const curatedRoots = curatedRootLabels
-    .map((label) => runtimeEntities.find((entity) => entity.label === label))
-    .filter((entity) => Boolean(entity));
+  const curatedRoots = useMemo(() => {
+    const ranked = [...runtimeEntities]
+      .filter(
+        (entity) =>
+          entity.properties.runtime_kind !== "action" &&
+          (directRelationCounts.get(entity.id) ?? 0) >= 2,
+      )
+      .sort(
+        (left, right) =>
+          (directRelationCounts.get(right.id) ?? 0) -
+            (directRelationCounts.get(left.id) ?? 0) ||
+          graphLabelPriority(right) - graphLabelPriority(left) ||
+          right.source_count - left.source_count ||
+          left.label.localeCompare(right.label),
+      );
+    const selected = new Map<string, PathWorkspace["entities"][number]>();
+    curatedGraphRoots.forEach(({ label }) => {
+      const entity = runtimeEntities.find(
+        (candidate) =>
+          candidate.properties.runtime_kind !== "action" &&
+          candidate.label.toLocaleLowerCase() === label.toLocaleLowerCase() &&
+          (directRelationCounts.get(candidate.id) ?? 0) >= 2,
+      );
+      if (entity) selected.set(entity.id, entity);
+    });
+    [
+      "IOC/基础设施",
+      "恶意软件/工具",
+      "攻击组织",
+      "CVE",
+      "ATT&CK 技术",
+    ].forEach((type) => {
+      const entity = ranked.find((candidate) => candidate.entity_type === type);
+      if (entity) selected.set(entity.id, entity);
+    });
+    ranked.forEach((entity) => {
+      if (selected.size < 5) selected.set(entity.id, entity);
+    });
+    return [...selected.values()].slice(0, 5);
+  }, [directRelationCounts, runtimeEntities]);
   const entityTypeCounts = useMemo(() => {
     const counts = new Map<string, number>();
     graphEntityMap.forEach((entity) => {
@@ -241,21 +469,35 @@ export function FullGraphView({
       .slice(0, 6);
   }, [graphEntityMap]);
   const featuredEntities = useMemo(() => {
-    const seenTypes = new Set<string>();
-    return [...graphEntityMap.values()]
+    const ranked = [...graphEntityMap.values()]
+      .filter(
+        (entity) =>
+          entity.properties.runtime_kind !== "action" &&
+          (directRelationCounts.get(entity.id) ?? 0) >= 2,
+      )
       .sort(
         (left, right) =>
           (directRelationCounts.get(right.id) ?? 0) -
             (directRelationCounts.get(left.id) ?? 0) ||
+          graphLabelPriority(right) - graphLabelPriority(left) ||
           right.source_count - left.source_count ||
           left.label.localeCompare(right.label),
-      )
-      .filter((entity) => {
-        if (seenTypes.has(entity.entity_type)) return false;
-        seenTypes.add(entity.entity_type);
+      );
+    const typeCounts = new Map<string, number>();
+    const typeLimits = new Map<string, number>([
+      ["IOC/基础设施", 1],
+      ["恶意软件/工具", 2],
+      ["攻击组织", 2],
+      ["CVE", 1],
+    ]);
+    const selected = ranked.filter((entity) => {
+        const count = typeCounts.get(entity.entity_type) ?? 0;
+        if (count >= (typeLimits.get(entity.entity_type) ?? 1)) return false;
+        typeCounts.set(entity.entity_type, count + 1);
         return true;
       })
       .slice(0, 6);
+    return selected;
   }, [graphEntityMap, directRelationCounts]);
   const normalizedSearch = searchQuery.trim().toLocaleLowerCase();
   const matchRank = (entity: (typeof data.entities)[number]) => {
@@ -291,14 +533,6 @@ export function FullGraphView({
         )
         .slice(0, 6)
     : [];
-  const recommendationCopy: Record<string, string> = {
-    APT28: "查看组织、工具、技战术与历史活动",
-    "Jaguar Tooth": "查看漏洞利用、路由器驻留与设备侧收集关系",
-    "cdn-meeting-update.com": "查看 C2 基础设施与 APT28 历史活动",
-    "194.32.78.245": "沿真实 C2、Zebrocy 活动与 APT28 逐跳核验",
-    PowerRatankba: "查看招聘诱饵、PowerShell 后门与关联 IOC",
-  };
-
   const loadIndex = useCallback(() => {
     requestPanoramicGraphIndex()
       .then((index) => {
@@ -462,7 +696,7 @@ export function FullGraphView({
                             <small>
                               {directRelationCounts.get(entity.id) ?? 0} 条关系
                             </small>
-                            <small>{entity.source_count} 个来源</small>
+                            <small>{entity.source_count} 条证据</small>
                           </span>
                         </button>
                       ))}
@@ -538,8 +772,10 @@ export function FullGraphView({
                             <span>{entity!.entity_type}</span>
                             <strong>{entity!.label}</strong>
                             <small>
-                              {recommendationCopy[entity!.label] ??
-                                entity!.description}
+                              {graphRecommendation(
+                                entity!,
+                                directRelationCounts.get(entity!.id) ?? 0,
+                              )}
                             </small>
                           </button>
                         ))}
@@ -603,12 +839,8 @@ export function FullGraphView({
             relationships:
               (runtimeIndex?.atomic_edge_count ?? 0) +
               (runtimeIndex?.aggregate_edge_count ?? 0),
-            evidence: Math.max(
-              (runtimeIndex?.node_count ?? 0) - (runtimeIndex?.nodes.length ?? 0),
-              0,
-            ),
+            evidence: runtimeIndex?.evidence_node_count ?? 0,
           }}
-          recommendationCopy={recommendationCopy}
           onSelectRoot={selectRoot}
           onFocusSearch={() => {
             setSearchOpen(true);
@@ -627,7 +859,6 @@ function GraphExplorerOverview({
   entityTypeCounts,
   directRelationCounts,
   graphStats,
-  recommendationCopy,
   onSelectRoot,
   onFocusSearch,
 }: {
@@ -641,35 +872,9 @@ function GraphExplorerOverview({
     relationships: number;
     evidence: number;
   };
-  recommendationCopy: Record<string, string>;
   onSelectRoot: (id: string) => void;
   onFocusSearch: () => void;
 }) {
-  const entryMeta: Record<
-    string,
-    {
-      title: string;
-      description: string;
-      icon: typeof Fingerprint;
-    }
-  > = {
-    "194.32.78.245": {
-      title: "从 IOC 追踪基础设施",
-      description: "从 C2 回到 Zebrocy 活动、攻击步骤与来源证据。",
-      icon: Fingerprint,
-    },
-    PowerRatankba: {
-      title: "从工具还原攻击过程",
-      description: "连接招聘诱饵、PowerShell 后门、IOC 与历史活动。",
-      icon: Bug,
-    },
-    APT28: {
-      title: "从组织查看技战术",
-      description: "浏览组织使用的工具、TTP 与历史攻击活动。",
-      icon: Users,
-    },
-  };
-
   return (
     <section className="graph-overview-home" aria-label="情报图谱综合入口">
       <header className="graph-overview-intro">
@@ -704,8 +909,25 @@ function GraphExplorerOverview({
           <div className="graph-exploration-entry-list">
             {curatedRoots.map((entity) => {
               if (!entity) return null;
-              const meta = entryMeta[entity.label];
-              const Icon = meta?.icon ?? Activity;
+              const curatedMeta = curatedGraphRoots.find(
+                (candidate) =>
+                  candidate.label.toLocaleLowerCase() ===
+                  entity.label.toLocaleLowerCase(),
+              );
+              const meta = curatedMeta
+                ? {
+                    title: curatedMeta.title,
+                    description: curatedMeta.description,
+                    icon: graphEntryMeta(
+                      entity,
+                      directRelationCounts.get(entity.id) ?? 0,
+                    ).icon,
+                  }
+                : graphEntryMeta(
+                    entity,
+                    directRelationCounts.get(entity.id) ?? 0,
+                  );
+              const Icon = meta.icon;
               return (
                 <button
                   type="button"
@@ -716,15 +938,13 @@ function GraphExplorerOverview({
                     <Icon size={19} />
                   </span>
                   <span className="graph-entry-copy">
-                    <strong>{meta?.title || entity.label}</strong>
-                    <small>
-                      {meta?.description ||
-                        recommendationCopy[entity.label] ||
-                        entity.description}
-                    </small>
+                    <strong>{meta.title}</strong>
+                    <small>{meta.description}</small>
                   </span>
                   <span className="graph-entry-example">
-                    <small>示例实体</small>
+                    <small>
+                      {directRelationCounts.get(entity.id) ?? 0} 条直接关系 · {entity.source_count} 条证据
+                    </small>
                     <strong>{entity.label}</strong>
                   </span>
                   <ArrowRight size={16} />
@@ -747,11 +967,11 @@ function GraphExplorerOverview({
           </header>
           <dl className="graph-overview-stats">
             <div>
-              <dt>知识实体</dt>
+              <dt>可调查图谱节点</dt>
               <dd>{graphStats.entities}</dd>
             </div>
             <div>
-              <dt>攻击知识关系</dt>
+              <dt>图谱原子关系</dt>
               <dd>{graphStats.relationships}</dd>
             </div>
             <div>
@@ -765,7 +985,7 @@ function GraphExplorerOverview({
           </dl>
           <div className="graph-type-coverage">
             <div>
-              <strong>主要实体覆盖</strong>
+              <strong>主要节点覆盖</strong>
               <small>{entityTypeCounts.length} 类</small>
             </div>
             {entityTypeCounts.map(([type, count]) => (
@@ -801,7 +1021,7 @@ function GraphExplorerOverview({
               <span>{entity.entity_type}</span>
               <strong>{entity.label}</strong>
               <small>
-                {directRelationCounts.get(entity.id) ?? 0} 条直接关系
+                {directRelationCounts.get(entity.id) ?? 0} 条直接关系 · {entity.source_count} 条证据
               </small>
               <ArrowRight size={14} />
             </button>
@@ -826,8 +1046,8 @@ const relationCategoryLabels: Record<string, string> = {
 
 function GraphExplorerWorkspace({
   data,
-  nodes,
-  edges,
+  nodes: rawNodes,
+  edges: rawEdges,
   root,
   onSetRoot,
   onStartPath,
@@ -838,10 +1058,17 @@ function GraphExplorerWorkspace({
   edges: GraphEdge[];
   root?: GraphNode;
   onSetRoot: (id: string) => void;
-  onStartPath: (candidates: PathCandidate[], contextLabel: string) => void;
+  onStartPath: (candidate: PathCandidate) => void;
   onOpenActor: (actorId: string) => void;
 }) {
-  const rootIds = useMemo(() => (root ? [root.id] : []), [root]);
+  const rawRootIds = useMemo(() => (root ? [root.id] : []), [root]);
+  const compactGraph = useMemo(
+    () => compactHighCardinalityIocs(rawNodes, rawEdges, rawRootIds),
+    [rawEdges, rawNodes, rawRootIds],
+  );
+  const nodes = compactGraph.nodes;
+  const edges = compactGraph.edges;
+  const rootIds = compactGraph.rootIds;
   const initialIds = useMemo(() => {
     const next = new Set(rootIds);
     if (root) next.add(root.id);
@@ -905,6 +1132,7 @@ function GraphExplorerWorkspace({
     (edge) => visibleSet.has(edge.source) && visibleSet.has(edge.target),
   );
   const selectedNode = nodes.find((node) => node.id === selectedNodeId);
+  const selectedIocMembers = iocCollectionMembers(selectedNode);
   const selectedEdge = edges.find((edge) => edge.id === selectedEdgeId);
   const selectedRelationship = selectedEdge?.relationship;
   const selectedEdgeEvidence = selectedEdge?.evidence?.length
@@ -922,12 +1150,19 @@ function GraphExplorerWorkspace({
           edge.target === selectedNode.id,
       )
     : [];
+  const selectedNodeAllEdges = selectedNode
+    ? edges.filter(
+        (edge) =>
+          edge.source === selectedNode.id ||
+          edge.target === selectedNode.id,
+      )
+    : [];
   const selectedNodeEvidence = selectedNode
     ? [...new Map(
         [
-          ...selectedNodeEdges.flatMap((edge) => edge.evidence ?? []),
+          ...selectedNodeAllEdges.flatMap((edge) => edge.evidence ?? []),
           ...data.evidence.filter((evidence) =>
-            selectedNodeEdges.some(
+            selectedNodeAllEdges.some(
               (edge) => edge.relationship?.id === evidence.relationship_id,
             ),
           ),
@@ -1051,9 +1286,6 @@ function GraphExplorerWorkspace({
   const matchedPathCandidates = matchedHistoricalPaths.map(
     historicalPathCandidate,
   );
-  const pathContextLabel =
-    selectedNode?.label ?? selectedEdge?.label ?? root?.label ?? "当前图谱上下文";
-
   return (
     <>
       <div className="graph-explorer-context">
@@ -1256,11 +1488,11 @@ function GraphExplorerWorkspace({
                 </strong>
               </div>
               <div>
-                <span>{selectedEdge ? "来源报告" : "直接关系"}</span>
+                <span>{selectedEdge ? "关系证据" : "直接关系"}</span>
                 <strong>
                   {selectedEdge
                     ? selectedEdgeEvidence.length
-                    : selectedNodeEdges.length}
+                    : selectedNodeAllEdges.length}
                 </strong>
               </div>
             </div>
@@ -1331,7 +1563,7 @@ function GraphExplorerWorkspace({
                           </dd>
                         </div>
                         <div>
-                          <dt>证据记录</dt>
+                          <dt>关系证据</dt>
                           <dd>
                             {selectedEdgeEvidence.length}
                           </dd>
@@ -1352,6 +1584,16 @@ function GraphExplorerWorkspace({
                         </div>
                       </div>
                       <dl className="graph-relation-meta">
+                        {selectedIocMembers.length > 0 && (
+                          <div>
+                            <dt>原始提取角色</dt>
+                            <dd>
+                              {String(
+                                selectedNode?.properties?.collection_role ?? "关联",
+                              )}
+                            </dd>
+                          </div>
+                        )}
                         <div>
                           <dt>首次出现</dt>
                           <dd>
@@ -1369,12 +1611,29 @@ function GraphExplorerWorkspace({
                           </dd>
                         </div>
                         <div>
-                          <dt>来源数量</dt>
+                          <dt>关系证据</dt>
                           <dd>
-                            {selectedNodeEvidence.length}
+                            {selectedIocMembers.length
+                              ? Number(selectedNode?.properties?.evidence_count ?? 0)
+                              : selectedNodeEvidence.length}
                           </dd>
                         </div>
                       </dl>
+                      {selectedIocMembers.length > 0 && (
+                        <details className="graph-ioc-collection-detail">
+                          <summary>
+                            查看全部 {selectedIocMembers.length} 个 IOC
+                          </summary>
+                          <div>
+                            {selectedIocMembers.map((member) => (
+                              <span key={member.id}>
+                                <small>{member.observableKind}</small>
+                                <strong>{member.label}</strong>
+                              </span>
+                            ))}
+                          </div>
+                        </details>
+                      )}
                     </>
                   )}
                 </div>
@@ -1502,19 +1761,25 @@ function GraphExplorerWorkspace({
               )}
 
               {matchedPathCandidates.length > 0 && (
-                <button
-                  type="button"
-                  className="graph-start-path"
-                  onClick={() =>
-                    onStartPath(matchedPathCandidates, pathContextLabel)
-                  }
-                >
-                  <GitBranch size={15} />
-                  {matchedPathCandidates.length === 1
-                    ? "打开唯一攻击路径"
-                    : `研判 ${matchedPathCandidates.length} 条候选路径`}
-                  <ArrowRight size={14} />
-                </button>
+                <div className="graph-linked-paths">
+                  <span>
+                    {matchedPathCandidates.length === 1
+                      ? "已关联 1 条确定攻击路径"
+                      : `已关联 ${matchedPathCandidates.length} 条确定攻击路径，请选择查看`}
+                  </span>
+                  {matchedPathCandidates.map((candidate) => (
+                    <button
+                      type="button"
+                      className="graph-start-path"
+                      key={candidate.id}
+                      onClick={() => onStartPath(candidate)}
+                    >
+                      <GitBranch size={15} />
+                      <strong>{candidate.title}</strong>
+                      <ArrowRight size={14} />
+                    </button>
+                  ))}
+                </div>
               )}
             </div>
           </section>

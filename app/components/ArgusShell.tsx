@@ -2,7 +2,6 @@
 
 import {
   Bot,
-  ClipboardCheck,
   Database,
   Menu,
   Network,
@@ -23,7 +22,6 @@ const items: Array<{
   { id: "actors", label: "攻击组织", icon: Users },
   { id: "graph", label: "情报图谱", icon: Network },
   { id: "ingest", label: "情报入库", icon: Database },
-  { id: "fragment-review", label: "路径复核", icon: ClipboardCheck },
   { id: "gpt", label: "ARGUS GPT", icon: Bot },
 ];
 
@@ -63,8 +61,7 @@ export function ArgusShell({
   const showGlobalSearch =
     !isHome &&
     page !== "graph" &&
-    page !== "ingest" &&
-    page !== "fragment-review";
+    page !== "ingest";
   const current =
     page === "intel" ||
     page === "actor" ||

@@ -4,7 +4,9 @@ from datetime import datetime, timezone
 from hashlib import sha256
 import json
 from pathlib import Path
+import re
 import sqlite3
+import unicodedata
 
 from .models import (
     AttackFlow,
@@ -89,6 +91,24 @@ CREATE TABLE IF NOT EXISTS knowledge_versions (
     FOREIGN KEY (ingestion_id) REFERENCES knowledge_ingestion_runs(id)
 );
 
+CREATE TABLE IF NOT EXISTS actor_external_mappings (
+    actor_id TEXT NOT NULL REFERENCES entities(id) ON DELETE CASCADE,
+    source TEXT NOT NULL,
+    external_id TEXT NOT NULL,
+    canonical_name TEXT NOT NULL,
+    mapping_status TEXT NOT NULL,
+    confidence REAL NOT NULL,
+    source_url TEXT NOT NULL DEFAULT '',
+    source_version TEXT NOT NULL DEFAULT '',
+    metadata_json TEXT NOT NULL DEFAULT '{}',
+    updated_at TEXT NOT NULL,
+    PRIMARY KEY (source, external_id),
+    UNIQUE (actor_id, source)
+);
+
+CREATE INDEX IF NOT EXISTS idx_actor_external_mappings_actor
+    ON actor_external_mappings(actor_id, source);
+
 CREATE TABLE IF NOT EXISTS entity_mentions (
     id TEXT PRIMARY KEY,
     entity_id TEXT NOT NULL,
@@ -137,37 +157,6 @@ CREATE TABLE IF NOT EXISTS review_records (
 CREATE INDEX IF NOT EXISTS idx_review_records_target
     ON review_records(target_type, target_id, reviewed_at);
 
-INSERT OR IGNORE INTO curated_extraction_baselines (
-    source_sha256, profile_name, observations_json, review_note, reviewed_at
-) VALUES (
-    '794045a1f5fdb454066fd876afc9ac90336515ba04baa8d7546b0a43685183a3',
-    'jaguar-tooth-partial-alert-v1',
-    '[
-      {
-        "value": "CVE-2017-6742",
-        "kind": "vulnerability",
-        "confidence": 1.0,
-        "locators": ["paragraph:1"],
-        "quote": "CVE-2017-6742"
-      },
-      {
-        "value": "Jaguar Tooth",
-        "kind": "malware",
-        "confidence": 1.0,
-        "locators": ["paragraph:1"],
-        "quote": "Jaguar Tooth"
-      },
-      {
-        "value": "系统信息收集",
-        "kind": "behavior",
-        "confidence": 0.98,
-        "locators": ["paragraph:1"],
-        "quote": "通过 CLI 执行 show version、show interfaces 等系统信息收集命令"
-      }
-    ]',
-    '赛前逐项复核：三个观测均可由同一告警段落直接定位；不将补全和预测步骤伪装为输入事实。',
-    '2026-07-28T16:10:00+08:00'
-);
 """
 
 
@@ -244,6 +233,47 @@ class SqliteRepository:
                 ),
             )
 
+    def ensure_source_span(
+        self,
+        source_document_id: str,
+        start_offset: int,
+        end_offset: int,
+        text: str,
+    ) -> SourceSpan:
+        digest = sha256(
+            f"{source_document_id}\0{start_offset}\0{end_offset}\0{text}".encode(
+                "utf-8"
+            )
+        ).hexdigest()[:20]
+        span = SourceSpan(
+            id=f"SRC-SPAN-DERIVED-{digest}",
+            source_document_id=source_document_id,
+            locator=f"offset:{start_offset}-{end_offset}",
+            start_offset=start_offset,
+            end_offset=end_offset,
+            text=text,
+            extraction_method="exact-quote",
+        )
+        with self._connect() as connection:
+            connection.execute(
+                """
+                INSERT OR IGNORE INTO source_spans (
+                    id, source_document_id, locator, start_offset, end_offset,
+                    text, extraction_method
+                ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    span.id,
+                    span.source_document_id,
+                    span.locator,
+                    span.start_offset,
+                    span.end_offset,
+                    span.text,
+                    span.extraction_method,
+                ),
+            )
+        return span
+
     def source_exists(self, source_document_id: str) -> bool:
         with self._connect() as connection:
             row = connection.execute(
@@ -310,7 +340,7 @@ class SqliteRepository:
                 SELECT pel.id, pel.source_span_id, pel.node_id, pel.edge_id,
                        pel.quote,
                        pel.confidence, ss.locator, ss.line_start,
-                       COALESCE(sa.id, sd.id) AS source_id,
+                       sd.id AS source_id,
                        COALESCE(sa.title, sd.title, '') AS source_title,
                        COALESCE(sa.publisher, sd.publisher, '') AS publisher,
                        COALESCE(sa.canonical_url, sd.canonical_url, '')
@@ -343,7 +373,7 @@ class SqliteRepository:
                 SELECT acel.id, acel.source_span_id, acel.context_link_id,
                        acel.quote,
                        acel.confidence, ss.locator, ss.line_start,
-                       COALESCE(sa.id, sd.id) AS source_id,
+                       sd.id AS source_id,
                        COALESCE(sa.title, sd.title, '') AS source_title,
                        COALESCE(sa.publisher, sd.publisher, '') AS publisher,
                        COALESCE(sa.canonical_url, sd.canonical_url, '')
@@ -374,7 +404,7 @@ class SqliteRepository:
                 SELECT rael.id, rael.source_span_id,
                        rael.actor_claim_id, rael.quote, rael.confidence,
                        ss.locator, ss.line_start,
-                       COALESCE(sa.id, sd.id) AS source_id,
+                       sd.id AS source_id,
                        COALESCE(sa.title, sd.title, '') AS source_title,
                        COALESCE(sa.publisher, sd.publisher, '') AS publisher,
                        COALESCE(sa.canonical_url, sd.canonical_url, '')
@@ -457,6 +487,29 @@ class SqliteRepository:
                 if not isinstance(properties, dict):
                     properties = {}
                 action_id = str(row["id"])
+                unresolved_contexts = properties.get("unresolved_contexts", [])
+                if isinstance(unresolved_contexts, list):
+                    for context in unresolved_contexts:
+                        if not isinstance(context, dict):
+                            continue
+                        contexts_by_action[action_id].append(
+                            AttackFlowContext(
+                                id=str(context.get("id", "")),
+                                entity_id=None,
+                                type=str(context.get("type", "other")),
+                                name=str(context.get("name", "")),
+                                role=self._attack_flow_context_role(
+                                    str(context.get("role", "other"))
+                                ),
+                                direction=str(
+                                    context.get("direction", "action-to-entity")
+                                ),
+                                confidence=str(
+                                    context.get("confidence", "medium")
+                                ),
+                                evidence=context.get("evidence", []),
+                            )
+                        )
                 actions.append(
                     AttackFlowAction(
                         id=action_id,
@@ -533,6 +586,7 @@ class SqliteRepository:
                 FROM entities
                 WHERE entity_type = '攻击组织'
                    OR id IN (SELECT entity_id FROM action_context_links)
+                   OR id IN (SELECT entity_id FROM entity_mentions)
                    OR id IN (
                        SELECT actor_id FROM reported_actor_claims
                        WHERE actor_id IS NOT NULL
@@ -609,13 +663,28 @@ class SqliteRepository:
             ).fetchall()
             counts = {
                 "relationships": connection.execute(
-                    "SELECT COUNT(*) FROM relationships"
+                    """
+                    SELECT
+                        (SELECT COUNT(*) FROM activity_path_edges) +
+                        (SELECT COUNT(*) FROM action_context_links) +
+                        (SELECT COUNT(*) FROM reported_actor_claims)
+                    """
                 ).fetchone()[0],
                 "evidence": connection.execute(
-                    "SELECT COUNT(*) FROM evidence"
+                    """
+                    SELECT COUNT(DISTINCT source_span_id)
+                    FROM (
+                        SELECT source_span_id FROM path_evidence_links
+                        UNION ALL
+                        SELECT source_span_id FROM action_context_evidence_links
+                        UNION ALL
+                        SELECT source_span_id FROM reported_actor_evidence_links
+                    )
+                    """
                 ).fetchone()[0],
-                "actors": connection.execute(
-                    "SELECT COUNT(*) FROM actor_profiles"
+                "actors": 0,
+                "attack_steps": connection.execute(
+                    "SELECT COUNT(*) FROM activity_path_nodes"
                 ).fetchone()[0],
                 "corpus_artifacts": connection.execute(
                     "SELECT COUNT(*) FROM source_artifacts"
@@ -633,6 +702,8 @@ class SqliteRepository:
                 LIMIT 1
                 """
             ).fetchone()
+
+        counts["actors"] = len(self.load_actor_knowledge_slice()["actors"])
 
         entities = [self._export_entity(row) for row in entity_rows]
         reports = [dict(row) for row in report_rows]
@@ -665,10 +736,7 @@ class SqliteRepository:
                     entity["entity_type"] == "IOC/基础设施"
                     for entity in entities
                 ),
-                "attack_steps": sum(
-                    entity["entity_type"] == "攻击步骤"
-                    for entity in entities
-                ),
+                "attack_steps": int(counts["attack_steps"]),
                 "corpus_artifacts": int(counts["corpus_artifacts"]),
                 "reviewed_paths": int(counts["reviewed_paths"]),
             },
@@ -870,6 +938,22 @@ class SqliteRepository:
             content = str(values.pop("content"))
             document = SourceDocument(**values)
             return document, content, self._load_spans(connection, document.id)
+
+    def list_source_entity_mentions(self, source_document_id: str) -> list[dict]:
+        with self._connect() as connection:
+            rows = connection.execute(
+                """
+                SELECT em.id, em.entity_id, em.source_span_id,
+                       em.original_value, em.value_type, em.confidence,
+                       e.entity_type, e.label
+                FROM entity_mentions em
+                JOIN entities e ON e.id = em.entity_id
+                WHERE em.source_document_id = ?
+                ORDER BY em.source_span_id, em.id
+                """,
+                (source_document_id,),
+            ).fetchall()
+        return [dict(row) for row in rows]
 
     def find_curated_extraction(self, source_sha256: str) -> str | None:
         with self._connect() as connection:
@@ -1383,10 +1467,11 @@ class SqliteRepository:
                 context["resolution"]
                 for action in preview["actions"]
                 for context in [*action["contexts"], *action["techniques"]]
+                if context["resolution"]["status"] != "review"
             ]
             for resolution in resolutions:
                 canonical_key = resolution.get("canonical_key")
-                if not canonical_key or resolution["status"] == "review":
+                if not canonical_key:
                     raise ValueError("AttackFlow 包含未解决的规范实体")
                 if canonical_key in entity_id_by_key:
                     continue
@@ -1407,7 +1492,7 @@ class SqliteRepository:
                             canonical_key,
                             resolution["label"],
                             resolution["normalized_value"],
-                            "由人工复核 AttackFlow 的上下文映射创建。",
+                            "已在公开报告的攻击活动中出现，并保留来源证据。",
                             source.published_at,
                             source.published_at,
                             now,
@@ -1494,7 +1579,23 @@ class SqliteRepository:
                         float(sequence),
                         self._confidence_number(action["confidence"]),
                         json.dumps(
-                            {"description": action["description"]},
+                            {
+                                "description": action["description"],
+                                "unresolved_contexts": [
+                                    {
+                                        "id": context["id"],
+                                        "entity_id": None,
+                                        "type": context["type"],
+                                        "name": context["name"],
+                                        "role": context["role"],
+                                        "direction": context["direction"],
+                                        "confidence": context["confidence"],
+                                        "evidence": context["evidence"],
+                                    }
+                                    for context in action["contexts"]
+                                    if context["resolution"]["status"] == "review"
+                                ],
+                            },
                             ensure_ascii=False,
                         ),
                         now,
@@ -1549,6 +1650,8 @@ class SqliteRepository:
             for action in preview["actions"]:
                 for context in action["contexts"]:
                     resolution = context["resolution"]
+                    if resolution["status"] == "review":
+                        continue
                     entity_id = entity_id_by_key[resolution["canonical_key"]]
                     connection.execute(
                         """
@@ -2587,6 +2690,570 @@ class SqliteRepository:
             return [dict(row) for row in entities], [dict(row) for row in aliases]
 
     def load_actor_knowledge_slice(self) -> dict:
+        """Build actor profiles from the currently published attack flows."""
+        flows = self.list_attack_flows()
+        with self._connect() as connection:
+            entity_rows = connection.execute(
+                """
+                SELECT id, entity_type, canonical_key, label, normalized_value,
+                       description, first_seen, last_seen, source_count,
+                       properties_json, updated_at
+                FROM entities
+                ORDER BY entity_type, label
+                """
+            ).fetchall()
+            alias_rows = connection.execute(
+                """
+                SELECT id, entity_id, alias, alias_type, source, confidence
+                FROM aliases
+                ORDER BY entity_id, confidence DESC, id
+                """
+            ).fetchall()
+            profile_rows = connection.execute(
+                """
+                SELECT actor_id, profile_status, origin_label, active_from,
+                       active_to, public_attribution, motivations_json,
+                       target_sectors_json, source_refs_json, source_urls_json,
+                       source_grade, updated_at
+                FROM actor_profiles
+                ORDER BY actor_id
+                """
+            ).fetchall()
+            baseline_relationship_rows = connection.execute(
+                """
+                SELECT id, source_entity_id, target_entity_id, relation_type,
+                       confidence, evidence_count, first_seen, last_seen,
+                       category, status, properties_json
+                FROM relationships
+                WHERE seed_origin LIKE 'actor-baseline:%'
+                ORDER BY source_entity_id, relation_type, target_entity_id
+                """
+            ).fetchall()
+            external_mapping_rows = connection.execute(
+                """
+                SELECT actor_id, source, external_id, canonical_name,
+                       mapping_status, confidence, source_url, source_version,
+                       metadata_json, updated_at
+                FROM actor_external_mappings
+                ORDER BY actor_id, source
+                """
+            ).fetchall()
+            report_rows = connection.execute(
+                """
+                SELECT id, title, source, report_date, classification,
+                       language, original_filename, mime_type, size_bytes,
+                       sha256, extracted_text, extraction_note, created_at,
+                       source_ref, reliability, external_url, assessment
+                FROM raw_reports
+                ORDER BY report_date DESC, created_at DESC
+                """
+            ).fetchall()
+
+        def name_key(value: str) -> str:
+            normalized = unicodedata.normalize("NFKC", value).casefold()
+            return "".join(character for character in normalized if character.isalnum())
+
+        confidence_scores = {"high": 0.95, "medium": 0.7, "low": 0.4}
+        all_entities = {str(row["id"]): row for row in entity_rows}
+        profile_by_actor = {
+            str(row["actor_id"]): row for row in profile_rows
+        }
+        mappings_by_actor: dict[str, list[dict]] = defaultdict(list)
+        for row in external_mapping_rows:
+            mappings_by_actor[str(row["actor_id"])].append(
+                {
+                    "source": str(row["source"]),
+                    "external_id": str(row["external_id"]),
+                    "canonical_name": str(row["canonical_name"]),
+                    "mapping_status": str(row["mapping_status"]),
+                    "confidence": float(row["confidence"]),
+                    "source_url": str(row["source_url"]),
+                    "source_version": str(row["source_version"]),
+                    "metadata": self._json_value(row["metadata_json"], {}),
+                }
+            )
+        actor_entities = {
+            entity_id: row
+            for entity_id, row in all_entities.items()
+            if str(row["entity_type"]) == "攻击组织"
+        }
+        canonical_actor_ids: dict[str, str] = {}
+        for actor_id, row in actor_entities.items():
+            properties = self._json_value(row["properties_json"], {})
+            canonical_id = str(properties.get("canonical_actor_id", actor_id))
+            canonical_actor_ids[actor_id] = (
+                canonical_id if canonical_id in actor_entities else actor_id
+            )
+        actor_name_index: dict[str, str] = {}
+        for actor_id, row in actor_entities.items():
+            canonical_id = canonical_actor_ids[actor_id]
+            actor_name_index[name_key(str(row["label"]))] = canonical_id
+            actor_name_index[name_key(str(row["normalized_value"]))] = canonical_id
+        for row in alias_rows:
+            actor_id = str(row["entity_id"])
+            if actor_id in actor_entities:
+                actor_name_index[name_key(str(row["alias"]))] = canonical_actor_ids[
+                    actor_id
+                ]
+
+        generic_actor_names = {
+            "actor",
+            "actors",
+            "attacker",
+            "attackers",
+            "threatactor",
+            "threatactors",
+            "sameactor",
+            "samethreatactor",
+            "anotheractor",
+        }
+
+        def resolve_actor_ids(reported_name: str, actor_id: str | None) -> list[str]:
+            if actor_id and actor_id in actor_entities:
+                return [canonical_actor_ids[actor_id]]
+            key = name_key(reported_name)
+            if not key or key in generic_actor_names:
+                return []
+            direct = actor_name_index.get(key)
+            if direct:
+                return [direct]
+            parts = re.split(r"\s+(?:and|&)\s+|\s*/\s*|[,、]", reported_name)
+            resolved = {
+                actor_name_index[part_key]
+                for part in parts
+                if (part_key := name_key(part)) in actor_name_index
+            }
+            return sorted(resolved)
+
+        associations: dict[tuple[str, str], list] = defaultdict(list)
+        for flow in flows:
+            for claim in flow.reported_actors:
+                for actor_id in resolve_actor_ids(claim.reported_name, claim.actor_id):
+                    associations[(actor_id, flow.id)].append(claim)
+
+        selected_actor_ids = {actor_id for actor_id, _ in associations}
+        if not selected_actor_ids:
+            return self._load_legacy_actor_knowledge_slice()
+
+        reports = [dict(row) for row in report_rows]
+        report_by_source = {str(report["source_ref"]): report for report in reports}
+        report_by_title = {str(report["title"]): report for report in reports}
+        projected_entities: dict[str, dict] = {
+            actor_id: self._export_entity(actor_entities[actor_id])
+            for actor_id in selected_actor_ids
+        }
+        projected_relationships: dict[str, dict] = {}
+        projected_evidence: list[dict] = []
+        selected_report_ids: set[str] = set()
+        actor_flow_ids: dict[str, set[str]] = defaultdict(set)
+        actor_report_ids: dict[str, set[str]] = defaultdict(set)
+        actor_source_urls: dict[str, set[str]] = defaultdict(set)
+        actor_confidences: dict[str, list[float]] = defaultdict(list)
+
+        entity_by_label = {
+            (str(row["entity_type"]), name_key(str(row["label"]))): str(row["id"])
+            for row in entity_rows
+        }
+
+        def source_report(source_id: str, title: str = "") -> dict | None:
+            report = report_by_source.get(source_id)
+            if report:
+                return report
+            if source_id.startswith("ART-"):
+                report = report_by_source.get(f"SRC-DOC-{source_id.removeprefix('ART-')}")
+                if report:
+                    return report
+            return report_by_title.get(title)
+
+        def add_relationship(
+            relationship_id: str,
+            source_id: str,
+            target_id: str,
+            relation_type: str,
+            confidence: float,
+            first_seen: str | None,
+            last_seen: str | None,
+            category: str,
+            properties: dict,
+        ) -> None:
+            projected_relationships[relationship_id] = {
+                "id": relationship_id,
+                "source_entity_id": source_id,
+                "target_entity_id": target_id,
+                "relation_type": relation_type,
+                "confidence": round(confidence, 3),
+                "evidence_count": 0,
+                "first_seen": first_seen,
+                "last_seen": last_seen,
+                "category": category,
+                "status": "published",
+                "properties": properties,
+            }
+
+        def add_evidence(relationship_id: str, evidence_items: list) -> None:
+            seen_sources: set[tuple[str, str]] = set()
+            for item in evidence_items:
+                report = source_report(item.source_id, item.title)
+                if report is None:
+                    continue
+                identity = (str(report["id"]), item.quote)
+                if identity in seen_sources:
+                    continue
+                seen_sources.add(identity)
+                selected_report_ids.add(str(report["id"]))
+                projected_evidence.append(
+                    {
+                        "id": f"AK-EV-{sha256(f'{relationship_id}|{item.id}'.encode()).hexdigest()[:18]}",
+                        "relationship_id": relationship_id,
+                        "report_id": str(report["id"]),
+                        "source_ref": str(report["source_ref"]),
+                        "location": item.locator,
+                        "excerpt": item.quote,
+                        "confidence": round(float(item.confidence), 3),
+                        "report_title": str(report["title"]),
+                        "publisher": str(report["source"]),
+                        "report_date": str(report["report_date"]),
+                        "canonical_url": str(report["external_url"]),
+                    }
+                )
+            projected_relationships[relationship_id]["evidence_count"] = len(
+                seen_sources
+            )
+
+        for flow in flows:
+            flow_actor_ids = sorted(
+                actor_id
+                for actor_id in selected_actor_ids
+                if (actor_id, flow.id) in associations
+            )
+            if not flow_actor_ids:
+                continue
+            dates = sorted(source.published_at[:10] for source in flow.sources if source.published_at)
+            first_seen = dates[0] if dates else None
+            last_seen = dates[-1] if dates else None
+            activity_id = f"AK-ACTIVITY-{flow.id}"
+            projected_entities[activity_id] = {
+                "id": activity_id,
+                "entity_type": "历史事件",
+                "canonical_key": flow.id,
+                "label": flow.title,
+                "normalized_value": flow.title.casefold(),
+                "description": flow.description,
+                "first_seen": first_seen,
+                "last_seen": last_seen,
+                "source_count": len({source.id for source in flow.sources}),
+                "properties": {"flow_id": flow.id, "ui_type": "activity"},
+            }
+            flow_evidence = [
+                item
+                for action in flow.actions
+                for item in action.evidence
+            ]
+            for actor_id in flow_actor_ids:
+                claims = associations[(actor_id, flow.id)]
+                actor_flow_ids[actor_id].add(flow.id)
+                actor_confidences[actor_id].extend(
+                    confidence_scores[claim.confidence] for claim in claims
+                )
+                relationship_id = f"AK-ATTR-{actor_id}-{flow.id}"
+                add_relationship(
+                    relationship_id,
+                    actor_id,
+                    activity_id,
+                    "reported-actor",
+                    max(confidence_scores[claim.confidence] for claim in claims),
+                    first_seen,
+                    last_seen,
+                    "attribution",
+                    {"reported_names": sorted({claim.reported_name for claim in claims})},
+                )
+                claim_evidence = [item for claim in claims for item in claim.evidence]
+                add_evidence(relationship_id, claim_evidence or flow_evidence[:1])
+                for evidence in projected_evidence:
+                    if evidence["relationship_id"] != relationship_id:
+                        continue
+                    actor_report_ids[actor_id].add(evidence["report_id"])
+                    report = next(
+                        item for item in reports if item["id"] == evidence["report_id"]
+                    )
+                    if report["external_url"]:
+                        actor_source_urls[actor_id].add(str(report["external_url"]))
+
+            action_by_id = {action.id: action for action in flow.actions}
+            for action in flow.actions:
+                projected_entities[action.id] = {
+                    "id": action.id,
+                    "entity_type": "攻击步骤",
+                    "canonical_key": action.id,
+                    "label": action.name,
+                    "normalized_value": action.name.casefold(),
+                    "description": action.description,
+                    "first_seen": first_seen,
+                    "last_seen": last_seen,
+                    "source_count": len({item.source_id for item in action.evidence}),
+                    "properties": {
+                        "flow_id": flow.id,
+                        "phase": action.phase,
+                        "confidence": confidence_scores[action.confidence],
+                        "ui_type": "attack-step",
+                    },
+                }
+                for context in action.contexts:
+                    if context.entity_id and context.entity_id in all_entities:
+                        projected_entities[context.entity_id] = self._export_entity(
+                            all_entities[context.entity_id]
+                        )
+                        relationship_id = f"AK-CONTEXT-{context.id}"
+                        add_relationship(
+                            relationship_id,
+                            action.id,
+                            context.entity_id,
+                            context.role,
+                            confidence_scores[context.confidence],
+                            first_seen,
+                            last_seen,
+                            "context",
+                            {"direction": context.direction, "flow_id": flow.id},
+                        )
+                        add_evidence(relationship_id, context.evidence)
+                for technique_label in action.technique_ids:
+                    technique_id = entity_by_label.get(
+                        ("ATT&CK 技术", name_key(technique_label))
+                    )
+                    if not technique_id:
+                        continue
+                    projected_entities[technique_id] = self._export_entity(
+                        all_entities[technique_id]
+                    )
+                    relationship_id = f"AK-TECH-{action.id}-{technique_id}"
+                    add_relationship(
+                        relationship_id,
+                        action.id,
+                        technique_id,
+                        "uses-technique",
+                        confidence_scores[action.confidence],
+                        first_seen,
+                        last_seen,
+                        "technique",
+                        {"flow_id": flow.id},
+                    )
+                    add_evidence(relationship_id, action.evidence)
+
+            first_action_id = next(
+                (action_id for action_id in flow.mainline if action_id in action_by_id),
+                flow.actions[0].id if flow.actions else None,
+            )
+            if first_action_id:
+                relationship_id = f"AK-FLOW-{flow.id}"
+                add_relationship(
+                    relationship_id,
+                    activity_id,
+                    first_action_id,
+                    "starts-with",
+                    confidence_scores[action_by_id[first_action_id].confidence],
+                    first_seen,
+                    last_seen,
+                    "attack-flow",
+                    {"flow_id": flow.id},
+                )
+                add_evidence(relationship_id, action_by_id[first_action_id].evidence)
+            for relation in flow.relations:
+                add_relationship(
+                    relation.id,
+                    relation.source_action_id,
+                    relation.target_action_id,
+                    relation.type,
+                    confidence_scores[relation.confidence],
+                    first_seen,
+                    last_seen,
+                    "attack-flow",
+                    {"condition": relation.condition, "flow_id": flow.id},
+                )
+                add_evidence(relation.id, relation.evidence)
+
+        for row in baseline_relationship_rows:
+            actor_id = str(row["source_entity_id"])
+            target_id = str(row["target_entity_id"])
+            if actor_id not in selected_actor_ids or target_id not in all_entities:
+                continue
+            projected_entities[target_id] = self._export_entity(
+                all_entities[target_id]
+            )
+            projected_relationships[str(row["id"])] = self._export_relationship(
+                row
+            )
+
+        generated_at = datetime.now(timezone.utc).isoformat()
+        actors = []
+        for actor_id in sorted(selected_actor_ids, key=lambda item: str(actor_entities[item]["label"])):
+            row = actor_entities[actor_id]
+            profile = profile_by_actor.get(actor_id)
+            related_flows = actor_flow_ids[actor_id]
+            report_ids = actor_report_ids[actor_id]
+            dates = sorted(
+                date
+                for flow in flows
+                if flow.id in related_flows
+                for date in [
+                    source.published_at[:10]
+                    for source in flow.sources
+                    if source.published_at
+                ]
+            )
+            local_summary = (
+                f"当前本库有 {len(report_ids)} 篇来源报告、"
+                f"{len(related_flows)} 条攻击流与 {row['label']} 相关。"
+            )
+            profile_source_refs = (
+                self._json_value(profile["source_refs_json"], [])
+                if profile
+                else []
+            )
+            profile_source_urls = (
+                self._json_value(profile["source_urls_json"], [])
+                if profile
+                else []
+            )
+            actor_properties = self._json_value(row["properties_json"], {}) | {
+                "local_report_count": len(report_ids),
+                "local_flow_count": len(related_flows),
+                "baseline_source_count": len(profile_source_urls),
+                "baseline_source_urls": profile_source_urls,
+                "local_source_urls": sorted(actor_source_urls[actor_id]),
+                "external_mappings": mappings_by_actor.get(actor_id, []),
+            }
+            actors.append(
+                {
+                    "id": actor_id,
+                    "label": str(row["label"]),
+                    "description": str(row["description"]),
+                    "source_count": len(report_ids),
+                    "properties": actor_properties,
+                    "profile_status": (
+                        str(profile["profile_status"])
+                        if profile
+                        else "agent-assisted-reviewed"
+                    ),
+                    "origin_label": (
+                        str(profile["origin_label"])
+                        if profile
+                        else "由当前已入库公开报告和攻击流动态归并"
+                    ),
+                    "active_from": (
+                        str(profile["active_from"])
+                        if profile and profile["active_from"]
+                        else dates[0] if dates else row["first_seen"]
+                    ),
+                    "active_to": (
+                        str(profile["active_to"])
+                        if profile and profile["active_to"]
+                        else None
+                        if profile and profile["active_from"]
+                        else dates[-1]
+                        if dates
+                        else row["last_seen"]
+                    ),
+                    "public_attribution": (
+                        f"{profile['public_attribution']} {local_summary}"
+                        if profile
+                        else f"{local_summary}此画像随数据库入库结果动态更新。"
+                    ),
+                    "motivations": (
+                        self._json_value(profile["motivations_json"], [])
+                        if profile
+                        else []
+                    ),
+                    "target_sectors": (
+                        self._json_value(profile["target_sectors_json"], [])
+                        if profile
+                        else []
+                    ),
+                    "source_refs": sorted(
+                        set(profile_source_refs) | set(report_ids)
+                    ),
+                    "source_urls": sorted(
+                        set(profile_source_urls)
+                        | set(actor_source_urls[actor_id])
+                    ),
+                    "source_grade": (
+                        float(profile["source_grade"])
+                        if profile
+                        else round(
+                            sum(actor_confidences[actor_id])
+                            / max(len(actor_confidences[actor_id]), 1),
+                            3,
+                        )
+                    ),
+                    "updated_at": (
+                        str(profile["updated_at"]) if profile else generated_at
+                    ),
+                }
+            )
+
+        projected_aliases = [
+            dict(row) for row in alias_rows if str(row["entity_id"]) in selected_actor_ids
+        ]
+        existing_aliases = {
+            (str(item["entity_id"]), name_key(str(item["alias"])))
+            for item in projected_aliases
+        }
+        for (actor_id, _), claims in associations.items():
+            canonical = str(actor_entities[actor_id]["label"])
+            for claim in claims:
+                claim_key = name_key(claim.reported_name)
+                if actor_name_index.get(claim_key) != actor_id:
+                    continue
+                alias_identity = (actor_id, claim_key)
+                if not alias_identity[1] or alias_identity in existing_aliases:
+                    continue
+                if name_key(canonical) == alias_identity[1]:
+                    continue
+                existing_aliases.add(alias_identity)
+                projected_aliases.append(
+                    {
+                        "id": f"AK-ALIAS-{sha256(f'{actor_id}|{claim.reported_name}'.encode()).hexdigest()[:16]}",
+                        "entity_id": actor_id,
+                        "alias": claim.reported_name,
+                        "alias_type": "reported-name",
+                        "source": "attack-flow-claim",
+                        "confidence": confidence_scores[claim.confidence],
+                    }
+                )
+
+        scoped_reports = [
+            report for report in reports if str(report["id"]) in selected_report_ids
+        ]
+        version_payload = "|".join(
+            [
+                str(len(actors)),
+                str(len(projected_entities)),
+                str(len(projected_relationships)),
+                str(len(projected_evidence)),
+                str(len(profile_rows)),
+                str(len(baseline_relationship_rows)),
+                *sorted(flow.id for flow in flows),
+            ]
+        )
+        return {
+            "meta": {
+                "source": str(self.database_path),
+                "generated_at": generated_at,
+                "version": f"actor-flow-{sha256(version_payload.encode()).hexdigest()[:16]}",
+            },
+            "scope": {
+                "actor_ids": sorted(selected_actor_ids),
+                "entity_ids": sorted(projected_entities),
+                "relationship_ids": sorted(projected_relationships),
+            },
+            "actors": actors,
+            "entities": list(projected_entities.values()),
+            "relationships": list(projected_relationships.values()),
+            "evidence": projected_evidence,
+            "reports": scoped_reports,
+            "aliases": projected_aliases,
+        }
+
+    def _load_legacy_actor_knowledge_slice(self) -> dict:
         """Return the actor-centered graph projection consumed by the UI.
 
         The projection follows an actor's direct relationships, then walks the

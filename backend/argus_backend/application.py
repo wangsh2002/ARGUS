@@ -7,6 +7,7 @@ from .models import (
     AttackFlow,
     AttackFlowDraft,
     AttackFlowMergeReview,
+    AttackFlowSourceDocumentView,
     FlowMatchRequest,
     FlowMatchRun,
     PanoramicGraphIndex,
@@ -25,6 +26,7 @@ from .entity_evidence import EntityEvidenceIngestionService
 from .flow_matcher import AttackFlowMatcher
 from .panoramic_graph import PanoramicGraphService
 from .repository import SqliteRepository
+from .source_annotations import AttackFlowSourceAnnotationService
 
 
 class ArgusApplication:
@@ -37,6 +39,7 @@ class ArgusApplication:
         self.entity_evidence = EntityEvidenceIngestionService(repository)
         self.attack_flow_publication = AttackFlowPublicationService(repository)
         self.panoramic_graph = PanoramicGraphService(repository)
+        self.source_annotations = AttackFlowSourceAnnotationService(repository)
         self.attack_flow_language_model = attack_flow_language_model
 
     def archive_source(self, request: SourceArchiveRequest) -> SourceArchiveResponse:
@@ -83,6 +86,11 @@ class ArgusApplication:
 
     def list_attack_flows(self) -> list[AttackFlow]:
         return self.repository.list_attack_flows()
+
+    def get_attack_flow_source_documents(
+        self, flow_id: str
+    ) -> list[AttackFlowSourceDocumentView]:
+        return self.source_annotations.documents(self.get_attack_flow(flow_id))
 
     def get_panoramic_graph_index(self) -> PanoramicGraphIndex:
         return self.panoramic_graph.index()

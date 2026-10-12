@@ -12,7 +12,39 @@ import {
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { formatDate, getChainParts } from "../argus-domain";
-import type { Report, RuntimeCatalog, SearchMode } from "../types";
+import {
+  analysisInputForReport,
+  buildSearchExamples,
+  normalizedFlowSourceRef,
+  type SearchExample,
+} from "../search-recommendations";
+import {
+  curatedHomeReports,
+  curatedIntelReportTitles,
+  curatedPathReportTitles,
+} from "../showcase-config";
+import type { AttackFlow, Report, RuntimeCatalog, SearchMode } from "../types";
+
+function selectReports(
+  reports: Report[],
+  titles: string[],
+  fallback: Report[],
+  limit: number,
+) {
+  const selected = titles.flatMap((title) => {
+    const report = reports.find((candidate) => candidate.title === title);
+    return report ? [report] : [];
+  });
+  fallback.forEach((report) => {
+    if (
+      selected.length < limit &&
+      !selected.some((candidate) => candidate.id === report.id)
+    ) {
+      selected.push(report);
+    }
+  });
+  return selected.slice(0, limit);
+}
 
 const modes: Array<{
   id: SearchMode;
@@ -36,29 +68,9 @@ const modes: Array<{
   },
 ];
 
-const examplesByMode: Record<Exclude<SearchMode, "graph">, string[]> = {
-  intel: [
-    "194.32.78.245",
-    "ecombox.store",
-    "APT28",
-    "cdn-meeting-update.com",
-    "CVE-2017-6742",
-  ],
-  path: [
-    "打开 ZIPX 诱饵 → 释放 Zebrocy → 创建计划任务 → 向 194.32.78.245 回传数据",
-    "取得 DNC 环境访问 → 监控邮件与聊天",
-    "执行 ApplicationPDF → 连接 C2 并落地脚本 → 内存解密 PowerRatankba → 收集主机信息并驻留",
-  ],
-  gpt: [
-    "根据公开报告总结 APT28 使用 Zebrocy 的攻击路径与关键 IOC",
-    "梳理 Lazarus 使用 PowerRatankba 的攻击过程和处置重点",
-    "总结 Midnight Blizzard 的公开情报",
-    "比较这组线索可能命中的历史事件",
-  ],
-};
-
 export function SearchView({
   data,
+  attackFlows,
   query,
   mode,
   onQuery,
@@ -67,6 +79,7 @@ export function SearchView({
   onOpenReport,
 }: {
   data: RuntimeCatalog;
+  attackFlows: AttackFlow[];
   query: string;
   mode: SearchMode;
   onQuery: (value: string) => void;
@@ -81,39 +94,99 @@ export function SearchView({
   const [uploadedFileName, setUploadedFileName] = useState("");
   const [pathRawOpen, setPathRawOpen] = useState(true);
   const visibleMode = mode === "graph" ? "intel" : mode;
-  const examples = examplesByMode[visibleMode];
+  const examples: SearchExample[] = buildSearchExamples(
+    visibleMode,
+    data,
+    attackFlows,
+  );
   const pathParts = visibleMode === "path" ? getChainParts(query) : [];
-  const normalizedQuery = query.trim().toLocaleLowerCase();
-  const recommendedReports = [...data.reports]
+  const reportFlowQuality = new Map<string, number>();
+  const reportFlowCounts = new Map<string, number>();
+  const reportActionCounts = new Map<string, number>();
+  const reportEvidenceIds = new Map<string, Set<string>>();
+  attackFlows.forEach((flow) => {
+    const contextCount = flow.actions.reduce(
+      (total, action) => total + action.contexts.length,
+      0,
+    );
+    const quality =
+      flow.actions.length * 5 +
+      Math.min(contextCount, flow.actions.length * 4) +
+      flow.reported_actors.length * 5;
+    new Set(flow.sources.map((source) => normalizedFlowSourceRef(source.id))).forEach(
+      (sourceRef) => {
+      reportFlowQuality.set(
+          sourceRef,
+          (reportFlowQuality.get(sourceRef) ?? 0) + quality,
+      );
+        reportFlowCounts.set(
+          sourceRef,
+          (reportFlowCounts.get(sourceRef) ?? 0) + 1,
+        );
+        reportActionCounts.set(
+          sourceRef,
+          (reportActionCounts.get(sourceRef) ?? 0) + flow.actions.length,
+        );
+        const evidenceIds = reportEvidenceIds.get(sourceRef) ?? new Set<string>();
+        flow.actions.forEach((action) => {
+          action.evidence.forEach((evidence) => evidenceIds.add(evidence.id));
+          action.contexts.forEach((context) =>
+            context.evidence.forEach((evidence) => evidenceIds.add(evidence.id)),
+          );
+        });
+        flow.reported_actors.forEach((actor) =>
+          actor.evidence.forEach((evidence) => evidenceIds.add(evidence.id)),
+        );
+        reportEvidenceIds.set(sourceRef, evidenceIds);
+      },
+    );
+  });
+  const rankedReports = [...data.reports]
+    .filter((report) => (reportFlowQuality.get(report.source_ref) ?? 0) > 0)
     .sort(
       (left, right) =>
-        Number(Boolean(right.external_url)) -
-          Number(Boolean(left.external_url)) ||
+        (visibleMode === "path"
+          ? Number((reportFlowCounts.get(right.source_ref) ?? 0) > 1) -
+            Number((reportFlowCounts.get(left.source_ref) ?? 0) > 1)
+          : 0) ||
+        (reportFlowQuality.get(right.source_ref) ?? 0) -
+          (reportFlowQuality.get(left.source_ref) ?? 0) ||
         right.report_date.localeCompare(left.report_date),
-    )
-    .filter((report) => {
-      if (!normalizedQuery) return true;
-      return `${report.title} ${report.assessment} ${report.source}`
-        .toLocaleLowerCase()
-        .includes(normalizedQuery);
-    })
-    .slice(0, visibleMode === "path" ? 2 : 5);
-  const datedReports = [...data.reports]
-    .filter((report) => report.report_date && report.assessment)
-    .sort((left, right) => right.report_date.localeCompare(left.report_date));
-  const verifiedPublicReport = datedReports.find(
-    (report) =>
-      report.external_url &&
-      !report.external_url.includes("example.invalid"),
+    );
+  const recommendedReports = selectReports(
+    data.reports,
+    visibleMode === "path"
+      ? curatedPathReportTitles
+      : curatedIntelReportTitles,
+    rankedReports,
+    visibleMode === "path" ? 2 : 5,
   );
-  const historicalReports = datedReports.slice(0, 6);
-  if (
-    verifiedPublicReport &&
-    !historicalReports.some((report) => report.id === verifiedPublicReport.id)
-  ) {
-    historicalReports[historicalReports.length - 1] = verifiedPublicReport;
-  }
-
+  const qualityReports = [...data.reports]
+    .filter((report) => (reportFlowQuality.get(report.source_ref) ?? 0) > 0)
+    .sort(
+      (left, right) =>
+        (reportFlowQuality.get(right.source_ref) ?? 0) -
+          (reportFlowQuality.get(left.source_ref) ?? 0) ||
+        right.report_date.localeCompare(left.report_date),
+    );
+  const historicalFallback = qualityReports.length
+    ? qualityReports
+    : [...data.reports]
+        .filter((report) => report.assessment)
+        .sort((left, right) => right.report_date.localeCompare(left.report_date));
+  const historicalReports = selectReports(
+    data.reports,
+    curatedHomeReports.map((report) => report.title),
+    historicalFallback,
+    6,
+  );
+  const reportShowcaseNotes = new Map(
+    curatedHomeReports.map((report) => [report.title, report.note]),
+  );
+  const reportPathInput = (sourceRef: string) => {
+    const report = data.reports.find((candidate) => candidate.source_ref === sourceRef);
+    return report ? analysisInputForReport(report, attackFlows) : "";
+  };
   const loadAnalysisFile = async (file?: File) => {
     if (!file) return;
     onQuery(await file.text());
@@ -350,9 +423,9 @@ export function SearchView({
                     {examples.map((example) => (
                       <button
                         type="button"
-                        key={example}
+                        key={example.query}
                         onClick={() => {
-                          onQuery(example);
+                          onQuery(example.query);
                           if (visibleMode === "path") {
                             setUploadedFileName("");
                             setPathRawOpen(true);
@@ -361,7 +434,10 @@ export function SearchView({
                         }}
                       >
                         <Search size={14} />
-                        <span>{example}</span>
+                        <span>
+                          <strong>{example.label}</strong>
+                          <small>{example.note}</small>
+                        </span>
                         <ArrowRight size={13} />
                       </button>
                     ))}
@@ -381,7 +457,11 @@ export function SearchView({
                         type="button"
                         key={report.id}
                         onClick={() => {
-                          onQuery(report.title);
+                          onQuery(
+                            visibleMode === "path"
+                              ? reportPathInput(report.source_ref) || report.title
+                              : report.title,
+                          );
                           if (visibleMode === "path") {
                             setUploadedFileName(report.title);
                             setPathRawOpen(false);
@@ -406,47 +486,54 @@ export function SearchView({
         </div>
       </section>
 
-      <section
-        className="home-report-history"
-        aria-labelledby="home-report-history-title"
-      >
-        <header>
-          <div>
-            <span className="eyebrow">COMPLETED ANALYSIS</span>
-            <h2 id="home-report-history-title">历史研判报告</h2>
-            <p>继续查看已完成的分析，保留来源、研判结论与攻击路径上下文。</p>
-          </div>
-          <span className="home-report-count">
-            {historicalReports.length} 份近期记录
-          </span>
-        </header>
+      {visibleMode === "intel" && historicalReports.length > 0 && (
+        <section
+          className="home-report-history"
+          aria-labelledby="home-report-history-title"
+        >
+          <header>
+            <div>
+              <span className="eyebrow">COMPLETED ANALYSIS</span>
+              <h2 id="home-report-history-title">历史研判报告</h2>
+              <p>继续查看已完成的分析，保留来源、研判结论与攻击路径上下文。</p>
+            </div>
+            <span className="home-report-count">
+              {historicalReports.length} 份精选记录
+            </span>
+          </header>
 
-        <div className="home-report-history-list">
-          {historicalReports.map((report, index) => (
-            <button
-              type="button"
-              className={`home-report-card${index === 0 ? " is-featured" : ""}`}
-              key={report.id}
-              onClick={() => onOpenReport(report)}
-            >
-              <span className="home-report-date">
-                <CalendarDays size={15} />
-                <time dateTime={report.report_date}>
-                  {formatDate(report.report_date)}
-                </time>
-              </span>
-              <span className="home-report-summary">
-                <small>{report.source}</small>
-                <strong>{report.title}</strong>
-                <span>{report.assessment}</span>
-              </span>
-              <span className="home-report-action">
-                打开研判 <ArrowRight size={14} />
-              </span>
-            </button>
-          ))}
-        </div>
-      </section>
+          <div className="home-report-history-list">
+            {historicalReports.map((report, index) => (
+              <button
+                type="button"
+                className={`home-report-card${index === 0 ? " is-featured" : ""}`}
+                key={report.id}
+                onClick={() => onOpenReport(report)}
+              >
+                <span className="home-report-date">
+                  <CalendarDays size={15} />
+                  <time dateTime={report.report_date}>
+                    {formatDate(report.report_date)}
+                  </time>
+                </span>
+                <span className="home-report-summary">
+                  <small>{report.source}</small>
+                  <strong>{report.title}</strong>
+                  <span>
+                    {(reportFlowCounts.get(report.source_ref) ?? 0) > 0
+                      ? `${reportFlowCounts.get(report.source_ref)} 条攻击流 · ${reportActionCounts.get(report.source_ref) ?? 0} 个攻击步骤 · ${reportEvidenceIds.get(report.source_ref)?.size ?? 0} 条证据${reportShowcaseNotes.get(report.title) ? ` · ${reportShowcaseNotes.get(report.title)}` : ""}`
+                      : report.assessment}
+                  </span>
+                </span>
+                <span className="home-report-action">
+                  打开研判 <ArrowRight size={14} />
+                </span>
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
+
     </main>
   );
 }

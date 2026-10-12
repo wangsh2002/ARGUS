@@ -70,6 +70,7 @@ const typeGlyph: Record<string, string> = {
   历史事件: "◈",
   攻击步骤: "◆",
   "IOC/基础设施": "◉",
+  "IOC 集合": "#",
   "恶意软件/工具": "✦",
   "ATT&CK 技术": "T",
   CVE: "V",
@@ -890,11 +891,16 @@ export function NetworkGraph({
               typeof node.entity.properties.analysis_state === "string"
                 ? node.entity.properties.analysis_state
                 : "unknown";
+            const iocMemberCount =
+              node.type === "IOC 集合" &&
+              typeof node.properties?.member_count === "number"
+                ? node.properties.member_count
+                : 0;
             return (
               <g
                 key={node.id}
                 transform={`translate(${point.x} ${point.y})`}
-                className={`graph-node node-${node.status ?? "positive"} evidence-${evidenceClass} analysis-${analysisState} ${selected ? "is-selected" : ""} ${root ? "is-root" : ""} ${highlighted ? "is-highlighted" : ""} ${mutedIds.includes(node.id) ? "is-muted" : ""} ${dragging ? "is-dragging" : ""}`}
+                className={`graph-node node-${node.status ?? "positive"} evidence-${evidenceClass} analysis-${analysisState} ${node.type === "IOC 集合" ? "is-ioc-collection" : ""} ${selected ? "is-selected" : ""} ${root ? "is-root" : ""} ${highlighted ? "is-highlighted" : ""} ${mutedIds.includes(node.id) ? "is-muted" : ""} ${dragging ? "is-dragging" : ""}`}
                 onPointerDown={(event) => startDrag(event, node)}
                 onPointerMove={(event) => moveDrag(event, node)}
                 onPointerUp={(event) => endDrag(event, node)}
@@ -905,7 +911,7 @@ export function NetworkGraph({
                 }}
                 role="button"
                 tabIndex={0}
-                aria-label={`${node.type}：${node.label}`}
+                aria-label={`${node.type}：${node.label}${iocMemberCount ? `，包含 ${iocMemberCount} 个对象` : ""}`}
                 onKeyDown={(event) => {
                   if (event.key === "Enter" || event.key === " ") onSelect?.(node);
                   if (event.key === "Escape") releaseNode(node.id);
@@ -914,14 +920,16 @@ export function NetworkGraph({
                 <circle className="node-halo" r={root ? 36 : 28} />
                 <circle className="node-core" r={root ? 29 : 22} />
                 <text className="node-glyph" textAnchor="middle" y="5">
-                  {typeGlyph[node.type] ?? "•"}
+                  {iocMemberCount || typeGlyph[node.type] || "•"}
                 </text>
                 <text className="node-label" textAnchor="middle" y={root ? 53 : 43}>
                   {shortLabel(node.label, compact ? 11 : 17)}
                 </text>
-                {!compact && node.confidence != null && (
+                {!compact && (iocMemberCount > 0 || node.confidence != null) && (
                   <text className="node-score" textAnchor="middle" y={root ? 69 : 58}>
-                    {Math.round(node.confidence * 100)}%
+                    {iocMemberCount
+                      ? `${iocMemberCount} 个对象`
+                      : `${Math.round((node.confidence ?? 0) * 100)}%`}
                   </text>
                 )}
                 {!compact && (hiddenNeighborCounts[node.id] ?? 0) > 0 && (

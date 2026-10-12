@@ -51,6 +51,9 @@ def test_migration_removes_curated_graph_but_keeps_corpus_and_model_runs(
     with sqlite3.connect(database_path) as connection:
         connection.executescript(migration)
         connection.execute("DELETE FROM schema_migrations WHERE version = 20")
+        baseline_path_count = connection.execute(
+            "SELECT COUNT(*) FROM activity_paths"
+        ).fetchone()[0]
         preserved_counts = connection.execute(
             """
             SELECT
@@ -150,7 +153,7 @@ def test_migration_removes_curated_graph_but_keeps_corpus_and_model_runs(
 
         assert connection.execute(
             "SELECT COUNT(*) FROM activity_paths"
-        ).fetchone()[0] == 0
+        ).fetchone()[0] == baseline_path_count
         assert connection.execute(
             "SELECT COUNT(*) FROM entities WHERE seed_origin = 'annoctr-curated-v1'"
         ).fetchone()[0] == 0

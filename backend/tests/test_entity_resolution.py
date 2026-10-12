@@ -34,7 +34,7 @@ def test_related_but_distinct_network_values_are_not_merged() -> None:
     assert ip.canonical_key != endpoint.canonical_key
 
 
-def test_named_software_requires_review_before_global_creation() -> None:
+def test_named_software_is_canonical_but_action_phrases_are_not_entities() -> None:
     software = canonicalize_observation("Jaguar Tooth", "malware")
     action_label = canonicalize_observation(
         "Jaguar Tooth deployment",
@@ -42,5 +42,5 @@ def test_named_software_requires_review_before_global_creation() -> None:
     )
 
     assert software is not None
-    assert software.auto_create is False
+    assert software.auto_create is True
     assert action_label is None

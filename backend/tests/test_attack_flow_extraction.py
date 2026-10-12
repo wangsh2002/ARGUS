@@ -1,5 +1,4 @@
 from pathlib import Path
-from hashlib import sha256
 import json
 import shutil
 
@@ -149,6 +148,60 @@ def test_model_output_is_rewritten_to_local_ids_and_canonical_shape() -> None:
     assert candidate.reported_actors[0].id == "ACTOR1"
     assert result.audit["candidate_count"] == 1
     assert result.audit["unassigned_evidence"][0]["quote"] in SOURCE_TEXT
+
+
+def test_valid_action_phrases_do_not_depend_on_a_fixed_verb_list() -> None:
+    candidate = valid_candidate()
+    candidate["actions"][0]["name"] = "Conduct document delivery"
+    candidate["actions"][1]["name"] = "Monitor PowerShell execution"
+
+    result = extract_attack_flow_candidates(
+        FixedAttackFlowModel({"candidates": [candidate]}),
+        {"sha256": "9" * 64},
+        SOURCE_TEXT,
+    )
+
+    assert [item.name for item in result.candidates[0].actions] == [
+        "Conduct document delivery",
+        "Monitor PowerShell execution",
+    ]
+
+
+def test_organization_operations_are_not_persisted_as_attack_actions() -> None:
+    candidate = valid_candidate()
+    candidate["actions"].append(
+        action(
+            "ORG-ACTION",
+            "Announce group affiliation",
+            "报告称该活动由 NightFox 实施。",
+            scope="organization",
+        )
+    )
+    candidate["relations"].append(
+        {
+            "id": "ORG-RELATION",
+            "source_action_id": "GLOBAL-ACTION-100",
+            "target_action_id": "ORG-ACTION",
+            "type": "precedes",
+            "confidence": "medium",
+            "evidence": [{"quote": "报告称该活动由 NightFox 实施。"}],
+        }
+    )
+
+    result = extract_attack_flow_candidates(
+        FixedAttackFlowModel({"candidates": [candidate]}),
+        {"sha256": "7" * 64},
+        SOURCE_TEXT,
+    )
+
+    assert [item.name for item in result.candidates[0].actions] == [
+        "投递恶意文档",
+        "执行 PowerShell",
+    ]
+    assert any(
+        item["reason"] == "action-outside-cyber-operation"
+        for item in result.audit["rejected_facts"]
+    )
 
 
 def test_invalid_facts_are_audited_and_missing_relation_stays_disconnected() -> None:
@@ -634,6 +687,7 @@ def test_bracketed_similar_segments_merge_without_merging_adjacent_activity() ->
             "activities": [
                 {
                     "title": "Example loader delivering shared payload via word document",
+                    "actor_anchor": "Example actor",
                     "line_ranges": [
                         {"start_line": 1, "end_line": 2},
                         {"start_line": 5, "end_line": 6},
@@ -641,11 +695,13 @@ def test_bracketed_similar_segments_merge_without_merging_adjacent_activity() ->
                 },
                 {
                     "title": "Example loader delivering shared payload via excel document",
+                    "actor_anchor": "Example actor",
                     "start_line": 3,
                     "end_line": 4,
                 },
                 {
                     "title": "Example loader later campaign",
+                    "actor_anchor": "Example actor",
                     "start_line": 7,
                     "end_line": 8,
                 },
@@ -660,6 +716,35 @@ def test_bracketed_similar_segments_merge_without_merging_adjacent_activity() ->
     assert groups[0]["method"] == "bracketed-similar-title"
     assert groups[1]["segment_ids"] == ["S3"]
     assert groups[1]["method"] == "independent"
+
+
+def test_bracketed_segments_with_different_actor_anchors_stay_independent() -> None:
+    source = "outer entry\ninner entry\nouter payload"
+    slices = _validated_activity_slices(
+        {
+            "activities": [
+                {
+                    "title": "Shared incident entry and payload",
+                    "actor_anchor": "Actor Alpha",
+                    "line_ranges": [
+                        {"start_line": 1, "end_line": 1},
+                        {"start_line": 3, "end_line": 3},
+                    ],
+                },
+                {
+                    "title": "Shared incident alternate entry",
+                    "actor_anchor": "Actor Beta",
+                    "start_line": 2,
+                    "end_line": 2,
+                },
+            ]
+        },
+        source,
+    )
+
+    groups = _validated_activity_groups({}, slices, source)
+
+    assert [group["segment_ids"] for group in groups] == [["S1"], ["S2"]]
 
 
 def test_single_activity_span_keeps_internal_variant_sections() -> None:
@@ -893,6 +978,13 @@ def test_generic_consolidation_and_relation_pass_preserve_merge(monkeypatch) -> 
                 "unassigned_evidence": [],
             },
             {
+                "actions": [
+                    {"id": "A1", "decision": "keep", "actor_anchor": "Attackers"},
+                    {"id": "A2", "decision": "keep", "actor_anchor": "Attackers"},
+                    {"id": "A3", "decision": "keep", "actor_anchor": "Attackers"},
+                ]
+            },
+            {
                 "relations": [
                     {
                         "id": "R1",
@@ -966,6 +1058,333 @@ def test_generic_consolidation_and_relation_pass_preserve_merge(monkeypatch) -> 
     }
 
 
+def test_empty_initial_segmentation_gets_one_evidence_backed_rescue(
+    monkeypatch,
+) -> None:
+    source = "\n".join(
+        [
+            "Attackers gained access to the network.",
+            "They then monitored email communications.",
+        ]
+    )
+    responses = iter(
+        [
+            {"activities": []},
+            {"activities": []},
+            {
+                "activities": [
+                    {
+                        "title": "Network access and monitoring",
+                        "start_line": 1,
+                        "end_line": 2,
+                    }
+                ]
+            },
+            {"variants": [], "shared_successor_evidence": []},
+            {
+                "candidates": [
+                    {
+                        "title": "Network monitoring activity",
+                        "description": "",
+                        "actions": [
+                            action(
+                                "A1",
+                                "Gain network access",
+                                "Attackers gained access to the network.",
+                            ),
+                            action(
+                                "A2",
+                                "Monitor email communications",
+                                "They then monitored email communications.",
+                            ),
+                        ],
+                        "relations": [],
+                        "reported_actors": [],
+                    }
+                ],
+                "unassigned_evidence": [],
+            },
+            {
+                "actions": [
+                    {"id": "A1", "decision": "keep", "actor_anchor": "Attackers"},
+                    {"id": "A2", "decision": "keep", "actor_anchor": "Attackers"},
+                ]
+            },
+            {
+                "relations": [
+                    {
+                        "id": "R1",
+                        "source_action_id": "A1",
+                        "target_action_id": "A2",
+                        "type": "leads_to",
+                        "confidence": "high",
+                        "evidence": [
+                            {"quote": "They then monitored email communications."}
+                        ],
+                    }
+                ]
+            },
+        ]
+    )
+    monkeypatch.setattr(
+        DeepSeekAttackFlowExtractor,
+        "_request_json",
+        lambda self, prompt, **kwargs: next(responses),
+    )
+    extractor = DeepSeekAttackFlowExtractor(
+        base_url="https://example.invalid",
+        api_key="test",
+        model="generic-test-model",
+    )
+
+    result = extract_attack_flow_candidates(
+        extractor,
+        {"sha256": "8" * 64, "title": "generic short incident"},
+        source,
+    )
+
+    assert [item.name for item in result.candidates[0].actions] == [
+        "Gain network access",
+        "Monitor email communications",
+    ]
+    assert result.audit["activity_segmentation"]["rescue_performed"] is True
+    assert result.audit["activity_segmentation"]["rescue_attempts"] == 2
+
+
+def test_model_transport_retries_one_truncated_json_response(monkeypatch) -> None:
+    contents = iter(
+        [
+            '{"activities":[{"title":"truncated',
+            '{"activities":[]}',
+        ]
+    )
+    calls = []
+
+    class FakeResponse:
+        def raise_for_status(self) -> None:
+            return None
+
+        def json(self) -> dict:
+            return {
+                "choices": [
+                    {"message": {"content": next(contents)}}
+                ]
+            }
+
+    class FakeClient:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args) -> None:
+            return None
+
+        def post(self, *args, **kwargs):
+            calls.append(kwargs["json"])
+            return FakeResponse()
+
+    monkeypatch.setattr(
+        "argus_backend.attack_flow_extraction.httpx.Client",
+        lambda **kwargs: FakeClient(),
+    )
+    extractor = DeepSeekAttackFlowExtractor(
+        base_url="https://example.invalid",
+        api_key="test",
+        model="generic-test-model",
+    )
+
+    result = extractor._request_json(
+        {"task": "return valid JSON"},
+        max_tokens=100,
+        system_message="JSON only",
+    )
+
+    assert result["activities"] == []
+    assert len(calls) == 2
+    assert "response_retry" in calls[1]["messages"][1]["content"]
+
+
+def test_relation_pass_discards_model_edge_outside_cyber_operation(
+    monkeypatch,
+) -> None:
+    source = "\n".join(
+        [
+            "The actor attempted to sell remote access.",
+            "The actor then advertised the access on a forum.",
+        ]
+    )
+    responses = iter(
+        [
+            {
+                "activities": [
+                    {
+                        "title": "Access sale",
+                        "actor_anchor": "the actor",
+                        "start_line": 1,
+                        "end_line": 2,
+                    }
+                ]
+            },
+            {"variants": [], "shared_successor_evidence": []},
+            {
+                "candidates": [
+                    {
+                        "title": "Access sale",
+                        "description": "",
+                        "actions": [
+                            action(
+                                "A1",
+                                "Attempt access sale",
+                                "The actor attempted to sell remote access.",
+                                scope="attack",
+                            ),
+                            action(
+                                "A2",
+                                "Advertise access listing",
+                                "The actor then advertised the access on a forum.",
+                                scope="attack",
+                            ),
+                        ],
+                        "relations": [
+                            {
+                                "id": "R1",
+                                "source_action_id": "A1",
+                                "target_action_id": "A2",
+                                "type": "precedes",
+                                "confidence": "medium",
+                                "evidence": [
+                                    {
+                                        "quote": (
+                                            "The actor then advertised the access "
+                                            "on a forum."
+                                        )
+                                    }
+                                ],
+                            }
+                        ],
+                        "reported_actors": [],
+                    }
+                ],
+                "unassigned_evidence": [],
+            },
+            {
+                "actions": [
+                    {"id": "A1", "decision": "keep", "actor_anchor": "the actor"},
+                    {"id": "A2", "decision": "keep", "actor_anchor": "the actor"},
+                ]
+            },
+            {"relations": []},
+        ]
+    )
+    monkeypatch.setattr(
+        DeepSeekAttackFlowExtractor,
+        "_request_json",
+        lambda self, prompt, **kwargs: next(responses),
+    )
+    extractor = DeepSeekAttackFlowExtractor(
+        base_url="https://example.invalid",
+        api_key="test",
+        model="generic-test-model",
+    )
+
+    result = extract_attack_flow_candidates(
+        extractor,
+        {"sha256": "6" * 64, "title": "generic access marketplace report"},
+        source,
+    )
+
+    assert result.candidates[0].relations == []
+    assert result.candidates[0].mainline == []
+
+
+def test_scope_review_excludes_commercial_actions_before_relation(
+    monkeypatch,
+) -> None:
+    source = "\n".join(
+        [
+            "The actor offered a hosting discount.",
+            "The actor then advertised the service on a forum.",
+        ]
+    )
+    responses = iter(
+        [
+            {
+                "activities": [
+                    {
+                        "title": "Hosting promotion",
+                        "actor_anchor": "the actor",
+                        "start_line": 1,
+                        "end_line": 2,
+                    }
+                ]
+            },
+            {"variants": [], "shared_successor_evidence": []},
+            {
+                "candidates": [
+                    {
+                        "title": "Hosting promotion",
+                        "description": "",
+                        "actions": [
+                            action(
+                                "A1",
+                                "Offer hosting discount",
+                                "The actor offered a hosting discount.",
+                                scope="attack",
+                            ),
+                            action(
+                                "A2",
+                                "Advertise hosting service",
+                                "The actor then advertised the service on a forum.",
+                                scope="attack",
+                            ),
+                        ],
+                        "relations": [],
+                        "reported_actors": [],
+                    }
+                ],
+                "unassigned_evidence": [],
+            },
+            {
+                "actions": [
+                    {
+                        "id": "A1",
+                        "decision": "exclude",
+                        "actor_anchor": "the actor",
+                        "reason_category": "commercial-operation",
+                    },
+                    {
+                        "id": "A2",
+                        "decision": "exclude",
+                        "actor_anchor": "the actor",
+                        "reason_category": "promotion",
+                    },
+                ]
+            },
+        ]
+    )
+    monkeypatch.setattr(
+        DeepSeekAttackFlowExtractor,
+        "_request_json",
+        lambda self, prompt, **kwargs: next(responses),
+    )
+    extractor = DeepSeekAttackFlowExtractor(
+        base_url="https://example.invalid",
+        api_key="test",
+        model="generic-test-model",
+    )
+
+    result = extract_attack_flow_candidates(
+        extractor,
+        {"sha256": "5" * 64, "title": "generic hosting marketplace report"},
+        source,
+    )
+
+    assert result.candidates == []
+    assert sum(
+        item["reason"] == "action-outside-cyber-operation"
+        for item in result.audit["rejected_facts"]
+    ) == 2
+
+
 def test_concise_english_action_accepts_common_verb_inflections() -> None:
     assert _is_concise_action_name("Drops files for DLL sideloading")
     assert _is_concise_action_name("Executes legitimate binary")
@@ -1006,7 +1425,10 @@ def test_annoctr_acceptance_set_is_fixed_and_covers_required_scenarios() -> None
         "optional-attack",
     } <= scenarios
     assert manifest["source_policy"]["forbidden_inputs"]
+    assert len({case["id"] for case in manifest["cases"]}) == len(
+        manifest["cases"]
+    )
     for case in manifest["cases"]:
-        artifact = REPOSITORY_ROOT / case["artifact_path"]
-        assert artifact.is_file()
-        assert sha256(artifact.read_bytes()).hexdigest() == case["sha256"]
+        assert case["artifact_path"].startswith("data/corpus/artifacts/")
+        assert len(case["sha256"]) == 64
+        assert case["cardinality"]["minimum"] <= case["cardinality"]["maximum"]

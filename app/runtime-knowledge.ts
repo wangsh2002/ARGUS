@@ -60,6 +60,10 @@ function contextEntity(
   context: AttackFlow["actions"][number]["contexts"][number],
   previous?: Entity,
 ): Entity {
+  const entityId = context.entity_id;
+  if (!entityId) {
+    throw new Error("Unmapped AttackFlow context cannot become a runtime entity.");
+  }
   const entityType =
     context.type === "vulnerability"
       ? "CVE"
@@ -69,9 +73,9 @@ function contextEntity(
           ? "资产"
           : "IOC/基础设施";
   return {
-    id: context.entity_id,
+    id: entityId,
     entity_type: previous?.entity_type ?? entityType,
-    canonical_key: previous?.canonical_key ?? `attack-flow-context:${context.entity_id}`,
+    canonical_key: previous?.canonical_key ?? `attack-flow-context:${entityId}`,
     label: context.name,
     normalized_value: previous?.normalized_value ?? context.name.toLocaleLowerCase(),
     description: previous?.description ?? "",
@@ -129,8 +133,10 @@ export function buildPathWorkspace(
   const knownEntities = new Map(catalog.entities.map((entity) => [entity.id, entity]));
   const contextEntities = flows.flatMap((flow) =>
     flow.actions.flatMap((action) =>
-      action.contexts.map((context) =>
-        contextEntity(context, knownEntities.get(context.entity_id)),
+      action.contexts.flatMap((context) =>
+        context.entity_id
+          ? [contextEntity(context, knownEntities.get(context.entity_id))]
+          : [],
       ),
     ),
   );
@@ -168,8 +174,10 @@ export function adaptEntityIntelligence(
   );
   const contextEntities = readModel.attack_flows.flatMap((flow) =>
     flow.actions.flatMap((action) =>
-      action.contexts.map((context) =>
-        contextEntity(context, knownEntities.get(context.entity_id)),
+      action.contexts.flatMap((context) =>
+        context.entity_id
+          ? [contextEntity(context, knownEntities.get(context.entity_id))]
+          : [],
       ),
     ),
   );

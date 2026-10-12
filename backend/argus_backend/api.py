@@ -9,6 +9,7 @@ from .models import (
     AttackFlow,
     AttackFlowDraft,
     AttackFlowMergeReview,
+    AttackFlowSourceDocumentView,
     FlowMatchRequest,
     FlowMatchRun,
     PanoramicGraphIndex,
@@ -47,6 +48,20 @@ def create_app(
     def get_attack_flow(flow_id: str) -> AttackFlow:
         try:
             return application.get_attack_flow(flow_id)
+        except LookupError as error:
+            raise HTTPException(status_code=404, detail=str(error)) from error
+        except ValueError as error:
+            raise HTTPException(status_code=422, detail=str(error)) from error
+
+    @app.get(
+        "/v1/attack-flows/{flow_id}/source-documents",
+        response_model=list[AttackFlowSourceDocumentView],
+    )
+    def get_attack_flow_source_documents(
+        flow_id: str,
+    ) -> list[AttackFlowSourceDocumentView]:
+        try:
+            return application.get_attack_flow_source_documents(flow_id)
         except LookupError as error:
             raise HTTPException(status_code=404, detail=str(error)) from error
         except ValueError as error:

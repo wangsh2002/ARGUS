@@ -102,7 +102,7 @@ class AttackFlowEvidence(BaseModel):
 
 class AttackFlowContext(BaseModel):
     id: str
-    entity_id: str
+    entity_id: str | None
     type: AttackFlowContextType
     name: str
     role: AttackFlowContextRole
@@ -152,6 +152,40 @@ class AttackFlow(BaseModel):
     mainline: list[str]
 
 
+AttackFlowSourceAnnotationKind = Literal[
+    "attack-process",
+    "ioc",
+    "software",
+    "vulnerability",
+    "asset",
+    "actor",
+]
+
+
+class AttackFlowSourceAnnotation(BaseModel):
+    id: str
+    kind: AttackFlowSourceAnnotationKind
+    label: str
+    start_offset: int
+    end_offset: int
+    quote: str
+    confidence: float
+    action_ids: list[str] = Field(default_factory=list)
+    entity_id: str | None = None
+    evidence_ids: list[str] = Field(default_factory=list)
+
+
+class AttackFlowSourceDocumentView(BaseModel):
+    id: str
+    title: str
+    publisher: str
+    canonical_url: str
+    published_at: str
+    mime_type: str
+    content: str
+    annotations: list[AttackFlowSourceAnnotation]
+
+
 PanoramicNodeKind = Literal[
     "entity",
     "actor",
@@ -186,6 +220,7 @@ class PanoramicGraphEdge(BaseModel):
     confidence: float = 1.0
     aggregate: bool = False
     evidence_ids: list[str] = Field(default_factory=list)
+    evidence: list[AttackFlowEvidence] = Field(default_factory=list)
     explanation: PanoramicGraphExplanation | None = None
 
 
@@ -197,6 +232,7 @@ class PanoramicGraphIndexItem(PanoramicGraphNode):
 class PanoramicGraphIndex(BaseModel):
     nodes: list[PanoramicGraphIndexItem]
     node_count: int
+    evidence_node_count: int = 0
     atomic_edge_count: int
     aggregate_edge_count: int
     knowledge_version: str

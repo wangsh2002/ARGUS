@@ -110,6 +110,7 @@ def test_empty_candidate_list_produces_no_flow_and_keeps_entity_ingestion(
     tmp_path: Path,
 ) -> None:
     client = make_client(tmp_path)
+    baseline_flow_count = len(client.get("/v1/attack-flows").json())
     source_id = archive(
         client,
         "IOC only",
@@ -139,13 +140,14 @@ def test_empty_candidate_list_produces_no_flow_and_keeps_entity_ingestion(
         f"/v1/knowledge-ingestions/{staged['id']}/publish"
     )
     assert published.status_code == 200
-    assert len(client.get("/v1/attack-flows").json()) == 3
+    assert len(client.get("/v1/attack-flows").json()) == baseline_flow_count
 
 
 def test_multiple_candidates_are_isolated_and_independently_reviewed(
     tmp_path: Path,
 ) -> None:
     client = make_client(tmp_path)
+    baseline_flow_count = len(client.get("/v1/attack-flows").json())
     content = "\n\n".join(
         [
             "NightFox 投递文档并连接 198.51.100.77。",
@@ -209,13 +211,14 @@ def test_multiple_candidates_are_isolated_and_independently_reviewed(
     )
     assert rejected.status_code == 200
     assert rejected.json()["status"] == "rejected"
-    assert len(client.get("/v1/attack-flows").json()) == 4
+    assert len(client.get("/v1/attack-flows").json()) == baseline_flow_count + 1
 
 
 def test_new_source_can_explicitly_support_existing_flow_idempotently(
     tmp_path: Path,
 ) -> None:
     client = make_client(tmp_path)
+    baseline_flow_count = len(client.get("/v1/attack-flows").json())
     first_quote = "NightFox 投递文档并连接 198.51.100.88。"
     first_second_quote = "文档随后创建计划任务。"
     first_source = archive(
@@ -258,7 +261,7 @@ def test_new_source_can_explicitly_support_existing_flow_idempotently(
     ).json()
     assert repeated["version"]["changes"]["support_already_present"] is True
     assert repeated["attack_flow_preview"]["flow_id"] == flow_id
-    assert len(client.get("/v1/attack-flows").json()) == 4
+    assert len(client.get("/v1/attack-flows").json()) == baseline_flow_count + 1
 
     second_quote = "另一报告确认 NightFox 投递文档并连接 198.51.100.88。"
     second_second_quote = "该文档同样创建计划任务。"
@@ -311,7 +314,7 @@ def test_new_source_can_explicitly_support_existing_flow_idempotently(
         f"/v1/knowledge-ingestions/{merged_stage['id']}/publish"
     ).json()
     assert merged["version"]["changes"]["supported_attack_flow_id"] == flow_id
-    assert len(client.get("/v1/attack-flows").json()) == 4
+    assert len(client.get("/v1/attack-flows").json()) == baseline_flow_count + 1
     merged_flow = client.get(f"/v1/attack-flows/{flow_id}").json()
     assert {source["id"] for source in merged_flow["sources"]} == {
         first_source,

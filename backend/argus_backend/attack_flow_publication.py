@@ -450,7 +450,7 @@ class AttackFlowPublicationService:
             self._gate("flow-evidence", "来源证据", evidence_errors),
             self._gate("flow-relations", "关系合法性", relation_errors),
             self._gate("flow-mainline", "主干完整性", mainline_errors),
-            self._gate("flow-context", "规范实体映射", context_errors),
+            self._warning_gate("flow-context", "规范实体映射", context_errors),
             self._gate("flow-merge", "Flow 合并复核", merge_errors),
         ]
         return {
@@ -582,6 +582,7 @@ class AttackFlowPublicationService:
             context.entity_id
             for action in target.actions
             for context in action.contexts
+            if context.entity_id is not None
         }
         if not candidate_context_ids.intersection(target_context_ids):
             return [
@@ -688,8 +689,8 @@ class AttackFlowPublicationService:
     def _normalized_name(value: str) -> str:
         return "".join(value.casefold().split())
 
-    @staticmethod
     def _resolve_evidence(
+        self,
         owner_id: str,
         index: int,
         quote: str,
@@ -701,7 +702,16 @@ class AttackFlowPublicationService:
             return None
         span = next((item for item in spans if quote in item.text), None)
         if span is None:
-            return None
+            start_offset = content.find(quote)
+            if start_offset < 0:
+                return None
+            span = self.repository.ensure_source_span(
+                document.id,
+                start_offset,
+                start_offset + len(quote),
+                quote,
+            )
+            spans.append(span)
         digest = sha256(
             f"{owner_id}\0{span.id}\0{quote}\0{index}".encode("utf-8")
         ).hexdigest()[:20]
@@ -813,8 +823,24 @@ class AttackFlowPublicationService:
         aliases: list[dict],
     ) -> str | None:
         normalized = alias_key(reported_name)
+        entity_by_id = {str(entity["id"]): entity for entity in entities}
+
+        def canonical_actor_id(entity_id: str) -> str:
+            entity = entity_by_id.get(entity_id)
+            if entity is None:
+                return entity_id
+            try:
+                properties = json.loads(str(entity.get("properties_json", "{}")))
+            except json.JSONDecodeError:
+                properties = {}
+            canonical_id = str(properties.get("canonical_actor_id", entity_id))
+            canonical = entity_by_id.get(canonical_id)
+            if canonical and canonical.get("entity_type") == "攻击组织":
+                return canonical_id
+            return entity_id
+
         matches = {
-            str(entity["id"])
+            canonical_actor_id(str(entity["id"]))
             for entity in entities
             if entity["entity_type"] == "攻击组织"
             and alias_key(str(entity["label"])) == normalized
@@ -823,7 +849,7 @@ class AttackFlowPublicationService:
             str(entity["id"]): str(entity["entity_type"]) for entity in entities
         }
         matches.update(
-            str(item["entity_id"])
+            canonical_actor_id(str(item["entity_id"]))
             for item in aliases
             if str(item["alias_key"]) == normalized
             and entity_types.get(str(item["entity_id"])) == "攻击组织"
@@ -837,4 +863,13 @@ class AttackFlowPublicationService:
             "label": title,
             "status": "block" if errors else "pass",
             "detail": "；".join(dict.fromkeys(errors)) if errors else "通过",
+        }
+
+    @staticmethod
+    def _warning_gate(gate_id: str, title: str, warnings: list[str]) -> dict:
+        return {
+            "id": gate_id,
+            "label": title,
+            "status": "warn" if warnings else "pass",
+            "detail": "；".join(dict.fromkeys(warnings)) if warnings else "通过",
         }

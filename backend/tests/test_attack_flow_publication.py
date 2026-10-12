@@ -15,13 +15,30 @@ SOURCE_CONTENT = "\n\n".join(
         "NightFox 被报告通过钓鱼邮件投递恶意文档。",
         "受害者打开文档后执行加载器，并连接到 198.51.100.77。",
         "加载器随后创建计划任务以保持驻留。",
+        "加载器运行 Cobalt Strike，并写入 sample.dll。",
     ]
 )
 
 
 def make_client(tmp_path: Path) -> TestClient:
+    return make_empty_client(tmp_path)
+
+
+def make_empty_client(tmp_path: Path) -> TestClient:
     database_path = tmp_path / "argus_cti.db"
     shutil.copy2(REPOSITORY_ROOT / "data" / "argus_cti.db", database_path)
+    with sqlite3.connect(database_path) as connection:
+        connection.execute("PRAGMA foreign_keys = OFF")
+        tables = connection.execute(
+            """
+            SELECT name FROM sqlite_master
+            WHERE type = 'table'
+              AND name NOT IN ('schema_migrations', 'sqlite_sequence')
+            """
+        ).fetchall()
+        for (table,) in tables:
+            connection.execute(f'DELETE FROM "{table}"')
+        connection.commit()
     return TestClient(create_app(database_path=database_path))
 
 
@@ -187,6 +204,7 @@ def test_invalid_flow_candidates_remain_isolated_and_blocked(
     gate_id: str,
 ) -> None:
     client = make_client(tmp_path)
+    initial_flow_count = len(client.get("/v1/attack-flows").json())
     source_document_id = archive_source(client)
     draft = candidate()
     mutation(draft)
@@ -201,10 +219,10 @@ def test_invalid_flow_candidates_remain_isolated_and_blocked(
     assert next(
         gate for gate in staged["quality_gates"] if gate["id"] == gate_id
     )["status"] == "block"
-    assert len(client.get("/v1/attack-flows").json()) == 3
+    assert len(client.get("/v1/attack-flows").json()) == initial_flow_count
     publish = client.post(f"/v1/knowledge-ingestions/{staged['id']}/publish")
     assert publish.status_code == 409
-    assert len(client.get("/v1/attack-flows").json()) == 3
+    assert len(client.get("/v1/attack-flows").json()) == initial_flow_count
 
 
 def test_reviewed_attack_flow_updates_runtime_reads_and_rolls_back(
@@ -217,6 +235,7 @@ def test_reviewed_attack_flow_updates_runtime_reads_and_rolls_back(
         initial_catalog.json()["entities"]
     )
     assert initial_catalog.json()["meta"]["version"]
+    initial_flow_count = len(client.get("/v1/attack-flows").json())
     source_document_id = archive_source(client)
     blocked_candidate = candidate()
     blocked_candidate["relations"][0]["type"] = "branch"
@@ -234,7 +253,7 @@ def test_reviewed_attack_flow_updates_runtime_reads_and_rolls_back(
         "resolution"
     ]["canonical_key"] == "ipv4:198.51.100.77"
     assert staged["attack_flow_preview"]["reported_actors"][0]["actor_id"] is None
-    assert len(client.get("/v1/attack-flows").json()) == 3
+    assert len(client.get("/v1/attack-flows").json()) == initial_flow_count
 
     revised_response = client.put(
         f"/v1/knowledge-ingestions/{staged['id']}",
@@ -305,7 +324,7 @@ def test_reviewed_attack_flow_updates_runtime_reads_and_rolls_back(
             ],
         }
     ]
-    assert len(client.get("/v1/attack-flows").json()) == 4
+    assert len(client.get("/v1/attack-flows").json()) == initial_flow_count + 1
 
     duplicate = client.post(f"/v1/knowledge-ingestions/{staged['id']}/publish")
     assert duplicate.status_code == 200
@@ -326,7 +345,7 @@ def test_reviewed_attack_flow_updates_runtime_reads_and_rolls_back(
         client.get(f"/v1/runtime/entities/{context['entity_id']}").status_code
         == 404
     )
-    assert len(client.get("/v1/attack-flows").json()) == 3
+    assert len(client.get("/v1/attack-flows").json()) == initial_flow_count
     replay = client.get(f"/v1/knowledge-ingestions/{staged['id']}")
     assert replay.json()["status"] == "rolled_back"
     with sqlite3.connect(tmp_path / "argus_cti.db") as connection:
@@ -334,3 +353,72 @@ def test_reviewed_attack_flow_updates_runtime_reads_and_rolls_back(
             "SELECT COUNT(*) FROM entities WHERE canonical_key = ?",
             ("ipv4:198.51.100.77",),
         ).fetchone()[0] == 0
+
+
+def test_unresolved_context_does_not_block_empty_graph_publication(
+    tmp_path: Path,
+) -> None:
+    client = make_empty_client(tmp_path)
+    source_document_id = archive_source(client)
+    draft = candidate()
+    context_quote = "加载器运行 Cobalt Strike，并写入 sample.dll。"
+    draft["actions"][1]["contexts"] = [
+        {
+            "id": "C1",
+            "type": "malware",
+            "name": "Cobalt Strike",
+            "role": "uses",
+            "confidence": "high",
+            "evidence": [{"quote": context_quote}],
+        },
+        {
+            "id": "C2",
+            "type": "file",
+            "name": "sample.dll",
+            "role": "creates",
+            "confidence": "high",
+            "evidence": [{"quote": context_quote}],
+        },
+    ]
+
+    staged = stage(client, source_document_id, draft).json()
+
+    assert staged["publishable"] is True
+    context_gate = next(
+        gate for gate in staged["quality_gates"] if gate["id"] == "flow-context"
+    )
+    assert context_gate["status"] == "warn"
+
+    published = client.post(
+        f"/v1/knowledge-ingestions/{staged['id']}/publish"
+    )
+    assert published.status_code == 200
+    flow_id = published.json()["attack_flow_preview"]["flow_id"]
+    flow = client.get(f"/v1/attack-flows/{flow_id}").json()
+    contexts = flow["actions"][1]["contexts"]
+    assert [item["name"] for item in contexts] == [
+        "Cobalt Strike",
+        "sample.dll",
+    ]
+    assert contexts[0]["entity_id"] is not None
+    assert contexts[1]["entity_id"] is None
+
+
+def test_contiguous_cross_paragraph_quote_gets_a_precise_source_span(
+    tmp_path: Path,
+) -> None:
+    client = make_empty_client(tmp_path)
+    source_document_id = archive_source(client)
+    draft = candidate()
+    quote = (
+        "NightFox 被报告通过钓鱼邮件投递恶意文档。\n\n"
+        "受害者打开文档后执行加载器，并连接到 198.51.100.77。"
+    )
+    draft["actions"][0]["evidence"] = [{"quote": quote}]
+
+    staged = stage(client, source_document_id, draft).json()
+
+    assert staged["publishable"] is True
+    evidence = staged["attack_flow_preview"]["actions"][0]["evidence"][0]
+    assert evidence["quote"] == quote
+    assert evidence["locator"].startswith("offset:")

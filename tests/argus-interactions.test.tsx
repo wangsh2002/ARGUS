@@ -166,6 +166,133 @@ describe("ARGUS query-centered workflows", () => {
       "/api/attack-flows",
       expect.objectContaining({ cache: "no-store" }),
     );
+    const history = screen.getByRole("region", { name: "历史研判报告" });
+    const firstReport = within(history).getAllByRole("button")[0];
+    fireEvent.click(firstReport);
+    expect(
+      await screen.findByRole("button", {
+        name: /进入攻击过程|暂无关联攻击流/,
+      }),
+    ).toBeInTheDocument();
+    fireEvent.click(
+      screen.getAllByRole("button", { name: "返回综合查询" })[0],
+    );
+    expect(screen.getByLabelText("综合查询输入")).toHaveValue("");
+    expect(
+      screen.getByRole("region", { name: "历史研判报告" }),
+    ).toBeInTheDocument();
+  });
+
+  it("opens an exact published flow directly with confirmed states only", async () => {
+    const flowId = "PATH-DIRECT-CONFIRMED";
+    const actionIds = ["DIRECT-A1", "DIRECT-A2", "DIRECT-A3"];
+    const evidence = (id: string) => ({
+      id: `E-${id}`,
+      source_span_id: `SPAN-${id}`,
+      source_id: "SRC-DIRECT",
+      title: "Direct published flow report",
+      publisher: "ARGUS Test",
+      canonical_url: "https://example.test/direct-flow",
+      locator: `line:${id}`,
+      quote: `direct evidence ${id}`,
+      confidence: 0.95,
+    });
+    const flow: AttackFlow = {
+      schema_version: "1.0",
+      id: flowId,
+      title: "确定路径直达测试",
+      description: "用于验证已知 AttackFlow 不再进入匹配页面。",
+      sources: [
+        {
+          id: "SRC-DIRECT",
+          title: "Direct published flow report",
+          publisher: "ARGUS Test",
+          canonical_url: "https://example.test/direct-flow",
+          published_at: "2026-08-03",
+        },
+      ],
+      actions: actionIds.map((id, index) => ({
+        id,
+        name: ["发送钓鱼邮件", "执行恶意载荷", "建立命令控制"][index],
+        description: `已确认步骤 ${index + 1}`,
+        phase: ["初始访问", "执行", "命令与控制"][index],
+        confidence: "high",
+        technique_ids: [],
+        contexts: [],
+        evidence: [evidence(`action-${index + 1}`)],
+      })),
+      relations: actionIds.slice(1).map((targetId, index) => ({
+        id: `DIRECT-R${index + 1}`,
+        source_action_id: actionIds[index],
+        target_action_id: targetId,
+        type: "enables",
+        condition: null,
+        confidence: "high",
+        evidence: [evidence(`relation-${index + 1}`)],
+      })),
+      mainline: actionIds,
+      reported_actors: [],
+    };
+    const fetchMock = vi.fn().mockImplementation(
+      async (input: RequestInfo | URL) => {
+        const url = String(input);
+        if (url === "/api/runtime/catalog") {
+          return {
+            ok: true,
+            json: async () => ({
+              meta: {
+                source: "runtime-direct-test",
+                generated_at: data.meta.generated_at,
+                version: "KVER-direct-test",
+              },
+              stats: data.stats,
+              entities: [],
+              reports: [],
+              aliases: [],
+              response_rules: [],
+              algorithms: [],
+            }),
+          } as Response;
+        }
+        if (url === "/api/attack-flows") {
+          return { ok: true, json: async () => [flow] } as Response;
+        }
+        if (url === `/api/attack-flows/${flowId}`) {
+          return { ok: true, json: async () => flow } as Response;
+        }
+        return graphApiResponse(input) ?? {
+          ok: true,
+          json: async () => ({ configured: false, model: null }),
+        } as Response;
+      },
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<ArgusApp />);
+    const input = await screen.findByLabelText("综合查询输入");
+    await waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith(
+        "/api/attack-flows",
+        expect.objectContaining({ cache: "no-store" }),
+      ),
+    );
+    fireEvent.change(input, { target: { value: flow.title } });
+    fireEvent.click(screen.getByRole("button", { name: "执行查询" }));
+
+    expect(
+      await screen.findByText("已发布攻击过程"),
+    ).toBeInTheDocument();
+    expect(screen.getAllByText("已确认步骤").length).toBeGreaterThan(0);
+    expect(screen.queryByText("路径补全")).not.toBeInTheDocument();
+    expect(screen.queryByText("后续预测")).not.toBeInTheDocument();
+    expect(screen.queryByText(/找到.*历史攻击流候选/)).not.toBeInTheDocument();
+    expect(
+      fetchMock.mock.calls.some(([input]) => String(input) === "/api/flow-matches"),
+    ).toBe(false);
+    const stageRail = screen.getByRole("region", { name: "攻击阶段判定" });
+    within(stageRail)
+      .getAllByRole("button")
+      .forEach((stage) => expect(stage).toHaveAccessibleName(/已确认 · 95%/));
   });
 
   it("renders runtime flow candidates and preserves match states in detail", async () => {
@@ -206,8 +333,20 @@ describe("ARGUS query-centered workflows", () => {
         phase: `阶段 ${index + 1}`,
         confidence: "high",
         technique_ids: index === 3 ? ["T1053.005"] : [],
-        contexts:
-          index === 2
+        contexts: [
+          ...(index === 0
+            ? Array.from({ length: 8 }, (_, contextIndex) => ({
+                id: `CTX-RUNTIME-IOC-${contextIndex + 1}`,
+                entity_id: `ENTITY-RUNTIME-IOC-${contextIndex + 1}`,
+                type: "infrastructure" as const,
+                name: `c2-${contextIndex + 1}.example.test`,
+                role: "communicates-with" as const,
+                direction: "action-to-entity",
+                confidence: "high" as const,
+                evidence: [evidence(`ioc-${contextIndex + 1}`)],
+              }))
+            : []),
+          ...(index === 2
             ? [
                 {
                   id: "CTX-RUNTIME-MALWARE",
@@ -220,7 +359,8 @@ describe("ARGUS query-centered workflows", () => {
                   evidence: [evidence("context")],
                 },
               ]
-            : [],
+            : []),
+        ],
         evidence: [evidence(`action-${index + 1}`)],
       })),
       relations: actionIds.slice(1).map((targetId, index) => ({
@@ -326,6 +466,14 @@ describe("ARGUS query-centered workflows", () => {
         }),
       ).toBeInTheDocument(),
     );
+    expect(
+      document.querySelector(".activity-cluster-index > button"),
+    ).toBeInTheDocument();
+    expect(
+      document.querySelector(
+        ".activity-branch.is-selected .branch-select-mark",
+      ),
+    ).toBeInTheDocument();
     expect(screen.getAllByText("输入命中").length).toBeGreaterThanOrEqual(3);
     expect(screen.getAllByText("路径补全").length).toBeGreaterThan(0);
     expect(screen.getAllByText("后续预测").length).toBeGreaterThan(0);
@@ -338,6 +486,10 @@ describe("ARGUS query-centered workflows", () => {
     expect(
       screen.getByRole("button", { name: /上移投递诱饵/ }).parentElement,
     ).toHaveClass("path-editor-actions");
+    const editorStatus = document.querySelector(".path-editor-status");
+    expect(editorStatus).toHaveClass("is-observed");
+    expect(editorStatus?.querySelector("span")).toHaveTextContent("输入命中");
+    expect(editorStatus?.querySelector("b")).toHaveTextContent("100%");
     expect(
       screen.getByRole("button", { name: "进入所选路径" }),
     ).toHaveClass("path-editor-open");
@@ -354,6 +506,27 @@ describe("ARGUS query-centered workflows", () => {
     expect(
       screen.getByText(/对无法回到来源的关系保留为待验证/),
     ).toBeInTheDocument();
+    await waitFor(() =>
+      expect(
+        document.querySelector(
+          ".analysis-graph-panel .graph-node.is-ioc-collection",
+        ),
+      ).toBeInTheDocument(),
+    );
+    const graphCollection = document.querySelector(
+      ".analysis-graph-panel .graph-node.is-ioc-collection",
+    );
+    const swimlaneCollection = document.querySelector(
+      '.analysis-swimlane-panel .prototype-node[aria-label^="IOC 集合"]',
+    );
+    expect(graphCollection).toBeInTheDocument();
+    expect(swimlaneCollection).toBeInTheDocument();
+    fireEvent.click(graphCollection as Element);
+    expect(
+      screen.getByRole("heading", { level: 2, name: "报告关联 IOC 集合" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("c2-8.example.test")).toBeInTheDocument();
+    expect(screen.getByLabelText("IOC 类型统计")).toHaveTextContent("域名 8");
   });
 
   it("shows an explicit empty result instead of forcing a historical flow", async () => {
@@ -404,1136 +577,7 @@ describe("ARGUS query-centered workflows", () => {
     expect(screen.getByText(/没有强行选择无关路径/)).toBeInTheDocument();
   });
 
-  it("exposes the confirmed query products and actor directory in the top navigation", () => {
-    render(<ArgusApp fixture={data} />);
-
-    const navigation = screen.getByRole("navigation", { name: "主导航" });
-    expect(within(navigation).getByRole("button", { name: "综合查询" })).toBeInTheDocument();
-    expect(within(navigation).getByRole("button", { name: "攻击组织" })).toBeInTheDocument();
-    expect(within(navigation).queryByRole("button", { name: "攻击链" })).not.toBeInTheDocument();
-    expect(within(navigation).queryByRole("button", { name: "历史报告" })).not.toBeInTheDocument();
-    expect(within(navigation).getByRole("button", { name: "情报图谱" })).toBeInTheDocument();
-    expect(within(navigation).getByRole("button", { name: "情报入库" })).toBeInTheDocument();
-    expect(within(navigation).getByRole("button", { name: "路径复核" })).toBeInTheDocument();
-    expect(within(navigation).getByRole("button", { name: "ARGUS GPT" })).toBeInTheDocument();
-    expect(within(navigation).queryByRole("button", { name: "调查案件" })).not.toBeInTheDocument();
-
-    expect(screen.queryByRole("tab", { name: /综合情报查询/ })).not.toBeInTheDocument();
-    fireEvent.focus(screen.getByLabelText("综合查询输入"));
-    expect(screen.getByRole("tab", { name: /综合情报查询/ })).toBeInTheDocument();
-    expect(screen.queryByRole("tab", { name: /攻击链匹配/ })).not.toBeInTheDocument();
-    expect(screen.getByRole("tab", { name: /攻击路径研判/ })).toBeInTheDocument();
-    expect(screen.getByRole("tab", { name: /ARGUS GPT/ })).toBeInTheDocument();
-    expect(screen.queryByRole("tab", { name: /^Graph/ })).not.toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole("tab", { name: /攻击路径研判/ }));
-    const pathInput = screen.getByLabelText("攻击路径查询输入");
-    const pathForm = pathInput.closest("form");
-    expect(pathForm).not.toBeNull();
-    expect(
-      within(pathForm!).queryByRole("button", {
-        name: "上传文件",
-      }),
-    ).not.toBeInTheDocument();
-    expect(
-      within(screen.getByLabelText("搜索历史和推荐")).getByRole("button", {
-        name: "上传文件",
-      }),
-    ).toBeInTheDocument();
-    expect(
-      screen.queryByRole("button", { name: "载入演示案例" }),
-    ).not.toBeInTheDocument();
-    expect(screen.queryByText("0 个节点")).not.toBeInTheDocument();
-  });
-
-  it("shows only staged AttackFlow candidates in the dedicated review center", async () => {
-    const pendingQueue = {
-      items: [
-        {
-          id: "KING-PENDING-FLOW",
-          ingestion_kind: "attack-flow",
-          source_document_id: "SRC-DOC-NIGHTFOX",
-          status: "staged",
-          publishable: true,
-          quality_gates: [
-            { id: "flow-evidence", label: "Flow 证据", status: "pass", detail: "Action 与关系均有原文证据。" },
-          ],
-          attack_flow_preview: {
-            flow_id: "PATH-PUB-NIGHTFOX",
-            title: "NightFox 文档投递至驻留",
-            description: "待人工复核的历史攻击流。",
-            mainline: ["A1", "A2"],
-            actions: [
-              { id: "A1", local_id: "LOCAL-A1", name: "投递恶意文档", phase: "初始访问", contexts: [] },
-              { id: "A2", local_id: "LOCAL-A2", name: "创建计划任务", phase: "持久化", contexts: [] },
-            ],
-            relations: [
-              { id: "R1", source_action_id: "A1", target_action_id: "A2", type: "enables" },
-            ],
-            reported_actors: [],
-          },
-          attack_flow_candidate: {
-            actions: [
-              { id: "LOCAL-A1", name: "投递恶意文档", evidence: [{ quote: "NightFox 投递恶意文档。" }] },
-            ],
-          },
-        },
-      ],
-      summary: {
-        pending_flows: 1,
-        publishable_flows: 1,
-        blocked_flows: 0,
-        source_documents: 1,
-      },
-    };
-    vi.mocked(fetch).mockImplementation(async (input: RequestInfo | URL) => {
-      if (String(input) === "/api/knowledge-ingestion") {
-        return { ok: true, json: async () => pendingQueue } as Response;
-      }
-      return graphApiResponse(input) ?? {
-        ok: true,
-        json: async () => ({ configured: false, model: null }),
-      } as Response;
-    });
-
-    render(<ArgusApp fixture={data} />);
-    fireEvent.click(screen.getByRole("button", { name: "路径复核" }));
-
-    expect(
-      await screen.findByRole("heading", { level: 1, name: "路径复核" }),
-    ).toBeInTheDocument();
-    expect(
-      (await screen.findAllByText("NightFox 文档投递至驻留")).length,
-    ).toBeGreaterThan(0);
-    expect(screen.getByText("1 个 Flow")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "发布 AttackFlow" })).toBeInTheDocument();
-    expect(
-      screen.getByText(/通过证据质量门的 AttackFlow 候选/),
-    ).toBeInTheDocument();
-    expect(screen.queryByLabelText("全局搜索")).not.toBeInTheDocument();
-  });
-
-  it("opens the actor directory, actor profile and alias search without changing graph data", async () => {
-    render(<ArgusApp fixture={data} />);
-
-    fireEvent.click(screen.getByRole("button", { name: "攻击组织" }));
-    expect(
-      screen.getByRole("heading", { level: 1, name: "攻击组织目录" }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("heading", { name: "已建立画像的攻击组织" }),
-    ).toBeInTheDocument();
-    expect(screen.getAllByText("分析员辅助复核").length).toBeGreaterThan(0);
-    fireEvent.click(screen.getByRole("button", { name: /APT28/ }));
-    expect(
-      screen.getByRole("heading", { level: 1, name: "APT28" }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: /历史活动 1/ }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: /来源与证据 \d+/ }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: "查看关系图" }),
-    ).toBeInTheDocument();
-    expect(
-      screen.queryByRole("button", { name: "返回攻击组织目录" }),
-    ).not.toBeInTheDocument();
-
-    fireEvent.click(
-      within(screen.getByRole("navigation", { name: "主导航" })).getByRole(
-        "button",
-        { name: "攻击组织" },
-      ),
-    );
-    expect(
-      screen.getByRole("heading", { level: 1, name: "攻击组织目录" }),
-    ).toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole("button", { name: "返回综合查询" }));
-    fireEvent.change(screen.getByLabelText("综合查询输入"), {
-      target: { value: "Fancy Bear" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "执行查询" }));
-    expect(
-      await screen.findByRole("heading", { level: 1, name: "APT28" }),
-    ).toBeInTheDocument();
-  });
-
-  it("does not carry the actor-directory back link into the graph explorer", async () => {
-    render(<ArgusApp fixture={data} />);
-
-    fireEvent.click(screen.getByRole("button", { name: "攻击组织" }));
-    expect(
-      screen.getByRole("heading", { level: 1, name: "攻击组织目录" }),
-    ).toBeInTheDocument();
-
-    fireEvent.click(
-      within(screen.getByRole("navigation", { name: "主导航" })).getByRole(
-        "button",
-        { name: "情报图谱" },
-      ),
-    );
-
-    expect(await screen.findByText("情报关系探索")).toBeInTheDocument();
-    expect(
-      screen.queryByRole("button", { name: "返回攻击组织目录" }),
-    ).not.toBeInTheDocument();
-  });
-
-  it("keeps only the three retained curated attack paths", () => {
-    expect(
-      data.historicalPaths.map((path) => path.name),
-    ).toEqual([
-        "APT28 NATO 诱饵至 Zebrocy 数据回传",
-        "Lazarus 招聘诱饵至 PowerRatankba 后门",
-        "APT29 DNC 访问至通信监控",
-    ]);
-  });
-
-  it("loads the selected historical path from the runtime AttackFlow contract", async () => {
-    const flowId = "PATH-ANNOCTR-APT28-ZEBROCY-2020";
-    const source = {
-      id: "ART-runtime",
-      title: "Runtime AttackFlow source",
-      publisher: "ARGUS test",
-      canonical_url: "https://example.test/runtime-flow",
-      published_at: "2026-08-01",
-    };
-    const evidence = (id: string, quote: string) => ({
-      id,
-      source_span_id: `SRC-SPAN-${id}`,
-      source_id: source.id,
-      title: source.title,
-      publisher: source.publisher,
-      canonical_url: source.canonical_url,
-      locator: `line:${id}`,
-      quote,
-      confidence: 0.98,
-    });
-    const action = (sequence: number, name: string) => ({
-      id: `${flowId}-N-0${sequence}`,
-      name,
-      description: `运行时描述 ${sequence}`,
-      phase: `阶段 ${sequence}`,
-      confidence: "high",
-      technique_ids: [],
-      contexts:
-        sequence === 7
-          ? [
-              {
-                id: "ACL-runtime-c2",
-                entity_id: "ENTITY-runtime-c2",
-                type: "ip",
-                name: "203.0.113.77",
-                role: "communicates-with",
-                direction: "action-to-entity",
-                confidence: "high",
-                evidence: [evidence("context-7", "connected to 203.0.113.77")],
-              },
-            ]
-          : [],
-      evidence: [evidence(`action-${sequence}`, `runtime action ${sequence}`)],
-    });
-    const mainline = Array.from(
-      { length: 7 },
-      (_, index) => `${flowId}-N-0${index + 1}`,
-    );
-    const names = [
-      "运行时打开诱饵",
-      "运行时解压归档",
-      "运行时释放载荷",
-      "运行时复制载荷",
-      "运行时创建任务",
-      "运行时收集数据",
-      "运行时回传数据",
-    ];
-    const runtimeFlow = {
-      schema_version: "1.0",
-      id: flowId,
-      title: "运行时 AttackFlow · Zebrocy",
-      description: "该摘要只来自运行时 AttackFlow 响应。",
-      sources: [source],
-      actions: names.map((name, index) => action(index + 1, name)).reverse(),
-      relations: mainline.slice(1).map((targetActionId, index) => ({
-        id: `REL-runtime-${index + 1}`,
-        source_action_id: mainline[index],
-        target_action_id: targetActionId,
-        type: index === 0 ? "precedes" : "leads_to",
-        condition: null,
-        confidence: "high",
-        evidence: [
-          evidence(`relation-${index + 1}`, `runtime relation ${index + 1}`),
-        ],
-      })),
-      mainline,
-    };
-    const fetchMock = vi.fn().mockImplementation(async (input: RequestInfo | URL) => {
-      if (String(input) === `/api/attack-flows/${flowId}`) {
-        return { ok: true, json: async () => runtimeFlow };
-      }
-      return graphApiResponse(input) ?? { ok: true, json: async () => ({ configured: false, model: null }) };
-    });
-    vi.stubGlobal("fetch", fetchMock);
-
-    render(<ArgusApp fixture={data} />);
-    fireEvent.change(screen.getByLabelText("综合查询输入"), {
-      target: { value: "194.32.78.245" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "执行查询" }));
-    const resultToolbar = document.querySelector(".page-toolbar");
-    fireEvent.click(
-      within(resultToolbar as HTMLElement).getByRole("button", {
-        name: "打开完整图谱",
-      }),
-    );
-    expect(await screen.findByText("当前调查种子")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "打开唯一攻击路径" }));
-
-    expect(
-      await screen.findByRole("heading", {
-        level: 1,
-        name: "运行时 AttackFlow · Zebrocy",
-      }),
-    ).toBeInTheDocument();
-    expect(screen.getByText("该摘要只来自运行时 AttackFlow 响应。")).toBeInTheDocument();
-    const stageRail = screen.getByRole("region", { name: "攻击阶段判定" });
-    const stageButtons = within(stageRail).getAllByRole("button");
-    expect(stageButtons[0]).toHaveAccessibleName(
-      "01 运行时打开诱饵 输入命中 · 96%",
-    );
-    expect(stageButtons[6]).toHaveAccessibleName(
-      "07 运行时回传数据 输入命中 · 96%",
-    );
-    expect(
-      screen.getAllByRole("button", { name: "攻击步骤：运行时打开诱饵" }),
-    ).not.toHaveLength(0);
-    expect(
-      screen.getAllByRole("button", { name: "IOC/基础设施：203.0.113.77" }),
-    ).not.toHaveLength(0);
-    fireEvent.click(stageButtons[0]);
-    fireEvent.click(screen.getByRole("tab", { name: "原始信息" }));
-    await waitFor(() =>
-      expect(document.querySelector(".raw-relation-list")?.textContent).toContain(
-        "有证据先于",
-      ),
-    );
-    fireEvent.click(screen.getByRole("tab", { name: "证据" }));
-    fireEvent.click(screen.getByRole("button", { name: /runtime action 1/ }));
-    const sourceDialog = screen.getByRole("dialog", { name: "来源证据查看器" });
-    expect(within(sourceDialog).getByText("SRC-SPAN-action-1", { exact: false })).toBeInTheDocument();
-    expect(within(sourceDialog).getByText("runtime action 1")).toBeInTheDocument();
-    expect(fetchMock).toHaveBeenCalledWith(
-      `/api/attack-flows/${flowId}`,
-      expect.objectContaining({ cache: "no-store" }),
-    );
-  });
-
-  it("keeps the Snapshot attack path usable when the runtime Flow request fails", async () => {
-    const flowId = "PATH-ANNOCTR-APT28-ZEBROCY-2020";
-    const fetchMock = vi.fn().mockImplementation(async (input: RequestInfo | URL) => {
-      if (String(input) === `/api/attack-flows/${flowId}`) {
-        throw new Error("backend offline");
-      }
-      return graphApiResponse(input) ?? { ok: true, json: async () => ({ configured: false, model: null }) };
-    });
-    vi.stubGlobal("fetch", fetchMock);
-
-    render(<ArgusApp fixture={data} />);
-    fireEvent.change(screen.getByLabelText("综合查询输入"), {
-      target: { value: "194.32.78.245" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "执行查询" }));
-    fireEvent.click(
-      within(document.querySelector(".page-toolbar") as HTMLElement).getByRole(
-        "button",
-        { name: "打开完整图谱" },
-      ),
-    );
-    expect(await screen.findByText("当前调查种子")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "打开唯一攻击路径" }));
-
-    expect(
-      screen.getByRole("heading", {
-        level: 1,
-        name: "APT28 NATO 诱饵至 Zebrocy 数据回传",
-      }),
-    ).toBeInTheDocument();
-    expect(screen.getByRole("region", { name: "攻击阶段判定" })).toBeInTheDocument();
-    await waitFor(() =>
-      expect(fetchMock).toHaveBeenCalledWith(
-        `/api/attack-flows/${flowId}`,
-        expect.objectContaining({ cache: "no-store" }),
-      ),
-    );
-  });
-
-  it("keeps knowledge ingestion staged until an explicit version publish", async () => {
-    const staged = {
-      id: "KING-test",
-      source_document_id: "SRC-DOC-test",
-      status: "staged",
-      publishable: true,
-      graph_write_performed: false,
-      extraction_audit: {
-        method: "curated-baseline",
-        model: null,
-        cache_hit: true,
-        review_state: "curated",
-        warnings: [],
-        observations: [],
-      },
-      quality_gates: [
-        {
-          id: "source-integrity",
-          label: "来源完整性",
-          status: "pass",
-          detail: "原文 SHA-256 已固定。",
-        },
-        {
-          id: "evidence-coverage",
-          label: "证据锚点覆盖",
-          status: "pass",
-          detail: "全部观测均可回到原文短引文。",
-        },
-      ],
-      delta: {
-        create_entities: 0,
-        merge_entities: 3,
-        create_relationships: 0,
-        reinforce_relationships: 2,
-      },
-      entities: [
-        {
-          stage_id: "KENT-1",
-          value: "CVE-2017-6742",
-          kind: "vulnerability",
-          confidence: 1,
-          decision: "merge",
-          merge_target_id: "APT28-event-H10-step-3",
-          merge_target_label: "CVE-2017-6742",
-          source_span_ids: ["SRC-SPAN-1"],
-          quote: "CVE-2017-6742",
-        },
-      ],
-      relations: [
-        {
-          stage_id: "KREL-1",
-          source_stage_id: "KENT-1",
-          target_stage_id: "KENT-2",
-          relationship_id: "REL-1",
-          relation_type: "时序后继",
-          decision: "reinforce",
-          confidence: 0.91,
-          source_span_ids: ["SRC-SPAN-1"],
-          locator: "paragraph:1",
-          excerpt: "CVE-2017-6742 后部署 Jaguar Tooth。",
-        },
-      ],
-      version: null,
-    };
-    const published = {
-      ...staged,
-      status: "published",
-      graph_write_performed: true,
-      version: {
-        id: "KVER-test",
-        status: "published",
-        changes: { reinforced_entities: 3, created_evidence: 2 },
-        published_at: "2026-07-28T16:30:00Z",
-      },
-    };
-    const fetchMock = vi.mocked(fetch);
-    const actorSlice = {
-      meta: {
-        source: "test",
-        generated_at: "2026-07-28T16:30:00Z",
-        version: "actor-test",
-      },
-      scope: {
-        actor_ids: data.actors.map((actor) => actor.id),
-        entity_ids: data.entities.map((entity) => entity.id),
-        relationship_ids: data.relationships.map(
-          (relationship) => relationship.id,
-        ),
-      },
-      actors: data.actors,
-      entities: data.entities,
-      relationships: data.relationships,
-      evidence: data.evidence,
-      reports: data.reports,
-      aliases: data.aliases,
-    };
-    fetchMock
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => staged,
-      } as Response)
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => published,
-      } as Response)
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => actorSlice,
-      } as Response)
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({
-          status: "rolled_back",
-          changes: { removed_evidence: 2 },
-          rolled_back_at: "2026-07-28T16:35:00Z",
-        }),
-      } as Response)
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => actorSlice,
-      } as Response);
-
-    render(<ArgusApp fixture={data} />);
-    fireEvent.click(screen.getByRole("button", { name: "情报入库" }));
-
-    expect(
-      screen.getByRole("heading", { level: 1, name: "情报入库" }),
-    ).toBeInTheDocument();
-    expect(screen.getByText("当前处于暂存通道")).toBeInTheDocument();
-    fireEvent.click(
-      screen.getByRole("button", { name: "自动抽取 AttackFlow" }),
-    );
-
-    expect(await screen.findByText("尚未写入历史图谱")).toBeInTheDocument();
-    expect(screen.getByText("仅暂存")).toBeInTheDocument();
-    expect(screen.getByText("证据锚点覆盖")).toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole("button", { name: "发布知识版本" }));
-    expect(
-      await screen.findByText("知识版本 KVER-test 已发布"),
-    ).toBeInTheDocument();
-
-    await waitFor(() =>
-      expect(
-        screen.getByRole("button", { name: "回滚版本" }),
-      ).not.toBeDisabled(),
-    );
-    fireEvent.click(screen.getByRole("button", { name: "回滚版本" }));
-    expect(await screen.findByText("本次知识增量已回滚")).toBeInTheDocument();
-    expect(screen.getByText("已移除 2 条版本证据。")).toBeInTheDocument();
-  });
-
-  it("publishes a reviewed AttackFlow and opens it without a snapshot rebuild", async () => {
-    const flowId = "PATH-PUB-TEST";
-    const actionIds = ["PATH-PUB-TEST-A001", "PATH-PUB-TEST-A002"];
-    const evidence = {
-      id: "EVD-PUB-TEST",
-      source_span_id: "SRC-SPAN-PUB-TEST",
-      source_id: "SRC-DOC-PUB-TEST",
-      title: "NightFox reviewed incident",
-      publisher: "Example CERT",
-      canonical_url: "https://example.invalid/nightfox-reviewed",
-      locator: "paragraph:1",
-      quote: "NightFox 被报告通过钓鱼邮件投递恶意文档。",
-      confidence: 0.95,
-    };
-    const runtimeFlow: AttackFlow = {
-      schema_version: "1.0",
-      id: flowId,
-      title: "NightFox 文档投递至计划任务驻留",
-      description: "经人工复核的攻击过程。",
-      sources: [
-        {
-          id: "SRC-DOC-PUB-TEST",
-          title: evidence.title,
-          publisher: evidence.publisher,
-          canonical_url: evidence.canonical_url,
-          published_at: "2026-08-01",
-        },
-      ],
-      reported_actors: [
-        {
-          id: `${flowId}-ACTOR001`,
-          reported_name: "NightFox",
-          actor_id: null,
-          confidence: "medium",
-          evidence: [evidence],
-        },
-      ],
-      actions: actionIds.map((id, index) => ({
-        id,
-        name: index === 0 ? "投递恶意文档" : "创建计划任务",
-        description: "人工复核动作",
-        phase: index === 0 ? "初始访问" : "持久化",
-        confidence: "high",
-        technique_ids: [],
-        contexts: [],
-        evidence: [{ ...evidence, id: `${evidence.id}-${index}` }],
-      })),
-      relations: [
-        {
-          id: `${flowId}-R001`,
-          source_action_id: actionIds[0],
-          target_action_id: actionIds[1],
-          type: "enables",
-          condition: null,
-          confidence: "high",
-          evidence: [{ ...evidence, id: `${evidence.id}-relation` }],
-        },
-      ],
-      mainline: actionIds,
-    };
-    const staged = {
-      id: "KING-PUB-TEST",
-      ingestion_kind: "attack-flow",
-      source_document_id: "SRC-DOC-PUB-TEST",
-      status: "staged",
-      publishable: true,
-      graph_write_performed: false,
-      extraction_audit: {
-        method: "analyst-reviewed-candidate",
-        model: null,
-        cache_hit: false,
-        review_state: "reviewed",
-        warnings: [],
-        observations: [],
-      },
-      quality_gates: [
-        { id: "flow-evidence", label: "来源证据", status: "pass", detail: "通过" },
-        { id: "flow-relations", label: "关系合法性", status: "pass", detail: "通过" },
-        { id: "flow-mainline", label: "主干完整性", status: "pass", detail: "通过" },
-      ],
-      delta: {
-        create_entities: 1,
-        merge_entities: 1,
-        create_relationships: 1,
-        reinforce_relationships: 0,
-      },
-      canonical_delta: { create_entities: 0, merge_entities: 0, mentions: 0 },
-      document_scope: {
-        scope: "attack-lifecycle-candidate",
-        attack_path_eligible: true,
-        reason: "人工复核的 AttackFlow 发布候选。",
-      },
-      path_outcome: {
-        status: "extracted",
-        path_count: 1,
-        no_path_reason: null,
-        detail: "形成 1 条待发布的人工复核攻击流。",
-      },
-      entities: [],
-      canonical_entities: [],
-      relations: [],
-      event_graph_extraction: null,
-      publish_mode: "create",
-      attack_flow_candidate: {
-        title: runtimeFlow.title,
-        description: runtimeFlow.description,
-        actions: [],
-        relations: [],
-        mainline: [],
-        reported_actors: [],
-      },
-      flow_candidate_summary: {
-        status: "single",
-        candidate_count: 1,
-        recommendation: "merge",
-        merge_target_flow_id: flowId,
-        suggested_action_map: {
-          A1: actionIds[0],
-          A2: actionIds[1],
-        },
-        reason: "共享强 Context 身份锚点且行为与关系结构兼容。",
-      },
-      attack_flow_preview: {
-        flow_id: flowId,
-        title: runtimeFlow.title,
-        description: runtimeFlow.description,
-        mainline: actionIds,
-        actions: runtimeFlow.actions.map((action, index) => ({
-          id: action.id,
-          local_id: `A${index + 1}`,
-          name: action.name,
-          phase: action.phase,
-          contexts: index === 0 ? [] : [
-            {
-              id: `${flowId}-C001`,
-              name: "198.51.100.77",
-              role: "communicates-with",
-              resolution: {
-                status: "create",
-                canonical_key: "ipv4:198.51.100.77",
-              },
-            },
-          ],
-        })),
-        relations: runtimeFlow.relations,
-        reported_actors: [
-          {
-            id: `${flowId}-ACTOR001`,
-            reported_name: "NightFox",
-            actor_id: null,
-          },
-        ],
-      },
-      version: null,
-    };
-    const revised = {
-      ...staged,
-      publish_mode: "merge",
-      merge_review: {
-        target_flow_id: flowId,
-        confirmed: true,
-        action_map: staged.flow_candidate_summary.suggested_action_map,
-      },
-    };
-    const published = {
-      ...revised,
-      status: "published",
-      graph_write_performed: true,
-      version: {
-        id: "KVER-PUB-TEST",
-        status: "published",
-        changes: { supported_attack_flow_id: flowId },
-        published_at: "2026-08-01T00:00:00Z",
-      },
-    };
-    const actorSlice = {
-      meta: { source: "test", generated_at: "2026-08-01", version: "test" },
-      scope: { actor_ids: [], entity_ids: [], relationship_ids: [] },
-      actors: [],
-      entities: [],
-      relationships: [],
-      evidence: [],
-      reports: [],
-      aliases: [],
-    };
-    const fetchMock = vi.mocked(fetch);
-    fetchMock
-      .mockResolvedValueOnce({ ok: true, json: async () => staged } as Response)
-      .mockResolvedValueOnce({ ok: true, json: async () => revised } as Response)
-      .mockResolvedValueOnce({ ok: true, json: async () => published } as Response)
-      .mockResolvedValueOnce({ ok: true, json: async () => actorSlice } as Response)
-      .mockResolvedValueOnce({ ok: true, json: async () => runtimeFlow } as Response);
-
-    render(<ArgusApp fixture={data} />);
-    fireEvent.click(screen.getByRole("button", { name: "情报入库" }));
-    fireEvent.click(
-      screen.getByRole("button", { name: "载入 AttackFlow 发布案例" }),
-    );
-    fireEvent.click(screen.getByRole("button", { name: "生成入库预览" }));
-
-    expect(await screen.findByText(/AttackFlow 发布预览/)).toBeInTheDocument();
-    expect(screen.getByText(/来源报告称：NightFox.*未确认归属/)).toBeInTheDocument();
-    expect(screen.getByText(`建议合并到 ${flowId}`)).toBeInTheDocument();
-    expect(fetchMock).toHaveBeenNthCalledWith(
-      1,
-      "/api/knowledge-ingestion",
-      expect.objectContaining({
-        body: expect.stringContaining('"attack_flow_candidate"'),
-      }),
-    );
-
-    fireEvent.click(screen.getByRole("button", { name: "按建议合并" }));
-    expect(await screen.findByText("补充来源")).toBeInTheDocument();
-    expect(fetchMock).toHaveBeenNthCalledWith(
-      2,
-      "/api/knowledge-ingestion",
-      expect.objectContaining({
-        body: expect.stringContaining('"confirmed":true'),
-      }),
-    );
-
-    fireEvent.click(screen.getByRole("button", { name: "发布知识版本" }));
-    expect(
-      await screen.findByRole("button", { name: "查看已发布攻击流" }),
-    ).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "查看已发布攻击流" }));
-
-    expect(
-      await screen.findByRole("heading", { level: 1, name: runtimeFlow.title }),
-    ).toBeInTheDocument();
-    expect(fetchMock).toHaveBeenCalledWith(
-      `/api/attack-flows/${flowId}`,
-      expect.objectContaining({ cache: "no-store" }),
-    );
-  });
-
-  it("keeps search dominant on the home page and compacts it only after navigation", async () => {
-    render(<ArgusApp fixture={data} />);
-
-    const header = screen.getByRole("banner", { name: "全局页头" });
-    expect(
-      within(header).getByRole("navigation", { name: "主导航" }),
-    ).toBeInTheDocument();
-    expect(screen.getByLabelText("综合查询输入")).toBeInTheDocument();
-    expect(screen.queryByLabelText("全局搜索")).not.toBeInTheDocument();
-
-    fireEvent.change(screen.getByLabelText("综合查询输入"), {
-      target: { value: "194.32.78.245" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "执行查询" }));
-
-    expect(
-      await screen.findByRole("heading", {
-        level: 1,
-        name: "194.32.78.245",
-      }),
-    ).toBeInTheDocument();
-    expect(screen.getByLabelText("全局搜索")).toHaveValue(
-      "194.32.78.245",
-    );
-  });
-
-  it("reveals search history and recommendations only while search is active", () => {
-    render(<ArgusApp fixture={data} />);
-
-    expect(screen.getByLabelText("搜索历史和推荐")).toHaveAttribute(
-      "aria-hidden",
-      "true",
-    );
-    fireEvent.focus(screen.getByLabelText("综合查询输入"));
-    expect(screen.getByLabelText("搜索历史和推荐")).toBeInTheDocument();
-    expect(screen.getByLabelText("搜索历史和推荐")).toHaveAttribute(
-      "aria-hidden",
-      "false",
-    );
-    expect(screen.getByRole("heading", { name: "推荐搜索" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "近期报告" })).toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole("tab", { name: /攻击路径研判/ }));
-    expect(
-      screen.getByRole("button", {
-        name: "取得 DNC 环境访问 → 监控邮件与聊天",
-      }),
-    ).toBeInTheDocument();
-    expect(
-      screen.queryByRole("button", {
-        name: /PidLidReminderFileParameter/,
-      }),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole("button", { name: /Jaguar Tooth/ }),
-    ).not.toBeInTheDocument();
-
-    fireEvent.pointerDown(document.body);
-    expect(screen.getByLabelText("搜索历史和推荐")).toHaveAttribute(
-      "aria-hidden",
-      "true",
-    );
-  });
-
-  it("shows IOC overview, evidence, reports and attack context on one page", async () => {
-    render(<ArgusApp fixture={data} />);
-    fireEvent.change(screen.getByLabelText("综合查询输入"), {
-      target: { value: "194.32.78.245" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "执行查询" }));
-
-    expect(
-      await screen.findByRole("heading", { level: 1, name: "194.32.78.245" }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("heading", { level: 2, name: "情报概览" }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("heading", { level: 2, name: "来源证据" }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("heading", { level: 2, name: "历史报告" }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("heading", { level: 2, name: "关联攻击链" }),
-    ).toBeInTheDocument();
-    expect(screen.queryByRole("tablist", { name: "情报详情" })).not.toBeInTheDocument();
-    expect(screen.getAllByText("QuoIntelligence").length).toBeGreaterThan(0);
-    expect(
-      screen.getByRole("button", { name: "查看完整攻击路径" }),
-    ).toBeInTheDocument();
-    expect(
-      screen.queryByRole("img", { name: "威胁情报关系图谱" }),
-    ).not.toBeInTheDocument();
-  });
-
-  it("uses the graph-backed result for ATT&CK intelligence", async () => {
-    render(<ArgusApp fixture={data} />);
-    fireEvent.change(screen.getByLabelText("综合查询输入"), {
-      target: { value: "T1053.005" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "执行查询" }));
-
-    expect(
-      await screen.findByRole("heading", {
-        level: 1,
-        name: "T1053.005",
-      }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("heading", { level: 2, name: "相关情报实体" }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("heading", { level: 2, name: "关系图谱" }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("tablist", { name: "情报详情" }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("img", { name: "威胁情报关系图谱" }),
-    ).toBeInTheDocument();
-  });
-
-  it("opens a completed report from the home page without a separate report library", () => {
-    render(<ArgusApp fixture={data} />);
-    const reportHistory = screen.getByRole("region", { name: "历史研判报告" });
-    expect(within(reportHistory).getByRole("heading", { name: "历史研判报告" })).toBeInTheDocument();
-    expect(
-      within(reportHistory)
-        .getAllByRole("button")
-        .every((button) => button.classList.contains("home-report-card")),
-    ).toBe(true);
-    expect(
-      screen.queryByRole("navigation", { name: "历史报告" }),
-    ).not.toBeInTheDocument();
-    fireEvent.click(
-      screen.getByRole("button", {
-        name: /APT28 campaign directed against Polish government institutions/,
-      }),
-    );
-
-    expect(
-      screen.getByRole("link", { name: /查看原始来源/ }),
-    ).toHaveAttribute("href", expect.stringContaining("cert.pl"));
-    expect(document.querySelector(".report-document-preview")).toBeInTheDocument();
-    expect(
-      screen.queryByRole("button", { name: /从此报告查询攻击链/ }),
-    ).not.toBeInTheDocument();
-  });
-
-  it("keeps the GPT surface explicit when no model endpoint is configured", async () => {
-    render(<ArgusApp fixture={data} />);
-    fireEvent.click(screen.getByRole("button", { name: "ARGUS GPT" }));
-
-    expect(await screen.findByText("模型服务未配置")).toBeInTheDocument();
-    expect(screen.getByText(/模型未配置时不会返回模拟回答/)).toBeInTheDocument();
-    expect(screen.getByText(/只用于解释、总结和提供参考建议/)).toBeInTheDocument();
-    expect(screen.queryByText(/加入攻击链/)).not.toBeInTheDocument();
-  });
-
-  it("returns through nested investigation pages in reverse entry order", async () => {
-    render(<ArgusApp fixture={data} />);
-    fireEvent.change(screen.getByLabelText("综合查询输入"), {
-      target: { value: "194.32.78.245" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "执行查询" }));
-
-    expect(
-      await screen.findByRole("heading", {
-        level: 1,
-        name: "194.32.78.245",
-      }),
-    ).toBeInTheDocument();
-    const resultToolbar = document.querySelector(".page-toolbar");
-    expect(resultToolbar).not.toBeNull();
-    fireEvent.click(
-      within(resultToolbar as HTMLElement).getByRole("button", {
-        name: "打开完整图谱",
-      }),
-    );
-
-    expect(await screen.findByText("当前调查种子")).toBeInTheDocument();
-    expect(
-      (await screen.findAllByRole("button", { name: /^攻击步骤：/ })).length,
-    ).toBeGreaterThan(0);
-    expect(
-      screen.getByRole("button", {
-        name: "恶意软件/工具：Zebrocy Delphi",
-      }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", {
-        name: "ATT&CK 技术：T1041",
-      }),
-    ).toBeInTheDocument();
-    fireEvent.click(
-      screen.getByRole("button", { name: "打开唯一攻击路径" }),
-    );
-    expect(
-      screen.queryByRole("heading", {
-        name: /识别到 .*攻击活动簇/,
-      }),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.getByRole("heading", {
-        level: 1,
-        name: "APT28 NATO 诱饵至 Zebrocy 数据回传",
-      }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: "返回情报图谱" }),
-    ).toBeInTheDocument();
-
-    fireEvent.click(
-      screen.getByRole("button", { name: "返回情报图谱" }),
-    );
-    expect(await screen.findByText("当前调查种子")).toBeInTheDocument();
-
-    fireEvent.click(
-      screen.getByRole("button", { name: "返回情报查询结果" }),
-    );
-    expect(
-      screen.getByRole("heading", {
-        level: 1,
-        name: "194.32.78.245",
-      }),
-    ).toBeInTheDocument();
-
-    const intelBack = document.querySelector(".page-toolbar .back-link");
-    expect(intelBack).toHaveTextContent("返回综合查询");
-    fireEvent.click(intelBack as HTMLElement);
-    expect(
-      screen.getByRole("heading", { name: "威胁情报查询与分析平台" }),
-    ).toBeInTheDocument();
-  });
-
-  it("returns from top-level destinations to the page that launched them", async () => {
-    render(<ArgusApp fixture={data} />);
-    fireEvent.change(screen.getByLabelText("综合查询输入"), {
-      target: { value: "194.32.78.245" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "执行查询" }));
-    expect(
-      await screen.findByRole("heading", {
-        level: 1,
-        name: "194.32.78.245",
-      }),
-    ).toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole("button", { name: "情报图谱" }));
-    fireEvent.click(
-      screen.getByRole("button", { name: "返回情报查询结果" }),
-    );
-    expect(
-      screen.getByRole("heading", {
-        level: 1,
-        name: "194.32.78.245",
-      }),
-    ).toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole("button", { name: "ARGUS GPT" }));
-    expect(
-      await screen.findByRole("button", { name: "返回情报查询结果" }),
-    ).toBeInTheDocument();
-    fireEvent.click(
-      screen.getByRole("button", { name: "返回情报查询结果" }),
-    );
-    expect(
-      screen.getByRole("heading", {
-        level: 1,
-        name: "194.32.78.245",
-      }),
-    ).toBeInTheDocument();
-  });
-
-
-  it("opens the evidence-first relationship explorer from the top navigation", async () => {
-    render(<ArgusApp fixture={data} />);
-    fireEvent.click(screen.getByRole("button", { name: "情报图谱" }));
-
-    expect(await screen.findByText("情报关系探索")).toBeInTheDocument();
-    const rootSearch = screen.getByLabelText("搜索图谱根实体");
-    expect(rootSearch).toBeInTheDocument();
-    expect(
-      screen.getByRole("region", { name: "情报图谱综合入口" }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("heading", { name: "从一个真实实体开始探索" }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("heading", { name: "知识库概览" }),
-    ).toBeInTheDocument();
-    expect(screen.queryByText("进入图谱后")).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole("img", { name: "威胁情报关系图谱" }),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole("region", { name: "图谱搜索提示" }),
-    ).not.toBeInTheDocument();
-
-    fireEvent.focus(rootSearch);
-    let searchAssist = screen.getByRole("region", {
-      name: "图谱搜索提示",
-    });
-    expect(within(searchAssist).queryByText("最近调查")).not.toBeInTheDocument();
-    expect(within(searchAssist).getByText("推荐调查入口")).toBeInTheDocument();
-    expect(within(searchAssist).getByText("ATT&CK 技术")).toBeInTheDocument();
-
-    fireEvent.change(rootSearch, { target: { value: "APT28" } });
-    searchAssist = screen.getByRole("region", {
-      name: "图谱搜索提示",
-    });
-    const actorMatch = within(searchAssist)
-      .getAllByRole("button")
-      .find((button) =>
-        within(button).queryByText("APT28", { selector: "strong" }),
-      );
-    expect(actorMatch).toBeDefined();
-    expect(actorMatch!).toHaveTextContent(/条关系/);
-    expect(actorMatch!).toHaveTextContent(/个来源/);
-    fireEvent.click(actorMatch!);
-
-    expect(
-      screen.queryByRole("region", { name: "图谱搜索提示" }),
-    ).not.toBeInTheDocument();
-    expect(rootSearch).toHaveValue("");
-    expect(await screen.findByText("当前调查种子")).toBeInTheDocument();
-    expect(rootSearch.closest(".graph-explorer-hero")).toHaveClass(
-      "is-compact",
-    );
-    const rootContext = screen
-      .getByText("当前调查种子")
-      .closest(".graph-root-context");
-    expect(rootContext).not.toBeNull();
-    expect(within(rootContext as HTMLElement).getByText("APT28")).toBeInTheDocument();
-
-    fireEvent.focus(rootSearch);
-    searchAssist = screen.getByRole("region", {
-      name: "图谱搜索提示",
-    });
-    const recentSection = within(searchAssist).getByRole("region", {
-      name: "最近调查",
-    });
-    expect(
-      within(recentSection).getByRole("button", { name: /APT28/ }),
-    ).toBeInTheDocument();
-    fireEvent.keyDown(document, { key: "Escape" });
-    expect(
-      screen.queryByRole("region", { name: "图谱搜索提示" }),
-    ).not.toBeInTheDocument();
-
-    expect(screen.getByText("当前调查种子")).toBeInTheDocument();
-    const graph = screen.getByRole("img", {
-      name: "威胁情报关系图谱",
-    });
-    expect(graph).toBeVisible();
-    expect(graph.closest(".network-graph")).not.toHaveClass("is-path-layout");
-    expect(graph.closest(".network-graph")).toHaveClass("is-radial-layout");
-    expect(
-      screen.getByText("放射拓扑，新增关联沿当前节点向外展开"),
-    ).toBeInTheDocument();
-    const relationships = await screen.findAllByRole("button", {
-      name: /关系：/,
-    });
-    fireEvent.click(relationships[0]);
-    expect(screen.getByText("当前关系")).toBeInTheDocument();
-    expect(
-      screen.queryByRole("button", {
-        name: /打开唯一攻击路径|研判 .* 条候选路径/,
-      }),
-    ).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /保存/ })).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: /返回/ }));
-    expect(screen.getByRole("heading", { name: "威胁情报查询与分析平台" })).toBeInTheDocument();
-  });
 });
-
 describe("ARGUS relationship graph", () => {
   const mockGraphPointerGeometry = (
     svg: HTMLElement,

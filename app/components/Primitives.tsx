@@ -27,7 +27,7 @@ export function StatusBadge({
       partial: "待复核",
       negative: "反证",
       matched: "情报匹配",
-      confirmed: "人工确认",
+      confirmed: "已确认",
       candidate: "候选",
       excluded: "已排除",
     }[status] ||
