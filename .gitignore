@@ -1,7 +1,7 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
 # dependencies
-/node_modules
+node_modules/
 /.pnp
 .pnp.*
 .yarn/*
@@ -12,6 +12,9 @@
 
 # testing
 /coverage
+.nyc_output/
+/test-results/
+/playwright-report/
 
 # next.js
 /.next/
@@ -20,7 +23,11 @@
 
 # misc
 .DS_Store
+._*
+Thumbs.db
 *.pem
+*.key
+*.log
 
 # debug
 npm-debug.log*
@@ -31,6 +38,7 @@ yarn-error.log*
 # env files (can opt-in for committing if needed)
 .env*
 !.env.example
+!.env.*.example
 
 # vercel
 .vercel
@@ -43,6 +51,38 @@ next-env.d.ts
 /outputs/
 /work/
 __pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.tox/
+.nox/
+.coverage
+.coverage.*
+htmlcov/
+.venv/
+venv/
+env/
+*.egg-info/
+
+# Local scratch output; retain the existing attack-flow design documents.
+/.scratch/*
+!/.scratch/attack-flow-v1/
+
+# SQLite journals and local database backups; retain the runtime database.
+*.db-shm
+*.db-wal
+*.db-journal
+*.sqlite-shm
+*.sqlite-wal
+*.sqlite-journal
+*.sqlite3-shm
+*.sqlite3-wal
+*.sqlite3-journal
+/data/*.db.before-*
+/data/*.db.bak*
+
+# Local data downloads and experiment caches.
 /data/backups/
 /data/experiments/chunked_path_cache/
 /data/llm_path_cache/
